@@ -36,7 +36,7 @@ jobs:
         run: pnpm format
 
       - name: Knip
-        run: npm knip
+        run: npm run knip
 
       - name: Test
         run: pnpm test
