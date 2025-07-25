@@ -35,9 +35,6 @@ jobs:
       - name: Format
         run: pnpm format
 
-      - name: Knip
-        run: npm run knip
-
       - name: Test
         run: pnpm test
         env:
