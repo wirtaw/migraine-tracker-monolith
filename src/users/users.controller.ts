@@ -71,10 +71,7 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  update(
-    @Param() params: FindOneParams,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
+  update(@Param() params: FindOneParams, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(+params.id, updateUserDto);
   }
 
