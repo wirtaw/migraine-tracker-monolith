@@ -11,6 +11,7 @@ import { SymptomsModule } from './symptoms/symptoms.module';
 import { MedicationsModule } from './medications/medications.module';
 import { LocationModule } from './location/location.module';
 import { HealthLogsModule } from './health-logs/health-logs.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { HealthLogsModule } from './health-logs/health-logs.module';
     MedicationsModule,
     LocationModule,
     HealthLogsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
