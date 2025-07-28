@@ -1,10 +1,11 @@
 services:
-  app:
+  web1:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
+    hostname: web1
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -16,3 +17,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  web2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: web2
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Add other environment variables here (e.g., database connection details)
+    restart: always
+    # Add a healthcheck to ensure the application is running properly
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  nginx:
+    build: ./nginx
+    ports:
+    - '8080:80'
+    depends_on:
+    - web1
+    - web2
