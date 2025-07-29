@@ -26,6 +26,8 @@ RUN pnpm install --only=production
 
 COPY --from=builder /app/dist ./dist
 
+COPY --from=builder /app/node_modules ./node_modules
+
 # Expose the port that the NestJS application will listen on
 EXPOSE 3000
 

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import {
 import { TriggersService } from './triggers.service';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
+import { ITrigger } from './interfaces/trigger.interface';
 
 @ApiTags('triggers')
 @ApiBearerAuth('JWT-auth')
@@ -39,27 +41,33 @@ export class TriggersController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  create(@Body() createTriggerDto: CreateTriggerDto) {
+  async create(
+    @Body() createTriggerDto: CreateTriggerDto,
+  ): Promise<ITrigger | null> {
     return this.triggersService.create(createTriggerDto);
   }
 
   @Get()
-  findAll() {
+  async findAll(): Promise<ITrigger[]> {
     return this.triggersService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.triggersService.findOne(+id);
+  async findOne(@Param('id') id: string): Promise<ITrigger | null> {
+    return this.triggersService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTriggerDto: UpdateTriggerDto) {
-    return this.triggersService.update(+id, updateTriggerDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateTriggerDto: UpdateTriggerDto,
+  ): Promise<ITrigger | null> {
+    return this.triggersService.update(id, updateTriggerDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.triggersService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string): Promise<void> {
+    return this.triggersService.remove(id);
   }
 }

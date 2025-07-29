@@ -5,6 +5,7 @@ export interface AppConfig {
   requestTimeoutSeconds: number;
   responseTimeoutSeconds: number;
   logLevels: { [key: string]: number };
+  mongoDbUri: string;
 }
 
 enum Environment {
@@ -68,4 +69,5 @@ export default (): AppConfig => ({
     ? parseInt(process.env.APP_RESPONSE_TIMEOUT_SECONDS, 10)
     : 10000,
   logLevels: logLevels(),
+  mongoDbUri: process.env.MONGODB_URI ? process.env.MONGODB_URI : '',
 });
