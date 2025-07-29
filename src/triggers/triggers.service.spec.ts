@@ -10,6 +10,9 @@ import { NotFoundException } from '@nestjs/common';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+// TODO after fix tests remove
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 // Mock data
 const mockTrigger: HydratedDocument<Trigger> = {
@@ -253,9 +256,10 @@ describe('TriggersService', () => {
   // TODO fix test
   describe.skip('remove', () => {
     it('should remove a trigger', async () => {
-      jest.spyOn(mockTriggerModel.deleteOne().exec(), 'mockResolvedValueOnce') // Spy on the exec method
-          .mockResolvedValueOnce({ deletedCount: 1 }); // Mock deleteOne
-          const removeSpy = jest.spyOn(service, 'remove');
+      jest
+        .spyOn(mockTriggerModel.deleteOne().exec(), 'mockResolvedValueOnce') // Spy on the exec method
+        .mockResolvedValueOnce({ deletedCount: 1 }); // Mock deleteOne
+      const removeSpy = jest.spyOn(service, 'remove');
 
       await service.remove(mockTrigger._id.toHexString());
 
@@ -265,10 +269,13 @@ describe('TriggersService', () => {
     });
 
     it('should throw NotFoundException if trigger not found during remove', async () => {
-      const removeSpy = jest.spyOn(service, 'remove').mockRejectedValueOnce(new NotFoundException());
+      const removeSpy = jest
+        .spyOn(service, 'remove')
+        .mockRejectedValueOnce(new NotFoundException());
 
-      jest.spyOn(mockTriggerModel.deleteOne().exec(), 'mockResolvedValueOnce') // Spy on the exec method
-          .mockResolvedValueOnce({ deletedCount: 0 }); // Mock no deletion
+      jest
+        .spyOn(mockTriggerModel.deleteOne().exec(), 'mockResolvedValueOnce') // Spy on the exec method
+        .mockResolvedValueOnce({ deletedCount: 0 }); // Mock no deletion
 
       await expect(service.remove('nonExistentId')).rejects.toThrow(
         NotFoundException,
