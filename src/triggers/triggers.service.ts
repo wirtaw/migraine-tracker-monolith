@@ -12,7 +12,7 @@ export class TriggersService {
     @InjectModel(Trigger.name) private triggerModel: Model<TriggerDocument>,
   ) {}
 
-  async create(createTriggerDto: CreateTriggerDto): Promise<ITrigger | null> {
+  async create(createTriggerDto: CreateTriggerDto): Promise<ITrigger> {
     const createdTrigger = new this.triggerModel(createTriggerDto);
     const savedTrigger = await createdTrigger.save();
     return this.mapToITrigger(savedTrigger);
@@ -25,7 +25,7 @@ export class TriggersService {
       .filter((item) => !!item);
   }
 
-  async findOne(id: string): Promise<ITrigger | null> {
+  async findOne(id: string): Promise<ITrigger> {
     const trigger = await this.triggerModel.findById(id).exec();
     if (!trigger) {
       throw new NotFoundException(`Trigger with ID "${id}" not found`);
@@ -36,7 +36,7 @@ export class TriggersService {
   async update(
     id: string,
     updateTriggerDto: UpdateTriggerDto,
-  ): Promise<ITrigger | null> {
+  ): Promise<ITrigger> {
     const updatedTrigger = await this.triggerModel
       .findByIdAndUpdate(id, updateTriggerDto, { new: true })
       .exec();
@@ -53,15 +53,11 @@ export class TriggersService {
     }
   }
 
-  private mapToITrigger(triggerDoc: TriggerDocument): ITrigger | null {
-    if (!triggerDoc) {
-      return null;
-    }
-
+  private mapToITrigger(triggerDoc: TriggerDocument): ITrigger {
     return {
       id:
         triggerDoc && triggerDoc?._id
-          ? (triggerDoc._id as Types.ObjectId).toString() // Explicitly cast to Types.ObjectId
+          ? (triggerDoc._id as Types.ObjectId).toString()
           : '',
       userId: triggerDoc.userId,
       type: triggerDoc.type,
