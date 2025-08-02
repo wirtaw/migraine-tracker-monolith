@@ -39,7 +39,21 @@ jobs:
           MONGO_INITDB_ROOT_PASSWORD: "example"
 
       - name: Wait for MongoDB container to be ready
-        run: sleep 15
+        run: |
+          echo "Waiting for MongoDB container to be ready..."
+          max_retries=10
+          retry_count=0
+          until nc -z localhost 27018 || [ $retry_count -eq $max_retries ]; do
+            echo "Attempt $retry_count: MongoDB is not yet available. Waiting..."
+            sleep 5
+            retry_count=$((retry_count+1))
+          done
+          
+          if [ $retry_count -eq $max_retries ]; then
+            echo "Timed out waiting for MongoDB to start."
+            exit 1
+          fi
+          echo "MongoDB container is ready."
 
       - name: Lint
         run: pnpm lint
