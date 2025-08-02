@@ -31,7 +31,7 @@ jobs:
 
       - uses: adambirds/docker-compose-action@v1.5.0
         with:
-          compose-file: "./docker/docker-compose.test.yml"
+          compose-file: "./docker-compose.test.yml"
           down-flags: "--volumes"
         env:
           NODE_ENV: "test"
