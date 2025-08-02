@@ -3,4 +3,5 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - '@nestjs/core'
+  - mongodb-memory-server
   - oxc-resolver

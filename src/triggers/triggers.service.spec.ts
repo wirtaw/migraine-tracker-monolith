@@ -1,9 +1,13 @@
 // src/trigger/triggers.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { TriggersService } from './triggers.service';
-import { getModelToken } from '@nestjs/mongoose';
+import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import { Trigger, TriggerDocument } from './schemas/trigger.schema';
+import {
+  Trigger,
+  TriggerDocument,
+  TriggerSchema,
+} from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { NotFoundException } from '@nestjs/common';
@@ -62,6 +66,16 @@ describe('TriggersService', () => {
     });
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        MongooseModule.forRootAsync({
+          useFactory: () => ({
+            uri: process.env.DATABASE_URI,
+          }),
+        }),
+        MongooseModule.forFeature([
+          { name: Trigger.name, schema: TriggerSchema },
+        ]),
+      ],
       providers: [
         TriggersService,
         {
