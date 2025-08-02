@@ -17,13 +17,9 @@ module.exports = async function (globalConfig, projectConfig) {
     console.log('Stopping and removing MongoDB Docker container locally...');
     try {
       if (isPodman) {
-        await execAsync(
-          'podman-compose -f docker-compose.test.yml down -v',
-        );
+        await execAsync('podman-compose -f docker-compose.test.yml down -v');
       } else {
-        await execAsync(
-          'docker-compose -f docker-compose.test.yml down -v',
-        );
+        await execAsync('docker-compose -f docker-compose.test.yml down -v');
       }
 
       console.log('MongoDB container stopped.');

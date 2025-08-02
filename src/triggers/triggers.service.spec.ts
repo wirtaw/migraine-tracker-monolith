@@ -1,5 +1,6 @@
 // src/trigger/triggers.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
+import * as dotenv from 'dotenv';
 import { TriggersService } from './triggers.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
@@ -10,7 +11,9 @@ import {
 } from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, Logger } from '@nestjs/common';
+
+dotenv.config({ path: '.env.test' });
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -64,6 +67,8 @@ describe('TriggersService', () => {
     mockTriggerModel.deleteOne = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
+
+    Logger.log(`Database URI ${process.env.DATABASE_URI}`);
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [

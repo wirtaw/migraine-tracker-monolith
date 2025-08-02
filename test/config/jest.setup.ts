@@ -18,13 +18,9 @@ module.exports = async function (globalConfig, projectConfig) {
     console.log('Starting MongoDB Docker container locally...');
     try {
       if (isPodman) {
-        await execAsync(
-          'podman-compose -f docker-compose.test.yml up -d',
-        );
+        await execAsync('podman-compose -f docker-compose.test.yml up -d');
       } else {
-        await execAsync(
-          'docker-compose -f docker-compose.test.yml up -d',
-        );
+        await execAsync('docker-compose -f docker-compose.test.yml up -d');
       }
 
       // Wait for the MongoDB container to be ready

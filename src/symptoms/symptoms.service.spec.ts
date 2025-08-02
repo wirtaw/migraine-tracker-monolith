@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as dotenv from 'dotenv';
 import { SymptomsService } from './symptoms.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
@@ -9,7 +10,9 @@ import {
 } from './schemas/symptom.schema';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, Logger } from '@nestjs/common';
+
+dotenv.config({ path: '.env.test' });
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -65,6 +68,8 @@ describe('SymptomsService', () => {
     mockSymptomModel.deleteOne = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
+
+    Logger.log(`Database URI ${process.env.DATABASE_URI}`);
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
