@@ -35,6 +35,8 @@ jobs:
           down-flags: "--volumes"
         env:
           NODE_ENV: "test"
+          MONGO_INITDB_ROOT_USERNAME: "root"
+          MONGO_INITDB_ROOT_PASSWORD: "example"
 
       - name: Wait for MongoDB container to be ready
         run: sleep 15
@@ -50,6 +52,7 @@ jobs:
         env:
           NODE_ENV: test
           IS_PODMAN: false
+          DATABASE_URI: mongodb://root:example@mongodb_test:27018/test_db_name?authSource=admin
 
       - name: Test E2E
         run: pnpm test:e2e
