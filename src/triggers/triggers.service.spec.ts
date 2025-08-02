@@ -40,6 +40,8 @@ describe('TriggersService', () => {
   let service: TriggersService;
   let mockTriggerModel: jest.Mocked<Model<TriggerDocument>>;
   let mockDocumentInstance: TriggerDocument;
+  let model: Model<TriggerDocument>;
+  let module: TestingModule;
 
   beforeEach(async () => {
     mockDocumentInstance = {
@@ -69,7 +71,7 @@ describe('TriggersService', () => {
 
     Logger.log(`Database URI ${dbUri}`);
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [
         MongooseModule.forRootAsync({
           useFactory: () => ({
@@ -90,10 +92,16 @@ describe('TriggersService', () => {
     }).compile();
 
     service = module.get<TriggersService>(TriggersService);
+    model = module.get<Model<TriggerDocument>>(getModelToken(Trigger.name));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await model.deleteMany({});
     jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await module.close();
   });
 
   it('should be defined', () => {

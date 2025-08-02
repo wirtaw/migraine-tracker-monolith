@@ -39,8 +39,10 @@ const mockSymptoms: HydratedDocument<Symptom>[] = [
 
 describe('SymptomsService', () => {
   let service: SymptomsService;
+  let model: Model<SymptomDocument>;
   let mockSymptomModel: jest.Mocked<Model<SymptomDocument>>;
   let mockDocumentInstance: SymptomDocument;
+  let module: TestingModule;
 
   beforeEach(async () => {
     mockDocumentInstance = {
@@ -70,7 +72,7 @@ describe('SymptomsService', () => {
 
     Logger.log(`Database URI ${dbUri}`);
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [
         MongooseModule.forRootAsync({
           useFactory: () => ({
@@ -91,10 +93,16 @@ describe('SymptomsService', () => {
     }).compile();
 
     service = module.get<SymptomsService>(SymptomsService);
+    model = module.get<Model<SymptomDocument>>(getModelToken(Symptom.name));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await model.deleteMany({});
     jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await module.close();
   });
 
   it('should be defined', () => {
