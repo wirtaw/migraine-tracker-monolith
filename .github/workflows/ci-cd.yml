@@ -29,10 +29,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Start MongoDB container
-        run: docker-compose -f docker-compose.test.yml up -d
+      - uses: adambirds/docker-compose-action@v1.5.0
+        with:
+          compose-file: "./docker/docker-compose.test.yml"
+          down-flags: "--volumes"
         env:
-          NODE_ENV: test
+          NODE_ENV: "test"
 
       - name: Wait for MongoDB container to be ready
         run: sleep 15
@@ -53,7 +55,3 @@ jobs:
         run: pnpm test:e2e
         env:
           NODE_ENV: test
-
-      - name: Stop MongoDB container
-        if: always()
-        run: docker-compose -f docker-compose.test.yml down -v
