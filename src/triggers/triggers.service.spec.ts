@@ -11,7 +11,6 @@ import {
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -70,16 +69,10 @@ describe('TriggersService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          envFilePath: '.env.test',
-        }),
         MongooseModule.forRootAsync({
-          imports: [ConfigModule],
-          useFactory: (configService: ConfigService) => ({
-            uri: configService.get<string>('DATABASE_URI'),
+          useFactory: () => ({
+            uri: process.env.DATABASE_URI,
           }),
-          inject: [ConfigService],
         }),
         MongooseModule.forFeature([
           { name: Trigger.name, schema: TriggerSchema },

@@ -36,7 +36,7 @@ jobs:
         env:
           NODE_ENV: "test"
           MONGO_INITDB_ROOT_USERNAME: "root"
-          MONGO_INITDB_ROOT_PASSWORD: "example"
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
 
       - name: Wait for MongoDB container to be ready
         run: |
@@ -66,7 +66,7 @@ jobs:
         env:
           NODE_ENV: test
           IS_PODMAN: false
-          DATABASE_URI: mongodb://root:example@localhost:27018/test_db_name?authSource=admin
+          DATABASE_URI: mongodb://root:${{ secrets.MONGODB_PASSWORD }}@localhost:27018/test_db_name?authSource=admin
 
       - name: Test E2E
         run: pnpm test:e2e
