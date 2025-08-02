@@ -66,13 +66,15 @@ describe('SymptomsService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    Logger.log(`Database URI ${process.env.DATABASE_URI}`);
+    const dbUri = `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
+
+    Logger.log(`Database URI ${dbUri}`);
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         MongooseModule.forRootAsync({
           useFactory: () => ({
-            uri: process.env.DATABASE_URI,
+            uri: dbUri,
           }),
         }),
         MongooseModule.forFeature([

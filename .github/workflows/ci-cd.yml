@@ -66,7 +66,11 @@ jobs:
         env:
           NODE_ENV: test
           IS_PODMAN: false
-          DATABASE_URI: mongodb://root:${{ secrets.MONGODB_PASSWORD }}@localhost:27018/test_db_name?authSource=admin
+          MONGODB_USER: "root"
+          MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+          MONGODB_HOST: "localhost"
+          MONGODB_PORT: "27018"
+          MONGODB_DBNAME: "test_db_name"
 
       - name: Test E2E
         run: NODE_ENV=test pnpm test:e2e
