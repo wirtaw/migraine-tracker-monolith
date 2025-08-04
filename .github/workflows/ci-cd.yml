@@ -8,6 +8,12 @@ on:
     branches:
       - master
 
+env:
+  # Setting an environment variable with the value of a configuration variable
+  mongodb_user: ${{ vars.MONGODB_USER }}
+  mongodb_host: ${{ vars.MONGODB_HOST }}
+  mongodb_cluster: ${{ vars.MONGODB_CLUSTER }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,32 +35,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - uses: adambirds/docker-compose-action@v1.5.0
-        with:
-          compose-file: "./docker-compose.test.yml"
-          down-flags: "--volumes"
-        env:
-          NODE_ENV: "test"
-          MONGO_INITDB_ROOT_USERNAME: "root"
-          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-
-      - name: Wait for MongoDB container to be ready
-        run: |
-          echo "Waiting for MongoDB container to be ready..."
-          max_retries=10
-          retry_count=0
-          until nc -z localhost 27018 || [ $retry_count -eq $max_retries ]; do
-            echo "Attempt $retry_count: MongoDB is not yet available. Waiting..."
-            sleep 5
-            retry_count=$((retry_count+1))
-          done
-          
-          if [ $retry_count -eq $max_retries ]; then
-            echo "Timed out waiting for MongoDB to start."
-            exit 1
-          fi
-          echo "MongoDB container is ready."
-
       - name: Lint
         run: pnpm lint
 
@@ -66,11 +46,10 @@ jobs:
         env:
           NODE_ENV: test
           IS_PODMAN: false
-          MONGODB_USER: "root"
+          MONGODB_USER: ${{ env.mongodb_user }}
           MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-          MONGODB_HOST: "localhost"
-          MONGODB_PORT: "27018"
-          MONGODB_DBNAME: "test_db_name"
+          MONGODB_HOST: ${{ env.mongodb_host }}
+          MONGODB_CLUSTER: ${{ env.mongodb_cluster }}
 
       - name: Test E2E
         run: NODE_ENV=test pnpm test:e2e
