@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import {
 import { MedicationsService } from './medications.service';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
+import { IMedication } from './interfaces/medication.interface';
 
 @ApiTags('medications')
 @ApiBearerAuth('JWT-auth')
@@ -26,10 +28,10 @@ export class MedicationsController {
   constructor(private readonly medicationsService: MedicationsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new medications' })
+  @ApiOperation({ summary: 'Create a new medication' })
   @ApiBody({
     type: CreateMedicationDto,
-    description: 'Data for creating a new medications',
+    description: 'Data for creating a new medication',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -39,30 +41,73 @@ export class MedicationsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  create(@Body() createMedicationDto: CreateMedicationDto) {
+  async create(
+    @Body() createMedicationDto: CreateMedicationDto,
+  ): Promise<IMedication | null> {
     return this.medicationsService.create(createMedicationDto);
   }
 
   @Get()
-  findAll() {
+  @ApiOperation({ summary: 'Get list medications' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The medications list',
+  })
+  async findAll(): Promise<IMedication[]> {
     return this.medicationsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.medicationsService.findOne(+id);
+  @ApiOperation({ summary: 'Find medication by ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The medication has been founded.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The medication not found.',
+  })
+  async findOne(@Param('id') id: string): Promise<IMedication | null> {
+    return this.medicationsService.findOne(id);
   }
 
   @Patch(':id')
-  update(
+  @ApiOperation({ summary: 'Update the medication' })
+  @ApiBody({
+    type: UpdateMedicationDto,
+    description: 'Data for updating a medication',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The medication has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The medication not found.',
+  })
+  async update(
     @Param('id') id: string,
     @Body() updateMedicationDto: UpdateMedicationDto,
-  ) {
-    return this.medicationsService.update(+id, updateMedicationDto);
+  ): Promise<IMedication | null> {
+    return this.medicationsService.update(id, updateMedicationDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.medicationsService.remove(+id);
+  @ApiOperation({ summary: 'Remove the medication' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'The medication has been successfully deleted.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The medication not found.',
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string): Promise<void> {
+    return this.medicationsService.remove(id);
   }
 }

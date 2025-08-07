@@ -1,26 +1,67 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Medication, MedicationDocument } from './schemas/medication.schema';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
+import { IMedication } from './interfaces/medication.interface';
 
 @Injectable()
 export class MedicationsService {
-  create(createMedicationDto: CreateMedicationDto) {
-    return `This action adds a new medication ${JSON.stringify(createMedicationDto)}`;
+  constructor(
+    @InjectModel(Medication.name)
+    private medicationModel: Model<MedicationDocument>,
+  ) {}
+
+  async create(createMedicationDto: CreateMedicationDto): Promise<IMedication> {
+    const createdMedication = new this.medicationModel(createMedicationDto);
+    const savedMedication = await createdMedication.save();
+    return this.mapToIMedication(savedMedication);
   }
 
-  findAll() {
-    return `This action returns all medications`;
+  async findAll(): Promise<IMedication[]> {
+    const medications = await this.medicationModel.find().exec();
+    return medications.map((medication) => this.mapToIMedication(medication));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} medication`;
+  async findOne(id: string): Promise<IMedication> {
+    const medication = await this.medicationModel.findById(id).exec();
+    if (!medication) {
+      throw new NotFoundException(`Medication with ID "${id}" not found`);
+    }
+    return this.mapToIMedication(medication);
   }
 
-  update(id: number, updateMedicationDto: UpdateMedicationDto) {
-    return `This action updates a #${id} medication ${JSON.stringify(updateMedicationDto)}`;
+  async update(
+    id: string,
+    updateMedicationDto: UpdateMedicationDto,
+  ): Promise<IMedication> {
+    const updatedMedication = await this.medicationModel
+      .findByIdAndUpdate(id, updateMedicationDto, { new: true })
+      .exec();
+    if (!updatedMedication) {
+      throw new NotFoundException(`Medication with ID "${id}" not found`);
+    }
+    return this.mapToIMedication(updatedMedication);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} medication`;
+  async remove(id: string): Promise<void> {
+    const result = await this.medicationModel.deleteOne({ _id: id }).exec();
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Medication with ID "${id}" not found`);
+    }
+  }
+
+  private mapToIMedication(medicationDoc: MedicationDocument): IMedication {
+    return {
+      id: (medicationDoc._id as Types.ObjectId).toString(),
+      userId: medicationDoc.userId,
+      title: medicationDoc.title,
+      dosage: medicationDoc.dosage,
+      notes: medicationDoc.notes,
+      datetimeAt: medicationDoc.datetimeAt,
+      createdAt: medicationDoc.createdAt,
+      updateAt: medicationDoc.updateAt,
+    };
   }
 }
