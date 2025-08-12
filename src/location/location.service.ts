@@ -1,26 +1,72 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Location, LocationDocument } from './schemas/location.schema';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
+import { ILocationData } from './interfaces/location.interface';
 
 @Injectable()
 export class LocationService {
-  create(createLocationDto: CreateLocationDto) {
-    return `This action adds a new location ${JSON.stringify(createLocationDto)}`;
+  constructor(
+    @InjectModel(Location.name) private locationModel: Model<LocationDocument>,
+  ) {}
+
+  async create(createLocationDto: CreateLocationDto): Promise<ILocationData> {
+    const createdLocation = new this.locationModel(createLocationDto);
+    const savedLocation = await createdLocation.save();
+    return this.mapToILocationData(savedLocation);
   }
 
-  findAll() {
-    return `This action returns all location`;
+  async findAll(): Promise<ILocationData[]> {
+    const locations = await this.locationModel.find().exec();
+    return locations
+      .map((location) => this.mapToILocationData(location))
+      .filter((item) => !!item);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} location`;
+  async findOne(id: string): Promise<ILocationData> {
+    const location = await this.locationModel.findById(id).exec();
+    if (!location) {
+      throw new NotFoundException(`Location with ID "${id}" not found`);
+    }
+    return this.mapToILocationData(location);
   }
 
-  update(id: number, updateLocationDto: UpdateLocationDto) {
-    return `This action updates a #${id} location ${JSON.stringify(updateLocationDto)}`;
+  async update(
+    id: string,
+    updateLocationDto: UpdateLocationDto,
+  ): Promise<ILocationData> {
+    const updatedLocation = await this.locationModel
+      .findByIdAndUpdate(id, updateLocationDto, { new: true })
+      .exec();
+    if (!updatedLocation) {
+      throw new NotFoundException(`Location with ID "${id}" not found`);
+    }
+    return this.mapToILocationData(updatedLocation);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} location`;
+  async remove(id: string): Promise<void> {
+    const result = await this.locationModel.deleteOne({ _id: id }).exec();
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Location with ID "${id}" not found`);
+    }
+  }
+
+  private mapToILocationData(locationDoc: LocationDocument): ILocationData {
+    return {
+      id:
+        locationDoc && locationDoc?._id
+          ? (locationDoc._id as Types.ObjectId).toString()
+          : '',
+      userId: locationDoc.userId,
+      latitude: locationDoc.latitude,
+      longitude: locationDoc.longitude,
+      forecast: locationDoc.forecast,
+      solar: locationDoc.solar,
+      solarRadiation: locationDoc.solarRadiation,
+      datetimeAt: locationDoc.datetimeAt,
+      incidentId: locationDoc.incidentId,
+    };
   }
 }

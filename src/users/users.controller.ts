@@ -7,8 +7,7 @@ import {
   Param,
   Delete,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,22 +16,22 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { UsersService } from './users.service';
+import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { FindOneParams } from '../filters/dto/find-one-params.dto';
+import { IUser } from './interfaces/user.interface';
 
-@ApiTags('users')
+@ApiTags('user')
 @ApiBearerAuth('JWT-auth')
-@Controller('users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+@Controller('user')
+export class UserController {
+  constructor(private readonly userService: UserService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new user' })
+  @ApiOperation({ summary: 'Create a new user data entry' })
   @ApiBody({
     type: CreateUserDto,
-    description: 'Data for creating a new user',
+    description: 'Data for creating a new user entry',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -42,48 +41,71 @@ export class UsersController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto): Promise<IUser | null> {
+    return this.userService.create(createUserDto);
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @ApiOperation({ summary: 'Get list of user data entries' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user data list',
+  })
+  async findAll(): Promise<IUser[]> {
+    return this.userService.findAll();
   }
 
-  @Get(':id')
-  @UsePipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  )
-  findOne(@Param() params: FindOneParams) {
-    return this.usersService.findOne(+params.id);
+  @Get(':userId')
+  @ApiOperation({ summary: 'Find user data by userId' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user data has been found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The user data not found.',
+  })
+  async findOne(@Param('userId') userId: string): Promise<IUser | null> {
+    return this.userService.findOne(userId);
   }
 
-  @Patch(':id')
-  @UsePipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  )
-  update(@Param() params: FindOneParams, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+params.id, updateUserDto);
+  @Patch(':userId')
+  @ApiOperation({ summary: 'Update the user data' })
+  @ApiBody({
+    type: UpdateUserDto,
+    description: 'Data for updating a user data entry',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The user data has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The user data not found.',
+  })
+  async update(
+    @Param('userId') userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<IUser | null> {
+    return this.userService.update(userId, updateUserDto);
   }
 
-  @Delete(':id')
-  @UsePipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  )
-  remove(@Param() params: FindOneParams) {
-    return this.usersService.remove(+params.id);
+  @Delete(':userId')
+  @ApiOperation({ summary: 'Remove the user data' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'The user data has been successfully deleted.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The user data not found.',
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('userId') userId: string): Promise<void> {
+    return this.userService.remove(userId);
   }
 }

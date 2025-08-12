@@ -1,1 +1,75 @@
-export class CreateUserDto {}
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateFetchDataErrorsDto {
+  @IsNotEmpty()
+  @IsString()
+  forecast: string;
+
+  @IsNotEmpty()
+  @IsString()
+  magneticWeather: string;
+}
+
+export class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  longitude: string;
+
+  @IsNotEmpty()
+  @IsString()
+  latitude: string;
+
+  @IsNotEmpty()
+  @IsString()
+  birthDate: string;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  emailNotifications: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  dailySummary: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  personalHealthData: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  securitySetup: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  profileFilled: boolean;
+
+  @IsNotEmpty()
+  @IsString()
+  salt: string;
+
+  @IsNotEmpty()
+  @IsString()
+  key: string;
+
+  @ValidateNested()
+  @Type(() => CreateFetchDataErrorsDto)
+  fetchDataErrors: CreateFetchDataErrorsDto;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  fetchMagneticWeather: boolean;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  fetchWeather: boolean;
+}

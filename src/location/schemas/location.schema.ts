@@ -1,0 +1,100 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+
+export type LocationDocument = Location & Document;
+
+@Schema()
+class Forecast {
+  @Prop()
+  description: string;
+
+  @Prop()
+  temperature: number;
+
+  @Prop()
+  pressure: number;
+
+  @Prop()
+  humidity: number;
+
+  @Prop()
+  windSpeed: number;
+
+  @Prop()
+  clouds: number;
+
+  @Prop()
+  uvi: number;
+
+  @Prop({ required: true })
+  datetime: string;
+}
+
+@Schema()
+class Solar {
+  @Prop()
+  kIndex: number;
+
+  @Prop()
+  aIndex: number;
+
+  @Prop()
+  flareProbability: number;
+
+  @Prop({ required: true })
+  datetime: string;
+}
+
+@Schema()
+class SolarRadiation {
+  @Prop()
+  uviIndex: number;
+
+  @Prop()
+  ozone: number;
+
+  @Prop()
+  solarFlux: number;
+
+  @Prop()
+  sunsPotNumber: number;
+
+  @Prop({ required: true })
+  date: string;
+}
+
+const ForecastSchema = SchemaFactory.createForClass(Forecast);
+const SolarSchema = SchemaFactory.createForClass(Solar);
+const SolarRadiationSchema = SchemaFactory.createForClass(SolarRadiation);
+
+@Schema()
+export class Location {
+  @Prop({ required: true })
+  userId: string;
+
+  @Prop({ required: true })
+  latitude: number;
+
+  @Prop({ required: true })
+  longitude: number;
+
+  @Prop({ type: [ForecastSchema] })
+  forecast: Forecast[];
+
+  @Prop({ type: [SolarSchema] })
+  solar: Solar[];
+
+  @Prop({ type: [SolarRadiationSchema] })
+  solarRadiation: SolarRadiation[];
+
+  @Prop({ default: Date.now })
+  createdAt: Date;
+
+  @Prop({ required: true })
+  datetimeAt: Date;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Incident', default: null })
+  incidentId: string | null;
+}
+
+export const LocationSchema = SchemaFactory.createForClass(Location);

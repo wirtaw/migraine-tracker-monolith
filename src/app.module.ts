@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import appConfig, { getEnvFilePaths } from './config/configuration';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { UserModule } from './users/users.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { TriggersModule } from './triggers/triggers.module';
 import { SymptomsModule } from './symptoms/symptoms.module';
@@ -30,7 +30,7 @@ import { HealthModule } from './health/health.module';
       inject: [ConfigService],
     }),
     AuthModule,
-    UsersModule,
+    UserModule,
     IncidentsModule,
     TriggersModule,
     SymptomsModule,
