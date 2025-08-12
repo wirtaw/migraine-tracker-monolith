@@ -5,7 +5,10 @@ import {
   IsString,
   IsArray,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
+import { IncidentTypeEnum } from '../enums/incident-type.enum';
+import { TriggerTypeEnum } from '../../triggers/enums/trigger-type.enum';
 
 export class CreateIncidentDto {
   @IsNotEmpty()
@@ -13,8 +16,8 @@ export class CreateIncidentDto {
   userId: string;
 
   @IsNotEmpty()
-  @IsString()
-  type: string;
+  @IsEnum(IncidentTypeEnum)
+  type: IncidentTypeEnum;
 
   @IsNotEmpty()
   @IsDateString()
@@ -30,8 +33,8 @@ export class CreateIncidentDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  triggers: string[];
+  @IsEnum(TriggerTypeEnum, { each: true })
+  triggers: TriggerTypeEnum[];
 
   @IsNotEmpty()
   @IsDateString()

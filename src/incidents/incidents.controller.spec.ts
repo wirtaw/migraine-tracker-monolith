@@ -5,15 +5,17 @@ import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
 import { NotFoundException } from '@nestjs/common';
+import { IncidentTypeEnum } from './enums/incident-type.enum';
+import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
 
 const mockIIncident: IIncident = {
   id: '60c72b2f9b1d8e001c8e4d3a',
   userId: 'user123',
-  type: 'Headache',
+  type: IncidentTypeEnum.MIGRAINE_ATTACK,
   startTime: new Date('2023-01-01T10:00:00Z'),
   durationHours: 2,
   notes: 'Started after stress',
-  triggers: ['stress', 'bright lights'],
+  triggers: [TriggerTypeEnum.STRESS, TriggerTypeEnum.LACK_OF_SLEEP],
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
 };
@@ -23,11 +25,11 @@ const mockIIncidents: IIncident[] = [
   {
     id: '60c72b2f9b1d8e001c8e4d3b',
     userId: 'user456',
-    type: 'Migraine',
+    type: IncidentTypeEnum.AURA_EPISODE,
     startTime: new Date('2023-01-02T10:00:00Z'),
     durationHours: 4,
     notes: 'Visual aura',
-    triggers: ['caffeine'],
+    triggers: [TriggerTypeEnum.WEATHER],
     createdAt: new Date('2023-01-02T10:00:00Z'),
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
   },
@@ -72,11 +74,11 @@ describe('IncidentsController', () => {
     it('should create an incident and return it', async () => {
       const createDto: CreateIncidentDto = {
         userId: 'testUser',
-        type: 'TestType',
+        type: IncidentTypeEnum.MIGRAINE_ATTACK,
         startTime: new Date(),
         durationHours: 1,
         notes: 'Test notes',
-        triggers: ['trigger1'],
+        triggers: [TriggerTypeEnum.WEATHER],
         datetimeAt: new Date(),
       };
       const createSpy = jest.spyOn(service, 'create');
@@ -126,7 +128,7 @@ describe('IncidentsController', () => {
       const id = mockIIncident.id;
       const updateDto: UpdateIncidentDto = {
         notes: 'Updated notes',
-        type: 'test',
+        type: IncidentTypeEnum.MIGRAINE_ATTACK,
         startTime: new Date('2025-10-21'),
         durationHours: 1,
       };
@@ -142,7 +144,7 @@ describe('IncidentsController', () => {
       const id = 'nonExistentId';
       const updateDto: UpdateIncidentDto = {
         notes: 'test',
-        type: 'test',
+        type: IncidentTypeEnum.MIGRAINE_ATTACK,
         startTime: new Date('2025-10-21'),
         durationHours: 1,
       };

@@ -10,6 +10,8 @@ import {
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
+import { IncidentTypeEnum } from './enums/incident-type.enum';
+import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -17,11 +19,11 @@ import { NotFoundException, Logger } from '@nestjs/common';
 const mockIncident: HydratedDocument<Incident> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
   userId: 'user123',
-  type: 'Headache',
+  type: IncidentTypeEnum.MIGRAINE_ATTACK,
   startTime: new Date('2023-01-01T10:00:00Z'),
   durationHours: 2,
   notes: 'Started after stress',
-  triggers: ['stress', 'bright lights'],
+  triggers: [TriggerTypeEnum.STRESS, TriggerTypeEnum.LACK_OF_SLEEP],
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
 } as any;
@@ -31,11 +33,11 @@ const mockIncidents: HydratedDocument<Incident>[] = [
   {
     _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
     userId: 'user456',
-    type: 'Migraine',
+    type: IncidentTypeEnum.AURA_EPISODE,
     startTime: new Date('2023-01-02T10:00:00Z'),
     durationHours: 4,
     notes: 'Visual aura',
-    triggers: ['caffeine'],
+    triggers: [TriggerTypeEnum.WEATHER],
     createdAt: new Date('2023-01-02T10:00:00Z'),
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
   },
@@ -122,11 +124,11 @@ describe('IncidentsService', () => {
     it('should create and return an incident', async () => {
       const createDto: CreateIncidentDto = {
         userId: 'testUser',
-        type: 'TestType',
+        type: IncidentTypeEnum.AURA_EPISODE,
         startTime: new Date(),
         durationHours: 1,
         notes: 'Test notes',
-        triggers: ['trigger1'],
+        triggers: [TriggerTypeEnum.STRESS, TriggerTypeEnum.LACK_OF_SLEEP],
         datetimeAt: new Date(),
       };
 
@@ -204,7 +206,7 @@ describe('IncidentsService', () => {
     it('should update and return the updated incident', async () => {
       const updateDto: UpdateIncidentDto = {
         notes: 'Updated notes',
-        type: 'test',
+        type: IncidentTypeEnum.AURA_EPISODE,
         startTime: new Date('2025-10-21'),
         durationHours: 1,
       };
@@ -244,7 +246,7 @@ describe('IncidentsService', () => {
       await expect(
         service.update('nonExistentId', {
           notes: 'test',
-          type: 'test',
+          type: IncidentTypeEnum.AURA_EPISODE,
           startTime: new Date('2025-10-21'),
           durationHours: 1,
         }),

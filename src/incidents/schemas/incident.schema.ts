@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+import { IncidentTypeEnum } from '../enums/incident-type.enum';
+import { TriggerTypeEnum } from '../../triggers/enums/trigger-type.enum';
+
 export type IncidentDocument = Incident & Document;
 
 @Schema()
@@ -8,8 +11,8 @@ export class Incident {
   @Prop({ required: true })
   userId: string;
 
-  @Prop({ required: true })
-  type: string;
+  @Prop({ required: true, enum: IncidentTypeEnum })
+  type: IncidentTypeEnum;
 
   @Prop({ required: true })
   startTime: Date;
@@ -20,8 +23,13 @@ export class Incident {
   @Prop()
   notes: string;
 
-  @Prop([String])
-  triggers: string[];
+  @Prop([
+    {
+      type: String,
+      enum: TriggerTypeEnum,
+    },
+  ])
+  triggers: TriggerTypeEnum[];
 
   @Prop({ default: Date.now })
   createdAt: Date;

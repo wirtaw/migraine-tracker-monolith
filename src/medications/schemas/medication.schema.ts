@@ -23,7 +23,7 @@ export class Medication {
   @Prop({ default: Date.now })
   createdAt: Date;
 
-  @Prop({ default: Date.now })
+  @Prop({ default: Date.now, required: true })
   updateAt: Date;
 }
 

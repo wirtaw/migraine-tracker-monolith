@@ -4,14 +4,17 @@ import {
   IsNumber,
   IsString,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateIncidentDto } from './create-incident.dto';
+import { IncidentTypeEnum } from '../enums/incident-type.enum';
 
 export class UpdateIncidentDto extends PartialType(CreateIncidentDto) {
   @IsNotEmpty()
   @IsString()
-  type: string;
+  @IsEnum(IncidentTypeEnum)
+  type: IncidentTypeEnum;
 
   @IsNotEmpty()
   @IsDateString()
