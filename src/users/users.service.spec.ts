@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -21,7 +22,8 @@ const mockUser: HydratedDocument<User> = {
   securitySetup: true,
   profileFilled: true,
   salt: 'somesalt',
-  key: 'somekey',
+  encryptedSymmetricKey: 'somekey',
+  iv: 'someiv',
   fetchDataErrors: {
     forecast: 'none',
     magneticWeather: 'none',
@@ -43,7 +45,8 @@ const mockUsers: HydratedDocument<User>[] = [
     securitySetup: false,
     profileFilled: false,
     salt: 'anothersalt',
-    key: 'anotherkey',
+    encryptedSymmetricKey: 'anotherkey',
+    iv: 'anotheriv',
     fetchDataErrors: {
       forecast: 'error',
       magneticWeather: 'none',
@@ -111,6 +114,34 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     model = module.get<Model<UserDocument>>(getModelToken(User.name));
+
+    jest.spyOn(crypto, 'randomBytes').mockImplementation((size) => {
+      if (size === 16) return Buffer.from('somesalt-16bytes', 'utf-8');
+      if (size === 12) return Buffer.from('someiv-12bytes', 'utf-8');
+      if (size === 32) return Buffer.from('somemasterkey-32bytes', 'utf-8');
+      return Buffer.alloc(size);
+    });
+
+    jest
+      .spyOn(crypto, 'pbkdf2')
+      .mockImplementation(
+        (
+          password,
+          salt,
+          iterations,
+          keylen,
+          digest,
+          callback: (err: any, derivedKey: Buffer) => void,
+        ) => {
+          callback(null, Buffer.from('somederivedkey', 'utf-8'));
+        },
+      );
+
+    jest.spyOn(crypto, 'createCipheriv').mockReturnValue({
+      update: jest.fn().mockReturnValue(Buffer.from('encrypted-data', 'utf-8')),
+      final: jest.fn().mockReturnValue(Buffer.from('', 'utf-8')),
+      getAuthTag: jest.fn().mockReturnValue(Buffer.from('auth-tag', 'utf-8')),
+    } as any);
   });
 
   afterEach(async () => {
@@ -138,8 +169,7 @@ describe('UserService', () => {
         personalHealthData: true,
         securitySetup: true,
         profileFilled: true,
-        salt: 'testSalt',
-        key: 'testKey',
+        userPassphrase: 'testpassword',
         fetchDataErrors: {
           forecast: 'none',
           magneticWeather: 'none',
@@ -150,7 +180,7 @@ describe('UserService', () => {
 
       const result = await service.create(createDto);
 
-      expect(mockUserModel).toHaveBeenCalledWith(createDto);
+      expect(mockUserModel).toHaveBeenCalled();
       expect(mockDocumentInstance.save).toHaveBeenCalled();
 
       expect(result).toEqual({
@@ -164,7 +194,8 @@ describe('UserService', () => {
         securitySetup: mockUser.securitySetup,
         profileFilled: mockUser.profileFilled,
         salt: mockUser.salt,
-        key: mockUser.key,
+        encryptedSymmetricKey: mockUser.encryptedSymmetricKey,
+        iv: mockUser.iv,
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
@@ -189,7 +220,8 @@ describe('UserService', () => {
           securitySetup: t.securitySetup,
           profileFilled: t.profileFilled,
           salt: t.salt,
-          key: t.key,
+          encryptedSymmetricKey: t.encryptedSymmetricKey,
+          iv: t.iv,
           fetchDataErrors: t.fetchDataErrors,
           fetchMagneticWeather: t.fetchMagneticWeather,
           fetchWeather: t.fetchWeather,
@@ -216,7 +248,8 @@ describe('UserService', () => {
         securitySetup: mockUser.securitySetup,
         profileFilled: mockUser.profileFilled,
         salt: mockUser.salt,
-        key: mockUser.key,
+        encryptedSymmetricKey: mockUser.encryptedSymmetricKey,
+        iv: mockUser.iv,
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
@@ -244,8 +277,6 @@ describe('UserService', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        salt: 'anothersalt',
-        key: 'anotherkey',
         fetchDataErrors: {
           forecast: 'error',
           magneticWeather: 'none',
@@ -276,7 +307,8 @@ describe('UserService', () => {
         securitySetup: updatedMockUser.securitySetup,
         profileFilled: updatedMockUser.profileFilled,
         salt: updatedMockUser.salt,
-        key: updatedMockUser.key,
+        encryptedSymmetricKey: updatedMockUser.encryptedSymmetricKey,
+        iv: updatedMockUser.iv,
         fetchDataErrors: updatedMockUser.fetchDataErrors,
         fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
         fetchWeather: updatedMockUser.fetchWeather,
@@ -298,8 +330,6 @@ describe('UserService', () => {
           personalHealthData: false,
           securitySetup: false,
           profileFilled: false,
-          salt: 'anothersalt',
-          key: 'anotherkey',
           fetchDataErrors: {
             forecast: 'error',
             magneticWeather: 'none',

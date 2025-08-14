@@ -55,11 +55,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  salt: string;
-
-  @IsNotEmpty()
-  @IsString()
-  key: string;
+  userPassphrase: string;
 
   @ValidateNested()
   @Type(() => CreateFetchDataErrorsDto)

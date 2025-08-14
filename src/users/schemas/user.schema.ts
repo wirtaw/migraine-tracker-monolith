@@ -47,7 +47,10 @@ export class User {
   salt: string;
 
   @Prop({ required: true })
-  key: string;
+  encryptedSymmetricKey: string; // Renamed from key
+
+  @Prop({ required: true })
+  iv: string; // New field for the Initialization Vector
 
   @Prop({ type: FetchDataErrorsSchema })
   fetchDataErrors: FetchDataErrors;

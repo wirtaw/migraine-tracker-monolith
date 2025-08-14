@@ -34,12 +34,4 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsBoolean()
   profileFilled: boolean;
-
-  @IsNotEmpty()
-  @IsString()
-  salt: string;
-
-  @IsNotEmpty()
-  @IsString()
-  key: string;
 }

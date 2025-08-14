@@ -17,7 +17,8 @@ const mockIUser: IUser = {
   securitySetup: true,
   profileFilled: true,
   salt: 'somesalt',
-  key: 'somekey',
+  encryptedSymmetricKey: 'somekey',
+  iv: 'iv',
   fetchDataErrors: {
     forecast: 'none',
     magneticWeather: 'none',
@@ -39,7 +40,8 @@ const mockIUsers: IUser[] = [
     securitySetup: false,
     profileFilled: false,
     salt: 'anothersalt',
-    key: 'anotherkey',
+    encryptedSymmetricKey: 'anotherkey',
+    iv: 'iv',
     fetchDataErrors: {
       forecast: 'error',
       magneticWeather: 'none',
@@ -96,8 +98,7 @@ describe('UserController', () => {
         personalHealthData: true,
         securitySetup: true,
         profileFilled: true,
-        salt: 'testSalt',
-        key: 'testKey',
+        userPassphrase: 'testpassword',
         fetchDataErrors: {
           forecast: 'none',
           magneticWeather: 'none',
@@ -161,8 +162,6 @@ describe('UserController', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        salt: 'anothersalt',
-        key: 'anotherkey',
         fetchDataErrors: {
           forecast: 'error',
           magneticWeather: 'none',
@@ -189,8 +188,6 @@ describe('UserController', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        salt: 'anothersalt',
-        key: 'anotherkey',
         fetchDataErrors: {
           forecast: 'error',
           magneticWeather: 'none',
