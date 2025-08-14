@@ -2,7 +2,13 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as dotenv from 'dotenv';
+
+declare global {
+  // store mongod reference for teardown
+  var __MONGOD__: MongoMemoryServer;
+}
 
 const execAsync = promisify(exec);
 
@@ -33,5 +39,8 @@ module.exports = async function (globalConfig, projectConfig) {
     }
   } else {
     console.log('Running in CI environment, skipping local Docker setup.');
+    const mongod = await MongoMemoryServer.create();
+    process.env.MONGO_URI = mongod.getUri();
+    global.__MONGOD__ = mongod;
   }
 };

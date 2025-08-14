@@ -13,10 +13,16 @@ env:
   mongodb_user: ${{ vars.MONGODB_USER }}
   mongodb_host: ${{ vars.MONGODB_HOST }}
   mongodb_cluster: ${{ vars.MONGODB_CLUSTER }}
+  mongodb_uri: mongodb://localhost:27017/testdb
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:5.0
+        ports: ['27017:27017']
 
     steps:
       - name: Checkout code
@@ -50,6 +56,7 @@ jobs:
           MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
           MONGODB_HOST: ${{ env.mongodb_host }}
           MONGODB_CLUSTER: ${{ env.mongodb_cluster }}
+          MONGO_URI: ${{ env.mongodb_uri }}
 
       - name: Test E2E
         run: NODE_ENV=test pnpm test:e2e

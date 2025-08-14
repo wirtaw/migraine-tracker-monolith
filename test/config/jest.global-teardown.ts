@@ -29,5 +29,8 @@ module.exports = async function (globalConfig, projectConfig) {
     }
   } else {
     console.log('Running in CI environment, skipping local Docker teardown.');
+    if (global.__MONGOD__) {
+      await global.__MONGOD__.stop();
+    }
   }
 };

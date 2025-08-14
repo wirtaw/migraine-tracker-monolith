@@ -102,12 +102,16 @@ describe('LocationService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    const dbUri =
+    let dbUri =
       !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
         ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
         : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
 
     Logger.log(`Database URI ${dbUri}`);
+
+    if (process.env.MONGO_URI) {
+      dbUri = process.env.MONGO_URI;
+    }
 
     module = await Test.createTestingModule({
       imports: [
