@@ -4,9 +4,11 @@ import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption/encryption.service';
 import { SymmetricKeyService } from './symmetric-key.service';
 import { SupabaseService } from './supabase.service';
-import { User, UserDocument, UserSchema } from '../users/schemas/user.schema';
+import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, HydratedDocument } from 'mongoose';
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 const mockUser: HydratedDocument<User> = {
   userId: 'user123',
