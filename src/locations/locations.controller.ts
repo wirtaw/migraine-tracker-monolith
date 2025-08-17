@@ -16,14 +16,14 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { LocationService } from './location.service';
-import { CreateLocationDto } from './dto/create-location.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
-import { ILocationData } from './interfaces/location.interface';
+import { LocationService } from './locations.service';
+import { CreateLocationDto } from './dto/create-locations.dto';
+import { UpdateLocationDto } from './dto/update-locations.dto';
+import { ILocationData } from './interfaces/locations.interface';
 
-@ApiTags('location')
+@ApiTags('locations')
 @ApiBearerAuth('JWT-auth')
-@Controller('location')
+@Controller('locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 

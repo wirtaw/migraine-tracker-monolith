@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocationService } from './location.service';
+import { LocationService } from './locations.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Location,
   LocationDocument,
   LocationSchema,
-} from './schemas/location.schema';
-import { CreateLocationDto } from './dto/create-location.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
+} from './schemas/locations.schema';
+import { CreateLocationDto } from './dto/create-locations.dto';
+import { UpdateLocationDto } from './dto/update-locations.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */

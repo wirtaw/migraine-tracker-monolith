@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Location, LocationDocument } from './schemas/location.schema';
-import { CreateLocationDto } from './dto/create-location.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
-import { ILocationData } from './interfaces/location.interface';
+import { Location, LocationDocument } from './schemas/locations.schema';
+import { CreateLocationDto } from './dto/create-locations.dto';
+import { UpdateLocationDto } from './dto/update-locations.dto';
+import { ILocationData } from './interfaces/locations.interface';
 
 @Injectable()
 export class LocationService {

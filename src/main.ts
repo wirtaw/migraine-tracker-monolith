@@ -94,7 +94,7 @@ async function bootstrap() {
     .addTag('auth', 'Operations related to auth')
     .addTag('health-logs', 'Operations related to health-logs')
     .addTag('incidents', 'Operations related to incidents')
-    .addTag('location', 'Operations related to location')
+    .addTag('locations', 'Operations related to locations')
     .addTag('medications', 'Operations related to medications')
     .addTag('symptoms', 'Operations related to symptoms')
     .addTag('triggers', 'Operations related to triggers')

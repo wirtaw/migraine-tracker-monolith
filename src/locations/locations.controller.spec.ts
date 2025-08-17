@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocationController } from './location.controller';
-import { LocationService } from './location.service';
-import { CreateLocationDto } from './dto/create-location.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
-import { ILocationData } from './interfaces/location.interface';
+import { LocationController } from './locations.controller';
+import { LocationService } from './locations.service';
+import { CreateLocationDto } from './dto/create-locations.dto';
+import { UpdateLocationDto } from './dto/update-locations.dto';
+import { ILocationData } from './interfaces/locations.interface';
 import { NotFoundException } from '@nestjs/common';
 
 const mockILocation: ILocationData = {

@@ -1,12 +1,12 @@
+// src/auth/auth.controller.ts
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
+  HttpCode,
   HttpStatus,
+  UseGuards,
+  Get,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,7 +17,9 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { LoginDto } from './dto/login.dto';
+import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { RequestWithUser } from './interfaces/auth.user.interface';
 
 @ApiTags('auth')
 @ApiBearerAuth('JWT-auth')
@@ -25,36 +27,56 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new auth' })
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({
     type: CreateAuthDto,
-    description: 'Data for creating a new auth',
+    description: 'Data for creating a new user',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
-    description: 'The auth has been successfully created.',
+    description: 'The user has been successfully registered.',
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  async register(@Body() createAuthDto: CreateAuthDto) {
+    return this.authService.register(createAuthDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Log in an existing user' })
+  @ApiBody({
+    type: LoginDto,
+    description: 'User login credentials',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User successfully logged in.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid credentials.',
+  })
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Get('profile')
+  @UseGuards(SupabaseAuthGuard)
+  @ApiOperation({ summary: 'Get user profile' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User profile retrieved successfully.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized access.',
+  })
+  getProfile(req: RequestWithUser) {
+    // The SupabaseAuthGuard will attach the user to the request
+    return req.user;
   }
 }

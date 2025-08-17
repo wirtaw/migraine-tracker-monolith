@@ -12,7 +12,7 @@ import {
   CreateForecastDto,
   CreateSolarDto,
   CreateSolarRadiationDto,
-} from './create-location.dto';
+} from './create-locations.dto';
 
 export class UpdateLocationDto extends PartialType(CreateLocationDto) {
   @IsNotEmpty()

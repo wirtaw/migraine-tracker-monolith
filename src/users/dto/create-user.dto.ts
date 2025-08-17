@@ -3,6 +3,8 @@ import {
   IsNotEmpty,
   IsString,
   ValidateNested,
+  IsLatitude,
+  IsLongitude,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -23,10 +25,12 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
+  @IsLongitude()
   longitude: string;
 
   @IsNotEmpty()
   @IsString()
+  @IsLatitude()
   latitude: string;
 
   @IsNotEmpty()
