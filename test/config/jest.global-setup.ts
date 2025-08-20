@@ -40,7 +40,8 @@ module.exports = async function (globalConfig, projectConfig) {
   } else {
     console.log('Running in CI environment, skipping local Docker setup.');
     const mongod = await MongoMemoryServer.create();
-    process.env.MONGO_URI = mongod.getUri();
-    global.__MONGOD__ = mongod;
+    console.log(`getUri ${mongod.getUri()}`);
+    // process.env.MONGO_URI = mongod.getUri();
+    // global.__MONGOD__ = mongod;
   }
 };
