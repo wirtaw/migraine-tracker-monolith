@@ -2,18 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
-
-env:
-  # Setting an environment variable with the value of a configuration variable
-  mongodb_user: ${{ vars.MONGODB_USER }}
-  mongodb_host: ${{ vars.MONGODB_HOST }}
-  mongodb_cluster: ${{ vars.MONGODB_CLUSTER }}
-  mongodb_uri: mongodb://localhost:27017/testdb
+    branches:  [master]
 
 jobs:
   build:
@@ -23,6 +14,18 @@ jobs:
       mongo:
         image: mongo:5.0
         ports: ['27017:27017']
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      MONGODB_USER: ${{ vars.MONGODB_USER }}
+      MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+      MONGODB_HOST: mongo
+      MONGODB_CLUSTER: ${{ vars.MONGODB_CLUSTER }}
+      MONGO_URI: mongodb://mongo:27017/testdb
 
     steps:
       - name: Checkout code
@@ -46,19 +49,31 @@ jobs:
 
       - name: Format
         run: pnpm format
+      
+      - name: Wait for MongoDB to be ready
+        run: |
+          for i in {1..10}; do
+            if mongosh "mongodb://mongo:27017/testdb" --eval "db.runCommand({ ping: 1 })"; then
+              echo "MongoDB is ready!"
+              break
+            fi
+            echo "Waiting for MongoDB..."
+            sleep 5
+          done
 
       - name: Test
         run: NODE_ENV=test pnpm test
         env:
           NODE_ENV: test
           IS_PODMAN: false
-          MONGODB_USER: ${{ env.mongodb_user }}
-          MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-          MONGODB_HOST: ${{ env.mongodb_host }}
-          MONGODB_CLUSTER: ${{ env.mongodb_cluster }}
-          MONGO_URI: ${{ env.mongodb_uri }}
+          MONGODB_USER: ${{ env.MONGODB_USER }}
+          MONGODB_PASSWORD: ${{ env.MONGODB_PASSWORD }}
+          MONGODB_HOST: ${{ env.MONGODB_HOST }}
+          MONGODB_CLUSTER: ${{ env.MONGODB_CLUSTER }}
+          MONGO_URI: ${{ env.MONGO_URI }}
 
       - name: Test E2E
         run: NODE_ENV=test pnpm test:e2e
         env:
           NODE_ENV: test
+          MONGO_URI: ${{ env.MONGO_URI }}
