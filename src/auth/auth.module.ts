@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
@@ -26,10 +27,16 @@ import { HttpModule } from '@nestjs/axios';
     UserService,
     JwtService,
     JwtStrategy,
-    AuthGuard,
     SupabaseService,
-    SupabaseAuthGuard,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SupabaseAuthGuard,
+    },
   ],
-  exports: [JwtService, AuthGuard],
+  exports: [JwtService],
 })
 export class AuthModule {}
