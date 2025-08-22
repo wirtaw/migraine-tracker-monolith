@@ -1,12 +1,11 @@
-// src/auth/symmetric-key.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymmetricKeyService } from './symmetric-key.service';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
+import { createHmac } from 'crypto';
 
-describe('SymmetricKeyService', () => {
+describe('SymmetricKeyService with HMAC', () => {
   let service: SymmetricKeyService;
-  let httpService: HttpService;
 
   const mockHttpService = {
     get: jest.fn(),
@@ -24,63 +23,73 @@ describe('SymmetricKeyService', () => {
     }).compile();
 
     service = module.get<SymmetricKeyService>(SymmetricKeyService);
-    httpService = module.get<HttpService>(HttpService);
 
     jest.clearAllMocks();
     process.env.CLOUDFLARE_WORKER_URL = 'http://test-worker.com';
+    process.env.CLOUDFLARE_WORKER_HEADER_KEY =
+      'aabbccddeeff00112233445566778899';
     service['cachedKey'] = null;
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('should return default key if CLOUDFLARE_WORKER_URL or CLOUDFLARE_WORKER_HEADER_KEY is missing', async () => {
+    delete process.env.CLOUDFLARE_WORKER_URL;
+    const key = await service.getKey();
+    expect(key).toBe('default_jwt_encryption_key');
+    expect(mockHttpService.get).not.toHaveBeenCalled();
   });
 
-  describe('getKey', () => {
-    it('should return default key if CLOUDFLARE_WORKER_URL is not defined', async () => {
-      delete process.env.CLOUDFLARE_WORKER_URL;
-      const getSpy = jest.spyOn(httpService, 'get');
+  it('should fetch and return the key from the worker URL with valid HMAC headers', async () => {
+    const workerKey = 'secure_worker_key';
+    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
+    const expectedBody = JSON.stringify({});
 
-      const key = await service.getKey();
+    mockHttpService.get.mockReturnValueOnce(
+      of({ data: { JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey } }),
+    );
 
-      expect(key).toBe('default_jwt_encryption_key');
-      expect(getSpy).toHaveBeenCalledTimes(0);
-    });
+    const key = await service.getKey();
+    expect(key).toBe(workerKey);
+    expect(mockHttpService.get).toHaveBeenCalled();
 
-    it('should fetch and return the key from the worker URL', async () => {
-      const workerKey = 'worker_jwt_key';
-      mockHttpService.get.mockReturnValueOnce(
-        of({ data: { JWT_KEY: workerKey } }),
-      );
-      const getSpy = jest.spyOn(httpService, 'get');
+    const call = mockHttpService.get.mock.calls[0] as Parameters<
+      HttpService['get']
+    >;
+    const [url, config] = call;
 
-      const key = await service.getKey();
+    expect(url).toBe(process.env.CLOUDFLARE_WORKER_URL);
+    if (!config?.headers) {
+      throw new Error('Missing headers in Axios config');
+    }
+    expect(config?.headers['X-Timestamp']).toBeDefined();
+    expect(config?.headers['X-Signature']).toMatch(/^[a-f0-9]{64}$/);
 
-      expect(key).toBe(workerKey);
-      expect(getSpy).toHaveBeenCalledWith('http://test-worker.com');
-    });
+    if (!config?.headers['X-Timestamp']) {
+      throw new Error("Missing headers['X-Timestamp'] in Axios config");
+    }
+    const timestamp = config?.headers['X-Timestamp'] as string;
+    const message = `${timestamp}:${expectedBody}`;
+    const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
+    hmac.update(message);
+    const expectedSignature = hmac.digest('hex');
 
-    it('should return default key if fetching from worker fails', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        throwError(() => new Error('Network error')),
-      );
-      const getSpy = jest.spyOn(httpService, 'get');
+    expect(config?.headers['X-Signature']).toBe(expectedSignature);
+  });
 
-      const key = await service.getKey();
+  it('should return default key if worker returns error', async () => {
+    mockHttpService.get.mockReturnValueOnce(
+      throwError(() => new Error('Unauthorized')),
+    );
+    const key = await service.getKey();
+    expect(key).toBe('default_jwt_encryption_key');
+  });
 
-      expect(key).toBe('default_jwt_encryption_key');
-      expect(getSpy).toHaveBeenCalledTimes(1);
-    });
+  it('should return cached key if TTL not expired', async () => {
+    const cachedKey = 'cached_key';
+    service['cachedKey'] = cachedKey;
+    service['lastFetched'] = Date.now();
 
-    it('should return cached key if TTL has not expired', async () => {
-      const cachedKey = 'cached_key';
-      service['cachedKey'] = cachedKey;
-      service['lastFetched'] = Date.now();
-      const getSpy = jest.spyOn(httpService, 'get');
-
-      const key = await service.getKey();
-
-      expect(key).toBe(cachedKey);
-      expect(getSpy).toHaveBeenCalledTimes(0);
-    });
+    const key = await service.getKey();
+    expect(key).toBe(cachedKey);
+    expect(mockHttpService.get).not.toHaveBeenCalled();
   });
 });

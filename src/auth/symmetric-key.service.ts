@@ -1,16 +1,29 @@
-// src/auth/symmetric-key.service.ts
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import * as crypto from 'crypto';
+import { AxiosResponse } from 'axios';
+import { ErrorExceptionLogging } from '../utils/error.exception';
 
 @Injectable()
 export class SymmetricKeyService {
   private defaultJwtEncryptionKey = 'default_jwt_encryption_key';
   private cachedKey: string | null = null;
-  private lastFetched: number = 0;
-  private ttl: number = 5 * 60 * 1000;
+  private lastFetched = 0;
+  private ttl = 5 * 60 * 1000;
 
   constructor(private readonly httpService: HttpService) {}
+
+  private generateHmacSignature(
+    body: string,
+    timestamp: string,
+    headerKey: string,
+  ): string {
+    const message = `${timestamp}:${body}`;
+    const hmac = crypto.createHmac('sha256', Buffer.from(headerKey, 'hex'));
+    hmac.update(message);
+    return hmac.digest('hex');
+  }
 
   async getKey(): Promise<string> {
     const now = Date.now();
@@ -18,37 +31,41 @@ export class SymmetricKeyService {
       return this.cachedKey;
     }
 
-    let jwtEncryptionKey: string;
     const workerUrl = process.env.CLOUDFLARE_WORKER_URL;
+    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY;
 
-    if (!workerUrl) {
-      console.warn(
-        'CLOUDFLARE_WORKER_URL environment variable is not defined. Using default JWT key.',
-      );
+    if (!workerUrl || !headerKey) {
       this.cachedKey = this.defaultJwtEncryptionKey;
       this.lastFetched = now;
       return this.defaultJwtEncryptionKey;
-    } else {
-      try {
-        const response: { data: { JWT_KEY: string } } = await firstValueFrom(
-          this.httpService.get(workerUrl),
-        );
-
-        const { data } = response;
-        jwtEncryptionKey = data.JWT_KEY;
-      } catch (error) {
-        console.error(
-          'Error fetching JWT encryption key from Cloudflare Worker:',
-          error,
-        );
-        this.cachedKey = this.defaultJwtEncryptionKey;
-        this.lastFetched = now;
-        return this.defaultJwtEncryptionKey;
-      }
     }
 
-    this.cachedKey = jwtEncryptionKey;
-    this.lastFetched = now;
-    return jwtEncryptionKey;
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const body = JSON.stringify({});
+    const signature = this.generateHmacSignature(body, timestamp, headerKey);
+
+    try {
+      const response = await firstValueFrom<
+        AxiosResponse<{ JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: string }>
+      >(
+        this.httpService.get(workerUrl, {
+          headers: {
+            'X-Timestamp': timestamp,
+            'X-Signature': signature,
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+
+      const jwtEncryptionKey = response.data.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY;
+      this.cachedKey = jwtEncryptionKey;
+      this.lastFetched = now;
+      return jwtEncryptionKey;
+    } catch (error) {
+      ErrorExceptionLogging(error, SymmetricKeyService.name);
+      this.cachedKey = this.defaultJwtEncryptionKey;
+      this.lastFetched = now;
+      return this.defaultJwtEncryptionKey;
+    }
   }
 }
