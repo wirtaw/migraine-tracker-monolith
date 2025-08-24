@@ -5,7 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService as CustomJwtService } from './jwt.service';
+import { CustomJwtService } from './jwt.service';
 import { RequestWithUser, User } from './interfaces/auth.user.interface';
 
 @Injectable()

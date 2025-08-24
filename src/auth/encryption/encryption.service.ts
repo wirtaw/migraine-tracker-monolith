@@ -1,26 +1,30 @@
 // src/auth/encryption/encryption.service.ts
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { SymmetricKeyService } from '../symmetric-key.service';
 
 @Injectable()
 export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
-  private readonly keyLength = 32; // 256 bits
+  private readonly keyLength = 32;
+  private readonly pbkdf2Algorithm = 'sha256';
+  private readonly pbkdf2Iterations = 310000;
+  private readonly ivLength = 16;
 
-  // Generates a new salt for key derivation
+  constructor(private readonly symmetricKeyService: SymmetricKeyService) {}
+
   generateSalt(): string {
     return crypto.randomBytes(16).toString('hex');
   }
 
-  // Derives a symmetric key from a password and salt using PBKDF2
-  private deriveKey(password: string, salt: string): Promise<Buffer> {
+  async deriveSymmetricKey(password: string, salt: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       crypto.pbkdf2(
         password,
         salt,
-        100000, // Number of iterations
+        this.pbkdf2Iterations,
         this.keyLength,
-        'sha256',
+        this.pbkdf2Algorithm,
         (err, derivedKey) => {
           if (err) reject(err);
           resolve(derivedKey);
@@ -29,45 +33,103 @@ export class EncryptionService {
     });
   }
 
-  // Encrypts a message using a password
-  async encrypt(
-    message: string,
-    passwordFromSupabase: string,
-  ): Promise<{
+  encryptSensitiveData(
+    data: string,
+    symmetricKey: Buffer,
+  ): {
     encryptedData: string;
-    salt: string;
     iv: string;
-  }> {
-    const salt = this.generateSalt();
-    const key = await this.deriveKey(passwordFromSupabase, salt);
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(this.algorithm, key, iv);
+  } {
+    const iv = crypto.randomBytes(this.ivLength);
+    const cipher = crypto.createCipheriv(this.algorithm, symmetricKey, iv);
 
-    let encrypted = cipher.update(message, 'utf8', 'hex');
+    let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
+    const authTag = cipher.getAuthTag();
+
     return {
-      encryptedData: encrypted,
-      salt: salt,
+      encryptedData: `${encrypted}:${authTag.toString('hex')}`,
       iv: iv.toString('hex'),
     };
   }
 
-  // Decrypts a message using a password, salt, and IV
-  async decrypt(
-    encryptedData: string,
-    passwordFromSupabase: string,
-    salt: string,
-    iv: string,
-  ): Promise<string> {
-    const key = await this.deriveKey(passwordFromSupabase, salt);
+  decryptSensitiveData(
+    encryptedDataWithTag: string,
+    symmetricKey: Buffer,
+  ): string {
+    const [encryptedData, authTagHex] = encryptedDataWithTag.split(':');
+    if (!encryptedData || !authTagHex) {
+      throw new Error('Invalid encrypted data format');
+    }
+
+    const iv = crypto
+      .createHash('sha256')
+      .update(Buffer.from(encryptedDataWithTag.split(':')[0], 'hex'))
+      .digest()
+      .slice(0, this.ivLength); // Reconstruct IV conceptually for decryption with GCM if it was stored separately
+
     const decipher = crypto.createDecipheriv(
       this.algorithm,
-      key,
-      Buffer.from(iv, 'hex'),
+      symmetricKey,
+      Buffer.from(iv.toString(), 'hex'),
     );
+
+    decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+  }
+
+  private async getMasterKey(): Promise<Buffer> {
+    const masterKey = await this.symmetricKeyService.getKey();
+    return Buffer.from(masterKey.padEnd(this.keyLength, '\0')).slice(
+      0,
+      this.keyLength,
+    );
+  }
+
+  async encryptSymmetricKey(
+    symmetricKey: Buffer,
+  ): Promise<{ encryptedKey: string; iv: string }> {
+    const masterKey = await this.getMasterKey();
+    const iv = crypto.randomBytes(this.ivLength);
+    const cipher = crypto.createCipheriv(this.algorithm, masterKey, iv);
+
+    let encryptedKey = cipher.update(symmetricKey);
+    encryptedKey = Buffer.concat([encryptedKey, cipher.final()]);
+
+    const authTag = cipher.getAuthTag();
+
+    return {
+      encryptedKey: `${encryptedKey.toString('hex')}:${authTag.toString('hex')}`, // Store IV and AuthTag
+      iv: iv.toString('hex'),
+    };
+  }
+
+  async decryptSymmetricKey(
+    encryptedKeyWithTag: string,
+    iv: string,
+  ): Promise<Buffer> {
+    const masterKey = await this.getMasterKey();
+    const [encryptedKey, authTagHex] = encryptedKeyWithTag.split(':');
+
+    if (!encryptedKey || !authTagHex) {
+      throw new Error('Invalid encrypted symmetric key format');
+    }
+
+    const decipher = crypto.createDecipheriv(
+      this.algorithm,
+      masterKey,
+      Buffer.from(iv, 'hex'),
+    );
+
+    decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+
+    let decryptedKey = decipher.update(Buffer.from(encryptedKey, 'hex'));
+    decryptedKey = Buffer.concat([decryptedKey, decipher.final()]);
+
+    return decryptedKey;
   }
 }

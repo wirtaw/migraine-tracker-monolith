@@ -6,12 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
+import * as crypto from 'crypto';
 import { SupabaseService } from './supabase.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { EncryptionService } from './encryption/encryption.service';
-import { SymmetricKeyService } from './symmetric-key.service';
 import { LoginDto } from './dto/login.dto';
 import { ErrorExceptionLogging } from '../utils/error.exception';
 
@@ -20,7 +21,7 @@ export class AuthService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly encryptionService: EncryptionService,
-    private readonly keyService: SymmetricKeyService,
+    private readonly jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
@@ -28,6 +29,11 @@ export class AuthService {
     const { email, password, ...userData } = createAuthDto;
 
     try {
+      const salt: string = crypto.randomBytes(16).toString('base64');
+
+      const symmetricKey: Buffer =
+        await this.encryptionService.deriveSymmetricKey(password, salt);
+
       const { data, error } = await this.supabaseService.client.auth.signUp({
         email,
         password,
@@ -44,26 +50,26 @@ export class AuthService {
         throw new NotFoundException(`user fith email ${email}`);
       }
 
-      const key = await this.keyService.getKey();
-
-      const { encryptedData, salt, iv } = await this.encryptionService.encrypt(
-        key,
-        password,
-      );
+      const { encryptedKey: encryptedSymmetricKey, iv } =
+        await this.encryptionService.encryptSymmetricKey(symmetricKey);
 
       const newUser = new this.userModel({
         userId: supabaseUser.id,
         ...userData,
         salt,
-        encryptedSymmetricKey: encryptedData,
+        encryptedSymmetricKey,
         iv,
       });
 
       await newUser.save();
 
+      const payload = { sub: newUser.userId };
+      const token = this.jwtService.sign(payload);
+
       return {
         message: 'User successfully registered.',
-        user: { userId: newUser.userId, email: supabaseUser.email },
+        user: { userId: newUser.userId, email: supabaseUser?.email },
+        token,
       };
     } catch (error) {
       ErrorExceptionLogging(error, AuthService.name);

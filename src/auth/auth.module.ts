@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
@@ -8,11 +9,11 @@ import { EncryptionService } from './encryption/encryption.service';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { UserService } from '../users/users.service';
 import { AuthGuard } from './auth.guard';
-import { JwtService } from './jwt.service';
 import { SymmetricKeyService } from './symmetric-key.service';
 import { SupabaseService } from './supabase.service';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
 import { HttpModule } from '@nestjs/axios';
+import { CustomJwtService } from './jwt.service';
 
 @Module({
   imports: [
@@ -22,12 +23,13 @@ import { HttpModule } from '@nestjs/axios';
   controllers: [AuthController],
   providers: [
     SymmetricKeyService,
-    AuthService,
     EncryptionService,
-    UserService,
     JwtService,
+    AuthService,
+    UserService,
     JwtStrategy,
     SupabaseService,
+    CustomJwtService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

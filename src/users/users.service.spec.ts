@@ -1,4 +1,3 @@
-import * as crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -114,34 +113,6 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     model = module.get<Model<UserDocument>>(getModelToken(User.name));
-
-    jest.spyOn(crypto, 'randomBytes').mockImplementation((size) => {
-      if (size === 16) return Buffer.from('somesalt-16bytes', 'utf-8');
-      if (size === 12) return Buffer.from('someiv-12bytes', 'utf-8');
-      if (size === 32) return Buffer.from('somemasterkey-32bytes', 'utf-8');
-      return Buffer.alloc(size);
-    });
-
-    jest
-      .spyOn(crypto, 'pbkdf2')
-      .mockImplementation(
-        (
-          password,
-          salt,
-          iterations,
-          keylen,
-          digest,
-          callback: (err: any, derivedKey: Buffer) => void,
-        ) => {
-          callback(null, Buffer.from('somederivedkey', 'utf-8'));
-        },
-      );
-
-    jest.spyOn(crypto, 'createCipheriv').mockReturnValue({
-      update: jest.fn().mockReturnValue(Buffer.from('encrypted-data', 'utf-8')),
-      final: jest.fn().mockReturnValue(Buffer.from('', 'utf-8')),
-      getAuthTag: jest.fn().mockReturnValue(Buffer.from('auth-tag', 'utf-8')),
-    } as any);
   });
 
   afterEach(async () => {
@@ -169,7 +140,6 @@ describe('UserService', () => {
         personalHealthData: true,
         securitySetup: true,
         profileFilled: true,
-        userPassphrase: 'testpassword',
         fetchDataErrors: {
           forecast: 'none',
           magneticWeather: 'none',

@@ -57,10 +57,6 @@ export class CreateUserDto {
   @IsBoolean()
   profileFilled: boolean;
 
-  @IsNotEmpty()
-  @IsString()
-  userPassphrase: string;
-
   @ValidateNested()
   @Type(() => CreateFetchDataErrorsDto)
   fetchDataErrors: CreateFetchDataErrorsDto;

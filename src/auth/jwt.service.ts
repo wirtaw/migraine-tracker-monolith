@@ -5,7 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 
 @Injectable()
-export class JwtService {
+export class CustomJwtService {
   constructor(private readonly keyService: SymmetricKeyService) {}
 
   async verifyToken(token: string): Promise<any> {

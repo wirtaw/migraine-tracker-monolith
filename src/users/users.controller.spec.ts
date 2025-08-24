@@ -98,7 +98,6 @@ describe('UserController', () => {
         personalHealthData: true,
         securitySetup: true,
         profileFilled: true,
-        userPassphrase: 'testpassword',
         fetchDataErrors: {
           forecast: 'none',
           magneticWeather: 'none',
