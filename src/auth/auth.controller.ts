@@ -8,21 +8,14 @@ import {
   UseGuards,
   Get,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { SupabaseAuthGuard } from './guard/supabase-auth.guard';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 
 @ApiTags('auth')
-@ApiBearerAuth('JWT-auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { AuthConfig } from '../config/auth/auth.config';
+import { AuthConfig } from '../../config/auth/auth.config';
 
 @Injectable()
 export class SupabaseService {

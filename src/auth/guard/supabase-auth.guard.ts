@@ -5,10 +5,10 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SupabaseService } from './supabase.service';
-import { RequestWithUser } from './interfaces/auth.user.interface';
-import { User } from './interfaces/auth.user.interface';
-import { ErrorExceptionLogging } from '../utils/error.exception';
+import { SupabaseService } from '../supabase/supabase.service';
+import { RequestWithUser } from '../interfaces/auth.user.interface';
+import { User } from '../interfaces/auth.user.interface';
+import { ErrorExceptionLogging } from '../../utils/error.exception';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {

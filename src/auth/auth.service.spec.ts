@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption/encryption.service';
-import { SupabaseService } from './supabase.service';
+import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, HydratedDocument } from 'mongoose';
@@ -140,7 +140,7 @@ describe('AuthService', () => {
 
       const result = await service.register(createDto);
 
-      expect(result).toStrictEqual({ 
+      expect(result).toStrictEqual({
         message: 'User successfully registered.',
         user: { userId: mockUser.userId, email: createDto.email },
         token,

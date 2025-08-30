@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, StrategyOptionsWithRequest } from 'passport-jwt';
-import { SymmetricKeyService } from './symmetric-key.service';
+import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import { UserService } from '../users/users.service';
 import { User } from '../users/schemas/user.schema';
 

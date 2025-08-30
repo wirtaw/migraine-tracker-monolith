@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { AxiosResponse } from 'axios';
-import { ErrorExceptionLogging } from '../utils/error.exception';
+import { ErrorExceptionLogging } from '../../utils/error.exception';
 
 @Injectable()
 export class SymmetricKeyService {

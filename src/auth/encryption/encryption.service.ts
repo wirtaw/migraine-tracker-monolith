@@ -1,7 +1,7 @@
 // src/auth/encryption/encryption.service.ts
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { SymmetricKeyService } from '../symmetric-key.service';
+import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
 
 @Injectable()
 export class EncryptionService {

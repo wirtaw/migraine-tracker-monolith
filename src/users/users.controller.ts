@@ -8,6 +8,7 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,8 +21,10 @@ import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from './interfaces/user.interface';
+import { SupabaseAuthGuard } from '../auth/guard/supabase-auth.guard';
 
 @ApiTags('users')
+@UseGuards(SupabaseAuthGuard)
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
 export class UserController {

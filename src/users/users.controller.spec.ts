@@ -5,6 +5,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from './interfaces/user.interface';
 import { NotFoundException } from '@nestjs/common';
+import { SupabaseService } from '../auth/supabase/supabase.service';
+import { type User as SupaBaseUser } from '@supabase/supabase-js';
 
 const mockIUser: IUser = {
   userId: 'user123',
@@ -51,12 +53,23 @@ const mockIUsers: IUser[] = [
   },
 ];
 
+const supaBaseUser = {
+  id: 'user123',
+  email: 'test@mail.com',
+  role: 'user',
+} as SupaBaseUser;
+
 const mockUserService = {
   create: jest.fn().mockResolvedValue(mockIUser),
   findAll: jest.fn().mockResolvedValue(mockIUsers),
   findOne: jest.fn().mockResolvedValue(mockIUser),
   update: jest.fn().mockResolvedValue(mockIUser),
   remove: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockSupabaseService = {
+  client: jest.fn().mockResolvedValue({}),
+  getUser: jest.fn().mockResolvedValue(supaBaseUser),
 };
 
 describe('UserController', () => {
@@ -67,6 +80,10 @@ describe('UserController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
+        {
+          provide: SupabaseService,
+          useValue: mockSupabaseService,
+        },
         {
           provide: UserService,
           useValue: mockUserService,

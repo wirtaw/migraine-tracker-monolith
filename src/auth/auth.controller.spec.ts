@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { SupabaseAuthGuard } from './guard/supabase-auth.guard';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from './interfaces/auth.user.interface';
@@ -62,7 +62,7 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('create', () => {
+  describe('register', () => {
     it('should call authService.create with the provided DTO', async () => {
       const createDto: CreateAuthDto = { ...mockIUser };
 

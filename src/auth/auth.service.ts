@@ -9,7 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import * as crypto from 'crypto';
-import { SupabaseService } from './supabase.service';
+import { SupabaseService } from './supabase/supabase.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { EncryptionService } from './encryption/encryption.service';
