@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './users.controller';
 import { UserService } from './users.service';
@@ -10,9 +11,11 @@ import { type User as SupaBaseUser } from '@supabase/supabase-js';
 
 const mockIUser: IUser = {
   userId: 'user123',
+  supabaseId: randomUUID(),
   longitude: '-74.006',
   latitude: '40.7128',
   birthDate: '1990-01-01',
+  email: 'test@mail.com',
   emailNotifications: true,
   dailySummary: true,
   personalHealthData: true,
@@ -20,7 +23,6 @@ const mockIUser: IUser = {
   profileFilled: true,
   salt: 'somesalt',
   encryptedSymmetricKey: 'somekey',
-  iv: 'iv',
   fetchDataErrors: {
     forecast: 'none',
     magneticWeather: 'none',
@@ -33,9 +35,11 @@ const mockIUsers: IUser[] = [
   mockIUser,
   {
     userId: 'user456',
+    supabaseId: randomUUID(),
     longitude: '-118.2437',
     latitude: '34.0522',
     birthDate: '1995-05-05',
+    email: 'test@mail.com',
     emailNotifications: false,
     dailySummary: false,
     personalHealthData: false,
@@ -43,7 +47,6 @@ const mockIUsers: IUser[] = [
     profileFilled: false,
     salt: 'anothersalt',
     encryptedSymmetricKey: 'anotherkey',
-    iv: 'iv',
     fetchDataErrors: {
       forecast: 'error',
       magneticWeather: 'none',
@@ -54,7 +57,7 @@ const mockIUsers: IUser[] = [
 ];
 
 const supaBaseUser = {
-  id: 'user123',
+  id: mockIUser.supabaseId,
   email: 'test@mail.com',
   role: 'user',
 } as SupaBaseUser;
@@ -106,21 +109,11 @@ describe('UserController', () => {
   describe('create', () => {
     it('should create a user entry and return it', async () => {
       const createDto: CreateUserDto = {
-        userId: 'testUser',
+        supabaseId: 'testUser',
         longitude: '1',
         latitude: '1',
         birthDate: '2000-01-01',
-        emailNotifications: true,
-        dailySummary: true,
-        personalHealthData: true,
-        securitySetup: true,
-        profileFilled: true,
-        fetchDataErrors: {
-          forecast: 'none',
-          magneticWeather: 'none',
-        },
-        fetchMagneticWeather: true,
-        fetchWeather: true,
+        email: 'test@mail.com',
       };
       const createSpy = jest.spyOn(service, 'create');
 
@@ -178,12 +171,6 @@ describe('UserController', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        fetchDataErrors: {
-          forecast: 'error',
-          magneticWeather: 'none',
-        },
-        fetchMagneticWeather: true,
-        fetchWeather: true,
       };
       const updateSpy = jest.spyOn(service, 'update');
 
@@ -204,12 +191,6 @@ describe('UserController', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        fetchDataErrors: {
-          forecast: 'error',
-          magneticWeather: 'none',
-        },
-        fetchMagneticWeather: true,
-        fetchWeather: true,
       };
       jest
         .spyOn(service, 'update')

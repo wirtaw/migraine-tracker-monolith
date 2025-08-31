@@ -19,6 +19,9 @@ export class User {
   @Prop({ required: true, unique: true })
   userId: string;
 
+  @Prop({ required: true, unique: true })
+  supabaseId: string;
+
   @Prop({ required: true })
   longitude: string;
 
@@ -29,18 +32,21 @@ export class User {
   birthDate: string;
 
   @Prop({ required: true })
+  email: string;
+
+  @Prop({ required: false, default: true })
   emailNotifications: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: false })
   dailySummary: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: false })
   personalHealthData: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: false })
   securitySetup: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: false })
   profileFilled: boolean;
 
   @Prop({ required: true })
@@ -49,16 +55,13 @@ export class User {
   @Prop({ required: true })
   encryptedSymmetricKey: string; // Renamed from key
 
-  @Prop({ required: true })
-  iv: string; // New field for the Initialization Vector
-
-  @Prop({ type: FetchDataErrorsSchema })
+  @Prop({ type: FetchDataErrorsSchema, required: false })
   fetchDataErrors: FetchDataErrors;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: true })
   fetchMagneticWeather: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: true })
   fetchWeather: boolean;
 }
 

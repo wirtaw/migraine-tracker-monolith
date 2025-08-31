@@ -11,10 +11,11 @@ import { NotFoundException, Logger } from '@nestjs/common';
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockUser: HydratedDocument<User> = {
-  userId: 'user123',
+  supabaseId: 'user123',
   longitude: '-74.006',
   latitude: '40.7128',
   birthDate: '1990-01-01',
+  email: 'test@mail.com',
   emailNotifications: true,
   dailySummary: true,
   personalHealthData: true,
@@ -34,10 +35,11 @@ const mockUser: HydratedDocument<User> = {
 const mockUsers: HydratedDocument<User>[] = [
   mockUser,
   {
-    userId: 'user456',
+    supabaseId: 'user456',
     longitude: '-118.2437',
     latitude: '34.0522',
     birthDate: '1995-05-05',
+    email: 'test@mail.com',
     emailNotifications: false,
     dailySummary: false,
     personalHealthData: false,
@@ -45,7 +47,6 @@ const mockUsers: HydratedDocument<User>[] = [
     profileFilled: false,
     salt: 'anothersalt',
     encryptedSymmetricKey: 'anotherkey',
-    iv: 'anotheriv',
     fetchDataErrors: {
       forecast: 'error',
       magneticWeather: 'none',
@@ -131,21 +132,11 @@ describe('UserService', () => {
   describe('create', () => {
     it('should create and return a user entry', async () => {
       const createDto: CreateUserDto = {
-        userId: 'testUser',
+        supabaseId: 'testUser',
         longitude: '1',
         latitude: '1',
         birthDate: '2000-01-01',
-        emailNotifications: true,
-        dailySummary: true,
-        personalHealthData: true,
-        securitySetup: true,
-        profileFilled: true,
-        fetchDataErrors: {
-          forecast: 'none',
-          magneticWeather: 'none',
-        },
-        fetchMagneticWeather: true,
-        fetchWeather: true,
+        email: 'test@mail.com',
       };
 
       const result = await service.create(createDto);
@@ -155,9 +146,11 @@ describe('UserService', () => {
 
       expect(result).toEqual({
         userId: mockUser.userId,
+        supabseId: mockUser.supabaseId,
         longitude: mockUser.longitude,
         latitude: mockUser.latitude,
         birthDate: mockUser.birthDate,
+        email: mockUser.email,
         emailNotifications: mockUser.emailNotifications,
         dailySummary: mockUser.dailySummary,
         personalHealthData: mockUser.personalHealthData,
@@ -165,7 +158,6 @@ describe('UserService', () => {
         profileFilled: mockUser.profileFilled,
         salt: mockUser.salt,
         encryptedSymmetricKey: mockUser.encryptedSymmetricKey,
-        iv: mockUser.iv,
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
@@ -181,9 +173,11 @@ describe('UserService', () => {
       expect(result).toEqual(
         mockUsers.map((t) => ({
           userId: t.userId,
+          supabaseId: t.supabaseId,
           longitude: t.longitude,
           latitude: t.latitude,
           birthDate: t.birthDate,
+          email: t.email,
           emailNotifications: t.emailNotifications,
           dailySummary: t.dailySummary,
           personalHealthData: t.personalHealthData,
@@ -191,7 +185,6 @@ describe('UserService', () => {
           profileFilled: t.profileFilled,
           salt: t.salt,
           encryptedSymmetricKey: t.encryptedSymmetricKey,
-          iv: t.iv,
           fetchDataErrors: t.fetchDataErrors,
           fetchMagneticWeather: t.fetchMagneticWeather,
           fetchWeather: t.fetchWeather,
@@ -209,9 +202,11 @@ describe('UserService', () => {
       });
       expect(result).toEqual({
         userId: mockUser.userId,
+        supabseId: mockUser.supabaseId,
         longitude: mockUser.longitude,
         latitude: mockUser.latitude,
         birthDate: mockUser.birthDate,
+        email: mockUser.email,
         emailNotifications: mockUser.emailNotifications,
         dailySummary: mockUser.dailySummary,
         personalHealthData: mockUser.personalHealthData,
@@ -219,7 +214,6 @@ describe('UserService', () => {
         profileFilled: mockUser.profileFilled,
         salt: mockUser.salt,
         encryptedSymmetricKey: mockUser.encryptedSymmetricKey,
-        iv: mockUser.iv,
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
@@ -247,12 +241,6 @@ describe('UserService', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
-        fetchDataErrors: {
-          forecast: 'error',
-          magneticWeather: 'none',
-        },
-        fetchMagneticWeather: true,
-        fetchWeather: true,
       };
       const updatedMockUser = { ...mockUser, emailNotifications: false };
       mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
@@ -268,9 +256,11 @@ describe('UserService', () => {
       );
       expect(result).toEqual({
         userId: updatedMockUser.userId,
+        supabseId: updatedMockUser.supabaseId,
         longitude: updatedMockUser.longitude,
         latitude: updatedMockUser.latitude,
         birthDate: updatedMockUser.birthDate,
+        email: updatedMockUser.email,
         emailNotifications: updatedMockUser.emailNotifications,
         dailySummary: updatedMockUser.dailySummary,
         personalHealthData: updatedMockUser.personalHealthData,
@@ -278,7 +268,6 @@ describe('UserService', () => {
         profileFilled: updatedMockUser.profileFilled,
         salt: updatedMockUser.salt,
         encryptedSymmetricKey: updatedMockUser.encryptedSymmetricKey,
-        iv: updatedMockUser.iv,
         fetchDataErrors: updatedMockUser.fetchDataErrors,
         fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
         fetchWeather: updatedMockUser.fetchWeather,
@@ -300,12 +289,6 @@ describe('UserService', () => {
           personalHealthData: false,
           securitySetup: false,
           profileFilled: false,
-          fetchDataErrors: {
-            forecast: 'error',
-            magneticWeather: 'none',
-          },
-          fetchMagneticWeather: true,
-          fetchWeather: true,
         }),
       ).rejects.toThrow(NotFoundException);
     });

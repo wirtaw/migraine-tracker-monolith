@@ -50,9 +50,11 @@ export class UserService {
   private mapToIUser(userDoc: UserDocument): IUser {
     return {
       userId: userDoc.userId,
+      supabaseId: userDoc.supabaseId,
       longitude: userDoc.longitude,
       latitude: userDoc.latitude,
       birthDate: userDoc.birthDate,
+      email: userDoc.email,
       emailNotifications: userDoc.emailNotifications,
       dailySummary: userDoc.dailySummary,
       personalHealthData: userDoc.personalHealthData,
@@ -60,7 +62,6 @@ export class UserService {
       profileFilled: userDoc.profileFilled,
       salt: userDoc.salt,
       encryptedSymmetricKey: userDoc.encryptedSymmetricKey,
-      iv: userDoc.iv,
       fetchDataErrors: userDoc.fetchDataErrors,
       fetchMagneticWeather: userDoc.fetchMagneticWeather,
       fetchWeather: userDoc.fetchWeather,

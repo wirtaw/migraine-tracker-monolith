@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
+import { TestController } from './test.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import appConfig, { getEnvFilePaths } from './config/index';
@@ -34,7 +35,7 @@ import { HealthLogsModule } from './health-logs/health-logs.module';
     LocationModule,
     HealthLogsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, TestController],
   providers: [AppService],
 })
 export class AppModule {}

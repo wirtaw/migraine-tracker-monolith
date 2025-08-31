@@ -5,8 +5,10 @@ interface IFetchDataErrors {
 
 export interface IUser {
   userId: string;
+  supabaseId: string;
   longitude: string;
   latitude: string;
+  email: string;
   birthDate: string;
   emailNotifications: boolean;
   dailySummary: boolean;
@@ -15,7 +17,6 @@ export interface IUser {
   profileFilled: boolean;
   salt: string;
   encryptedSymmetricKey: string;
-  iv: string;
   fetchDataErrors: IFetchDataErrors;
   fetchMagneticWeather: boolean;
   fetchWeather: boolean;

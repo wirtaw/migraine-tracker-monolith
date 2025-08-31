@@ -8,7 +8,6 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,15 +20,17 @@ import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from './interfaces/user.interface';
-import { SupabaseAuthGuard } from '../auth/guard/supabase-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('users')
-@UseGuards(SupabaseAuthGuard)
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Public()
   @Post()
   @ApiOperation({ summary: 'Create a new user data entry' })
   @ApiBody({
@@ -48,6 +49,7 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @Roles(Role.ADMIN)
   @Get()
   @ApiOperation({ summary: 'Get list of user data entries' })
   @ApiResponse({
@@ -58,6 +60,7 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Roles(Role.ADMIN)
   @Get(':userId')
   @ApiOperation({ summary: 'Find user data by userId' })
   @ApiResponse({
@@ -72,6 +75,7 @@ export class UserController {
     return this.userService.findOne(userId);
   }
 
+  @Roles(Role.ADMIN)
   @Patch(':userId')
   @ApiOperation({ summary: 'Update the user data' })
   @ApiBody({
@@ -97,6 +101,7 @@ export class UserController {
     return this.userService.update(userId, updateUserDto);
   }
 
+  @Roles(Role.ADMIN)
   @Delete(':userId')
   @ApiOperation({ summary: 'Remove the user data' })
   @ApiResponse({

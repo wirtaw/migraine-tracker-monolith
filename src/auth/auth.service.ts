@@ -50,15 +50,16 @@ export class AuthService {
         throw new NotFoundException(`user fith email ${email}`);
       }
 
-      const { encryptedKey: encryptedSymmetricKey, iv } =
+      const encryptedSymmetricKey =
         await this.encryptionService.encryptSymmetricKey(symmetricKey);
 
       const newUser = new this.userModel({
-        userId: supabaseUser.id,
         ...userData,
+        userId: crypto.randomUUID().toString(),
+        email,
+        supabaseId: supabaseUser.id,
         salt,
         encryptedSymmetricKey,
-        iv,
       });
 
       await newUser.save();

@@ -2,7 +2,6 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  IsBoolean,
   IsLatitude,
   IsLongitude,
 } from 'class-validator';
@@ -29,13 +28,4 @@ export class CreateAuthDto {
   @IsString()
   @IsNotEmpty()
   birthDate: string;
-
-  @IsBoolean()
-  emailNotifications: boolean;
-
-  @IsBoolean()
-  dailySummary: boolean;
-
-  @IsBoolean()
-  personalHealthData: boolean;
 }

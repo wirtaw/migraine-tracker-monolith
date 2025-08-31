@@ -1,12 +1,10 @@
 import {
-  IsBoolean,
   IsNotEmpty,
   IsString,
-  ValidateNested,
   IsLatitude,
   IsLongitude,
+  IsEmail,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateFetchDataErrorsDto {
   @IsNotEmpty()
@@ -21,7 +19,7 @@ export class CreateFetchDataErrorsDto {
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  supabaseId: string;
 
   @IsNotEmpty()
   @IsString()
@@ -38,34 +36,6 @@ export class CreateUserDto {
   birthDate: string;
 
   @IsNotEmpty()
-  @IsBoolean()
-  emailNotifications: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  dailySummary: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  personalHealthData: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  securitySetup: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  profileFilled: boolean;
-
-  @ValidateNested()
-  @Type(() => CreateFetchDataErrorsDto)
-  fetchDataErrors: CreateFetchDataErrorsDto;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  fetchMagneticWeather: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  fetchWeather: boolean;
+  @IsEmail()
+  email: string;
 }

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
@@ -11,9 +13,18 @@ import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { HttpModule } from '@nestjs/axios';
 import { CustomJwtService } from './jwt.service';
+import { SupabaseAuthGuard } from './guard/supabase-auth.guard';
 
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET') || 'dev-secret', // fallback dla lokalnego dev
+        signOptions: { expiresIn: '1h' },
+      }),
+    }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     HttpModule,
   ],
@@ -21,13 +32,13 @@ import { CustomJwtService } from './jwt.service';
   providers: [
     SymmetricKeyService,
     EncryptionService,
-    JwtService,
     AuthService,
     UserService,
     JwtStrategy,
     SupabaseService,
     CustomJwtService,
+    { provide: APP_GUARD, useClass: SupabaseAuthGuard },
   ],
-  exports: [JwtService],
+  exports: [JwtModule, SupabaseService],
 })
 export class AuthModule {}

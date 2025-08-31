@@ -17,6 +17,7 @@ const mockUser: HydratedDocument<User> = {
   longitude: '-74.006',
   latitude: '40.7128',
   birthDate: '1990-01-01',
+  email: 'testUser@email.com',
   emailNotifications: true,
   dailySummary: true,
   personalHealthData: true,
@@ -24,7 +25,6 @@ const mockUser: HydratedDocument<User> = {
   profileFilled: true,
   salt: 'somesalt-16bytes',
   encryptedSymmetricKey: 'encryptedSymmetricKey',
-  iv: 'iv',
 } as any;
 
 describe('AuthService', () => {
@@ -109,33 +109,27 @@ describe('AuthService', () => {
 
   describe('register()', () => {
     it('successfully register new user', async () => {
-      const userEmail = 'testUser@email.com';
       const password = 'testpassword';
       const token = 'token';
       const createDto: CreateAuthDto = {
         longitude: '1',
         latitude: '1',
         birthDate: '2000-01-01',
-        emailNotifications: true,
-        dailySummary: true,
-        personalHealthData: true,
-        email: userEmail,
+        email: 'testUser@email.com',
         password,
       };
-      const symmetricKey = 'symmetricKey:sdfgff';
-      const symmetricKeyBuffer = Buffer.from(symmetricKey);
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
 
       mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
         symmetricKeyBuffer,
       );
       mockSupabaseService.client.auth.signUp.mockResolvedValueOnce({
-        data: { user: { id: mockUser.id!, email: createDto.email } },
+        data: { user: { id: mockUser.userId, email: createDto.email } },
         error: null,
       });
-      mockEncryptionService.encryptSymmetricKey.mockResolvedValueOnce({
-        encryptedKey: mockUser.encryptedSymmetricKey,
-        iv: mockUser.iv,
-      });
+      mockEncryptionService.encryptSymmetricKey.mockResolvedValueOnce(
+        'ivhex:encryptedKeyHex:authTagHex',
+      );
       mockJwtService.sign.mockReturnValueOnce(token);
 
       const result = await service.register(createDto);
@@ -145,8 +139,23 @@ describe('AuthService', () => {
         user: { userId: mockUser.userId, email: createDto.email },
         token,
       });
-      //expect(mockDocumentInstance.save).toHaveBeenCalled();
-      //expect(crypto.randomBytes).toHaveBeenCalled();
+
+      expect(mockEncryptionService.deriveSymmetricKey).toHaveBeenCalledWith(
+        password,
+        expect.any(String), // salt
+      );
+      expect(mockEncryptionService.encryptSymmetricKey).toHaveBeenCalledWith(
+        symmetricKeyBuffer,
+      );
+      expect(mockUserModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: mockUser.userId,
+          salt: expect.any(String),
+          encryptedSymmetricKey: 'ivhex:encryptedKeyHex:authTagHex',
+        }),
+      );
+      const saveFn = mockDocumentInstance.save.bind(mockDocumentInstance);
+      expect(saveFn).toHaveBeenCalled();
     });
   });
 });
