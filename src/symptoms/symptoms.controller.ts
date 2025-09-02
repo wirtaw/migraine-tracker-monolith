@@ -20,6 +20,8 @@ import { SymptomsService } from './symptoms.service';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { ISymptom } from './interfaces/symptom.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('symptoms')
 @ApiBearerAuth('JWT-auth')
@@ -27,6 +29,7 @@ import { ISymptom } from './interfaces/symptom.interface';
 export class SymptomsController {
   constructor(private readonly symptomsService: SymptomsService) {}
 
+  @Roles(Role.USER)
   @Post()
   @ApiOperation({ summary: 'Create a new symptom' })
   @ApiBody({
@@ -47,6 +50,7 @@ export class SymptomsController {
     return this.symptomsService.create(createSymptomDto);
   }
 
+  @Roles(Role.USER)
   @Get()
   @ApiOperation({ summary: 'Get list of symptoms' })
   @ApiResponse({
@@ -57,6 +61,7 @@ export class SymptomsController {
     return this.symptomsService.findAll();
   }
 
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find symptom by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class SymptomsController {
     return this.symptomsService.findOne(id);
   }
 
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the symptom' })
   @ApiBody({
@@ -96,6 +102,7 @@ export class SymptomsController {
     return this.symptomsService.update(id, updateSymptomDto);
   }
 
+  @Roles(Role.USER)
   @Delete(':id')
   @ApiOperation({ summary: 'Remove the symptom' })
   @ApiResponse({

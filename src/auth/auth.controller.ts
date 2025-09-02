@@ -5,7 +5,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Get,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
@@ -13,8 +12,11 @@ import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { SupabaseAuthGuard } from './guard/supabase-auth.guard';
 import { RequestWithUser } from './interfaces/auth.user.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permission } from '../auth/enums/permissions.enum';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -60,8 +62,9 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Roles(Role.ADMIN)
+  @Permissions(Permission.MANAGE_USERS)
   @Get('profile')
-  @UseGuards(SupabaseAuthGuard)
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({
     status: HttpStatus.OK,

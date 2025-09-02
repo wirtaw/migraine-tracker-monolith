@@ -20,6 +20,8 @@ import { LocationService } from './locations.service';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
 import { ILocationData } from './interfaces/locations.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('locations')
 @ApiBearerAuth('JWT-auth')
@@ -27,6 +29,7 @@ import { ILocationData } from './interfaces/locations.interface';
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
+  @Roles(Role.USER)
   @Post()
   @ApiOperation({ summary: 'Create a new location data entry' })
   @ApiBody({
@@ -47,6 +50,7 @@ export class LocationController {
     return this.locationService.create(createLocationDto);
   }
 
+  @Roles(Role.USER)
   @Get()
   @ApiOperation({ summary: 'Get list of location data entries' })
   @ApiResponse({
@@ -57,6 +61,7 @@ export class LocationController {
     return this.locationService.findAll();
   }
 
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find location data by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class LocationController {
     return this.locationService.findOne(id);
   }
 
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the location data' })
   @ApiBody({
@@ -96,6 +102,7 @@ export class LocationController {
     return this.locationService.update(id, updateLocationDto);
   }
 
+  @Roles(Role.USER)
   @Delete(':id')
   @ApiOperation({ summary: 'Remove the location data' })
   @ApiResponse({

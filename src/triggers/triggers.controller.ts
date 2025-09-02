@@ -20,6 +20,8 @@ import { TriggersService } from './triggers.service';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { ITrigger } from './interfaces/trigger.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('triggers')
 @ApiBearerAuth('JWT-auth')
@@ -27,6 +29,7 @@ import { ITrigger } from './interfaces/trigger.interface';
 export class TriggersController {
   constructor(private readonly triggersService: TriggersService) {}
 
+  @Roles(Role.USER)
   @Post()
   @ApiOperation({ summary: 'Create a new triggers' })
   @ApiBody({
@@ -47,6 +50,7 @@ export class TriggersController {
     return this.triggersService.create(createTriggerDto);
   }
 
+  @Roles(Role.USER)
   @Get()
   @ApiOperation({ summary: 'Get list triggers' })
   @ApiResponse({
@@ -57,6 +61,7 @@ export class TriggersController {
     return this.triggersService.findAll();
   }
 
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find trigger by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class TriggersController {
     return this.triggersService.findOne(id);
   }
 
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the trigger' })
   @ApiBody({
@@ -96,6 +102,7 @@ export class TriggersController {
     return this.triggersService.update(id, updateTriggerDto);
   }
 
+  @Roles(Role.USER)
   @Delete(':id')
   @ApiOperation({ summary: 'Remove the trigger' })
   @ApiResponse({

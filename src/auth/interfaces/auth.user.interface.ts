@@ -4,9 +4,9 @@ import { Role } from '../enums/roles.enum';
 
 export interface User {
   userId: string;
-  username: string;
+  username: string | undefined;
   permissions: Permission[];
-  roles: Role[];
+  role: Role;
 }
 
 export interface RequestWithUser extends Request {

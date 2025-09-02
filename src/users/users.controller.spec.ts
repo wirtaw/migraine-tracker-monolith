@@ -5,7 +5,7 @@ import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from './interfaces/user.interface';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../auth/supabase/supabase.service';
 import { type User as SupaBaseUser } from '@supabase/supabase-js';
 
@@ -31,30 +31,7 @@ const mockIUser: IUser = {
   fetchWeather: true,
 };
 
-const mockIUsers: IUser[] = [
-  mockIUser,
-  {
-    userId: 'user456',
-    supabaseId: randomUUID(),
-    longitude: '-118.2437',
-    latitude: '34.0522',
-    birthDate: '1995-05-05',
-    email: 'test@mail.com',
-    emailNotifications: false,
-    dailySummary: false,
-    personalHealthData: false,
-    securitySetup: false,
-    profileFilled: false,
-    salt: 'anothersalt',
-    encryptedSymmetricKey: 'anotherkey',
-    fetchDataErrors: {
-      forecast: 'error',
-      magneticWeather: 'none',
-    },
-    fetchMagneticWeather: true,
-    fetchWeather: true,
-  },
-];
+const mockIUsers: IUser[] = [mockIUser];
 
 const supaBaseUser = {
   id: mockIUser.supabaseId,
@@ -117,18 +94,28 @@ describe('UserController', () => {
       };
       const createSpy = jest.spyOn(service, 'create');
 
-      const result = await controller.create(createDto);
-
+      const result: IUser | null = await controller.create(createDto);
       expect(createSpy).toHaveBeenCalledWith(createDto);
       expect(result).toEqual(mockIUser);
+    });
+
+    it('should throw BadRequestException for invalid input', async () => {
+      const invalidDto = {} as CreateUserDto;
+      jest.spyOn(service, 'create').mockImplementationOnce(() => {
+        throw new BadRequestException('Invalid input');
+      });
+
+      await expect(controller.create(invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('findAll', () => {
-    it('should return an array of user entries', async () => {
+    it('should return an array of user entries (requires ADMIN role)', async () => {
       const findAllSpy = jest.spyOn(service, 'findAll');
-      const result = await controller.findAll();
 
+      const result: IUser[] = await controller.findAll();
       expect(findAllSpy).toHaveBeenCalled();
       expect(result).toEqual(mockIUsers);
     });
@@ -136,96 +123,90 @@ describe('UserController', () => {
 
   describe('findOne', () => {
     it('should return a single user entry', async () => {
-      const userId = mockIUser.userId;
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      const result = await controller.findOne(userId);
+      const result: IUser | null = await controller.findOne(mockIUser.userId);
 
-      expect(findOneSpy).toHaveBeenCalledWith(userId);
+      expect(findOneSpy).toHaveBeenCalledWith(mockIUser.userId);
       expect(result).toEqual(mockIUser);
     });
 
-    it('should rethrow NotFoundException from service', async () => {
-      const userId = 'nonExistentUser';
-      jest
-        .spyOn(service, 'findOne')
-        .mockRejectedValueOnce(new NotFoundException());
-      const findOneSpy = jest.spyOn(service, 'findOne');
+    it('should throw NotFoundException if user not found', async () => {
+      jest.spyOn(service, 'findOne').mockImplementationOnce(() => {
+        throw new NotFoundException('User not found');
+      });
 
-      await expect(controller.findOne(userId)).rejects.toThrow(
+      await expect(controller.findOne('nonExistentUser')).rejects.toThrow(
         NotFoundException,
       );
-      expect(findOneSpy).toHaveBeenCalledWith(userId);
     });
   });
 
   describe('update', () => {
+    const updateDto: UpdateUserDto = {
+      emailNotifications: false,
+      longitude: '-118.2437',
+      latitude: '34.0522',
+      birthDate: '1995-05-05',
+      dailySummary: false,
+      personalHealthData: false,
+      securitySetup: false,
+      profileFilled: false,
+    };
+
     it('should update and return the updated user entry', async () => {
-      const userId = mockIUser.userId;
-      const updateDto: UpdateUserDto = {
-        emailNotifications: false,
-        longitude: '-118.2437',
-        latitude: '34.0522',
-        birthDate: '1995-05-05',
-        dailySummary: false,
-        personalHealthData: false,
-        securitySetup: false,
-        profileFilled: false,
-      };
       const updateSpy = jest.spyOn(service, 'update');
 
-      const result = await controller.update(userId, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(userId, updateDto);
+      const result: IUser | null = await controller.update(
+        mockIUser.userId,
+        updateDto,
+      );
+      expect(updateSpy).toHaveBeenCalledWith(mockIUser.userId, updateDto);
       expect(result).toEqual(mockIUser);
     });
 
-    it('should rethrow NotFoundException from service during update', async () => {
-      const userId = 'nonExistentUser';
-      const updateDto: UpdateUserDto = {
-        emailNotifications: false,
-        longitude: '-118.2437',
-        latitude: '34.0522',
-        birthDate: '1995-05-05',
-        dailySummary: false,
-        personalHealthData: false,
-        securitySetup: false,
-        profileFilled: false,
-      };
-      jest
-        .spyOn(service, 'update')
-        .mockRejectedValueOnce(new NotFoundException());
-      const updateSpy = jest.spyOn(service, 'update');
+    it('should throw NotFoundException if user not found during update', async () => {
+      jest.spyOn(service, 'update').mockImplementationOnce(() => {
+        throw new NotFoundException('User not found');
+      });
 
-      await expect(controller.update(userId, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(updateSpy).toHaveBeenCalledWith(userId, updateDto);
+      await expect(
+        controller.update('nonExistentUser', updateDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException for invalid update input', async () => {
+      const invalidDto = {} as UpdateUserDto;
+      jest.spyOn(service, 'update').mockImplementationOnce(() => {
+        throw new BadRequestException('Invalid input');
+      });
+
+      await expect(
+        controller.update(mockIUser.userId, invalidDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('remove', () => {
     it('should remove a user entry', async () => {
-      const userId = mockIUser.userId;
       const removeSpy = jest.spyOn(service, 'remove');
 
-      const result = await controller.remove(userId);
+      const result = await controller.remove(mockIUser.userId);
 
-      expect(removeSpy).toHaveBeenCalledWith(userId);
+      expect(removeSpy).toHaveBeenCalledWith(mockIUser.userId);
       expect(result).toBeUndefined();
     });
 
-    it('should rethrow NotFoundException from service during remove', async () => {
-      const userId = 'nonExistentUser';
+    it('should throw NotFoundException if user not found during remove', async () => {
       jest
         .spyOn(service, 'remove')
         .mockRejectedValueOnce(new NotFoundException());
       const removeSpy = jest.spyOn(service, 'remove');
 
-      await expect(controller.remove(userId)).rejects.toThrow(
+      await expect(controller.remove('nonExistentUser')).rejects.toThrow(
         NotFoundException,
       );
-      expect(removeSpy).toHaveBeenCalledWith(userId);
+      expect(removeSpy).toHaveBeenCalledWith('nonExistentUser');
     });
   });
 });

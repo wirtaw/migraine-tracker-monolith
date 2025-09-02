@@ -20,6 +20,8 @@ import { IncidentsService } from './incidents.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('incidents')
 @ApiBearerAuth('JWT-auth')
@@ -27,6 +29,7 @@ import { IIncident } from './interfaces/incident.interface';
 export class IncidentsController {
   constructor(private readonly incidentsService: IncidentsService) {}
 
+  @Roles(Role.USER)
   @Post()
   @ApiOperation({ summary: 'Create a new incident' })
   @ApiBody({
@@ -47,6 +50,7 @@ export class IncidentsController {
     return this.incidentsService.create(createIncidentDto);
   }
 
+  @Roles(Role.USER)
   @Get()
   @ApiOperation({ summary: 'Get list of incidents' })
   @ApiResponse({
@@ -57,6 +61,7 @@ export class IncidentsController {
     return this.incidentsService.findAll();
   }
 
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find incident by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class IncidentsController {
     return this.incidentsService.findOne(id);
   }
 
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the incident' })
   @ApiBody({
@@ -96,6 +102,7 @@ export class IncidentsController {
     return this.incidentsService.update(id, updateIncidentDto);
   }
 
+  @Roles(Role.USER)
   @Delete(':id')
   @ApiOperation({ summary: 'Remove the incident' })
   @ApiResponse({

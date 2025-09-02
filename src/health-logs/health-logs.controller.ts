@@ -35,6 +35,8 @@ import {
   IBloodPressure,
   ISleep,
 } from './interfaces/health-logs.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('health-logs')
 @ApiBearerAuth('JWT-auth')
@@ -43,6 +45,7 @@ export class HealthLogsController {
   constructor(private readonly healthLogsService: HealthLogsService) {}
 
   // Weight
+  @Roles(Role.USER)
   @Post('weight')
   @ApiOperation({ summary: 'Create a new weight log' })
   @ApiBody({
@@ -63,6 +66,7 @@ export class HealthLogsController {
     return this.healthLogsService.createWeight(createWeightDto);
   }
 
+  @Roles(Role.USER)
   @Get('weights')
   @ApiOperation({ summary: 'Get list of weight logs' })
   @ApiResponse({
@@ -73,6 +77,7 @@ export class HealthLogsController {
     return this.healthLogsService.findAllWeights();
   }
 
+  @Roles(Role.USER)
   @Get('weight/:id')
   @ApiOperation({ summary: 'Find weight log by ID' })
   @ApiResponse({
@@ -87,6 +92,7 @@ export class HealthLogsController {
     return this.healthLogsService.findOneWeight(id);
   }
 
+  @Roles(Role.USER)
   @Patch('weight/:id')
   @ApiOperation({ summary: 'Update the weight log' })
   @ApiBody({
@@ -112,6 +118,7 @@ export class HealthLogsController {
     return this.healthLogsService.updateWeight(id, updateWeightDto);
   }
 
+  @Roles(Role.USER)
   @Delete('weight/:id')
   @ApiOperation({ summary: 'Remove the weight log' })
   @ApiResponse({
@@ -128,6 +135,7 @@ export class HealthLogsController {
   }
 
   // Height
+  @Roles(Role.USER)
   @Post('height')
   @ApiOperation({ summary: 'Create a new height log' })
   @ApiBody({
@@ -148,6 +156,7 @@ export class HealthLogsController {
     return this.healthLogsService.createHeight(createHeightDto);
   }
 
+  @Roles(Role.USER)
   @Get('heights')
   @ApiOperation({ summary: 'Get list of height logs' })
   @ApiResponse({
@@ -158,6 +167,7 @@ export class HealthLogsController {
     return this.healthLogsService.findAllHeights();
   }
 
+  @Roles(Role.USER)
   @Get('height/:id')
   @ApiOperation({ summary: 'Find height log by ID' })
   @ApiResponse({
@@ -172,6 +182,7 @@ export class HealthLogsController {
     return this.healthLogsService.findOneHeight(id);
   }
 
+  @Roles(Role.USER)
   @Patch('height/:id')
   @ApiOperation({ summary: 'Update the height log' })
   @ApiBody({
@@ -197,6 +208,7 @@ export class HealthLogsController {
     return this.healthLogsService.updateHeight(id, updateHeightDto);
   }
 
+  @Roles(Role.USER)
   @Delete('height/:id')
   @ApiOperation({ summary: 'Remove the height log' })
   @ApiResponse({
@@ -213,6 +225,7 @@ export class HealthLogsController {
   }
 
   // Blood Pressure
+  @Roles(Role.USER)
   @Post('blood-pressure')
   @ApiOperation({ summary: 'Create a new blood pressure log' })
   @ApiBody({
@@ -233,6 +246,7 @@ export class HealthLogsController {
     return this.healthLogsService.createBloodPressure(createBloodPressureDto);
   }
 
+  @Roles(Role.USER)
   @Get('blood-pressures')
   @ApiOperation({ summary: 'Get list of blood pressure logs' })
   @ApiResponse({
@@ -243,6 +257,7 @@ export class HealthLogsController {
     return this.healthLogsService.findAllBloodPressures();
   }
 
+  @Roles(Role.USER)
   @Get('blood-pressure/:id')
   @ApiOperation({ summary: 'Find blood pressure log by ID' })
   @ApiResponse({
@@ -259,6 +274,7 @@ export class HealthLogsController {
     return this.healthLogsService.findOneBloodPressure(id);
   }
 
+  @Roles(Role.USER)
   @Patch('blood-pressure/:id')
   @ApiOperation({ summary: 'Update the blood pressure log' })
   @ApiBody({
@@ -287,6 +303,7 @@ export class HealthLogsController {
     );
   }
 
+  @Roles(Role.USER)
   @Delete('blood-pressure/:id')
   @ApiOperation({ summary: 'Remove the blood pressure log' })
   @ApiResponse({
@@ -303,6 +320,7 @@ export class HealthLogsController {
   }
 
   // Sleep
+  @Roles(Role.USER)
   @Post('sleep')
   @ApiOperation({ summary: 'Create a new sleep log' })
   @ApiBody({
@@ -323,6 +341,7 @@ export class HealthLogsController {
     return this.healthLogsService.createSleep(createSleepDto);
   }
 
+  @Roles(Role.USER)
   @Get('sleeps')
   @ApiOperation({ summary: 'Get list of sleep logs' })
   @ApiResponse({
@@ -333,6 +352,7 @@ export class HealthLogsController {
     return this.healthLogsService.findAllSleeps();
   }
 
+  @Roles(Role.USER)
   @Get('sleep/:id')
   @ApiOperation({ summary: 'Find sleep log by ID' })
   @ApiResponse({
@@ -347,6 +367,7 @@ export class HealthLogsController {
     return this.healthLogsService.findOneSleep(id);
   }
 
+  @Roles(Role.USER)
   @Patch('sleep/:id')
   @ApiOperation({ summary: 'Update the sleep log' })
   @ApiBody({
@@ -372,6 +393,7 @@ export class HealthLogsController {
     return this.healthLogsService.updateSleep(id, updateSleepDto);
   }
 
+  @Roles(Role.USER)
   @Delete('sleep/:id')
   @ApiOperation({ summary: 'Remove the sleep log' })
   @ApiResponse({

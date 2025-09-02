@@ -17,32 +17,62 @@ interface LoginResponse {
   user: { email: string; userId: string };
 }
 
+interface SupabaseSignUpResponse {
+  data: {
+    user: {
+      id: string;
+      email: string;
+      userId: string;
+    };
+  };
+  error: null;
+}
+
+interface SupabaseSignInWithPasswordResponse extends SupabaseSignUpResponse {
+  data: {
+    user: {
+      id: string;
+      email: string;
+      userId: string;
+    };
+    session: {
+      access_token: string;
+    };
+  };
+  error: null;
+}
+
 describe('Auth E2E', () => {
   let app: INestApplication;
   let connection: Connection;
   let userModel: Model<UserDocument>;
+  const email = 'mock@example.com';
 
   // Mock SupabaseService
   const mockSupabaseService = {
     client: {
       auth: {
-        signUp: jest.fn().mockImplementation(({ email }) =>
-          Promise.resolve({
+        signUp: jest.fn().mockImplementation(() => {
+          const response: SupabaseSignUpResponse = {
             data: {
               user: { id: 'mock-supabase-id', email, userId: 'userId-001' },
             },
             error: null,
-          }),
-        ),
-        signInWithPassword: jest.fn().mockImplementation(({ email }) =>
-          Promise.resolve({
+          };
+
+          return Promise.resolve(response);
+        }),
+        signInWithPassword: jest.fn().mockImplementation(() => {
+          const response: SupabaseSignInWithPasswordResponse = {
             data: {
               user: { id: 'mock-supabase-id', email, userId: 'userId-002' },
               session: { access_token: 'mock-access-token' },
             },
             error: null,
-          }),
-        ),
+          };
+
+          return Promise.resolve(response);
+        }),
       },
     },
   };
@@ -76,7 +106,6 @@ describe('Auth E2E', () => {
 
   describe('POST /auth/register', () => {
     it('should register a new user and store encryptedSymmetricKey in correct format', async () => {
-      const email = 'mock@example.com';
       const password = 'StrongPass123!';
 
       const res = await request(app.getHttpServer())
@@ -107,7 +136,6 @@ describe('Auth E2E', () => {
 
   describe('POST /auth/login', () => {
     it('should login an existing user', async () => {
-      const email = 'mock@example.com';
       const password = 'StrongPass123!';
 
       const res = await request(app.getHttpServer())

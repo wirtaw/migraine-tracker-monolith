@@ -20,6 +20,8 @@ import { MedicationsService } from './medications.service';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { IMedication } from './interfaces/medication.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/roles.enum';
 
 @ApiTags('medications')
 @ApiBearerAuth('JWT-auth')
@@ -27,6 +29,7 @@ import { IMedication } from './interfaces/medication.interface';
 export class MedicationsController {
   constructor(private readonly medicationsService: MedicationsService) {}
 
+  @Roles(Role.USER)
   @Post()
   @ApiOperation({ summary: 'Create a new medication' })
   @ApiBody({
@@ -47,6 +50,7 @@ export class MedicationsController {
     return this.medicationsService.create(createMedicationDto);
   }
 
+  @Roles(Role.USER)
   @Get()
   @ApiOperation({ summary: 'Get list medications' })
   @ApiResponse({
@@ -57,6 +61,7 @@ export class MedicationsController {
     return this.medicationsService.findAll();
   }
 
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find medication by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class MedicationsController {
     return this.medicationsService.findOne(id);
   }
 
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the medication' })
   @ApiBody({
@@ -96,6 +102,7 @@ export class MedicationsController {
     return this.medicationsService.update(id, updateMedicationDto);
   }
 
+  @Roles(Role.USER)
   @Delete(':id')
   @ApiOperation({ summary: 'Remove the medication' })
   @ApiResponse({

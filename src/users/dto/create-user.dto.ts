@@ -6,16 +6,6 @@ import {
   IsEmail,
 } from 'class-validator';
 
-export class CreateFetchDataErrorsDto {
-  @IsNotEmpty()
-  @IsString()
-  forecast: string;
-
-  @IsNotEmpty()
-  @IsString()
-  magneticWeather: string;
-}
-
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()

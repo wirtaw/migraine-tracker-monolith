@@ -10,13 +10,16 @@ process.env.JWT_SECRET = 'test-secret-key';
 
 describe('RBAC + SupabaseAuthGuard E2E', () => {
   let app: INestApplication;
+  const userToken = 'valid-user-token';
+  const adminToken = 'valid-admin-token';
+  const jwtKwyValue = 'test-secret-key';
 
   // Mock SupabaseService z różnymi scenariuszami tokenów
   const mockSupabaseService = {
     client: {
       auth: {
         getUser: jest.fn().mockImplementation((token: string) => {
-          if (token === 'valid-user-token') {
+          if (token === userToken) {
             return Promise.resolve({
               data: {
                 user: {
@@ -28,7 +31,7 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
               error: null,
             });
           }
-          if (token === 'valid-admin-token') {
+          if (token === adminToken) {
             return Promise.resolve({
               data: {
                 user: {
@@ -55,8 +58,7 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
     })
       .overrideProvider(ConfigService)
       .useValue({
-        get: (k: string) =>
-          k === 'JWT_SECRET' ? 'test-secret-key' : undefined,
+        get: (k: string) => (k === 'JWT_SECRET' ? jwtKwyValue : undefined),
       })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
@@ -87,7 +89,7 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   it('should allow access to private endpoint with valid user token', async () => {
     const res = await request(app.getHttpServer())
       .get('/test/private')
-      .set('Authorization', 'Bearer valid-user-token')
+      .set('Authorization', `Bearer ${userToken}`)
       .expect(HttpStatus.OK);
 
     expect(res.body).toEqual({ message: 'private ok' });
@@ -96,14 +98,14 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   it('should deny access to admin endpoint with user role', async () => {
     await request(app.getHttpServer())
       .get('/test/admin')
-      .set('Authorization', 'Bearer valid-user-token')
+      .set('Authorization', `Bearer ${userToken}`)
       .expect(HttpStatus.FORBIDDEN);
   });
 
   it('should allow access to admin endpoint with admin role', async () => {
     const res = await request(app.getHttpServer())
       .get('/test/admin')
-      .set('Authorization', 'Bearer valid-admin-token')
+      .set('Authorization', `Bearer ${adminToken}`)
       .expect(HttpStatus.OK);
 
     expect(res.body).toEqual({ message: 'admin ok' });

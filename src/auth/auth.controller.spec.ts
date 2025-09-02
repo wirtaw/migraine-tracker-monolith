@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { SupabaseAuthGuard } from './guard/supabase-auth.guard';
+import { RbacGuard } from './guard/rbac.guard';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from './interfaces/auth.user.interface';
@@ -34,7 +34,7 @@ describe('AuthController', () => {
     login: jest.fn(),
   };
 
-  const mockSupabaseAuthGuard = {
+  const mockRbacGuard = {
     canActivate: jest.fn(() => true),
   };
 
@@ -48,8 +48,8 @@ describe('AuthController', () => {
         },
       ],
     })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockSupabaseAuthGuard)
+      .overrideGuard(RbacGuard)
+      .useValue(mockRbacGuard)
       .compile();
 
     controller = module.get<AuthController>(AuthController);

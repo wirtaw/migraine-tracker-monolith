@@ -74,7 +74,6 @@ describe('TriggerController', () => {
         datetimeAt: new Date(),
       };
       const createSpy = jest.spyOn(service, 'create');
-      // Service's create mock already handles resolution
 
       const result = await controller.create(createDto);
 
@@ -85,7 +84,6 @@ describe('TriggerController', () => {
 
   describe('findAll', () => {
     it('should return an array of triggers', async () => {
-      // Service's findAll mock already handles resolution
       const findAllSpy = jest.spyOn(service, 'findAll');
       const result = await controller.findAll();
 
@@ -97,7 +95,6 @@ describe('TriggerController', () => {
   describe('findOne', () => {
     it('should return a single trigger', async () => {
       const id = mockITrigger.id;
-      // Service's findOne mock already handles resolution
       const findOneSpy = jest.spyOn(service, 'findOne');
 
       const result = await controller.findOne(id);
@@ -126,7 +123,6 @@ describe('TriggerController', () => {
         userId: mockITrigger.userId,
         type: mockITrigger.type,
       };
-      // Service's update mock already handles resolution
       const updateSpy = jest.spyOn(service, 'update');
 
       const result = await controller.update(id, updateDto);
@@ -157,7 +153,6 @@ describe('TriggerController', () => {
   describe('remove', () => {
     it('should remove a trigger', async () => {
       const id = mockITrigger.id;
-      // Service's remove mock already handles resolution
       const removeSpy = jest.spyOn(service, 'remove');
 
       const result = await controller.remove(id);

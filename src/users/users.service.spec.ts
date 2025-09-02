@@ -146,7 +146,7 @@ describe('UserService', () => {
 
       expect(result).toEqual({
         userId: mockUser.userId,
-        supabseId: mockUser.supabaseId,
+        supabaseId: mockUser.supabaseId,
         longitude: mockUser.longitude,
         latitude: mockUser.latitude,
         birthDate: mockUser.birthDate,
@@ -202,7 +202,7 @@ describe('UserService', () => {
       });
       expect(result).toEqual({
         userId: mockUser.userId,
-        supabseId: mockUser.supabaseId,
+        supabaseId: mockUser.supabaseId,
         longitude: mockUser.longitude,
         latitude: mockUser.latitude,
         birthDate: mockUser.birthDate,
@@ -256,7 +256,7 @@ describe('UserService', () => {
       );
       expect(result).toEqual({
         userId: updatedMockUser.userId,
-        supabseId: updatedMockUser.supabaseId,
+        supabaseId: updatedMockUser.supabaseId,
         longitude: updatedMockUser.longitude,
         latitude: updatedMockUser.latitude,
         birthDate: updatedMockUser.birthDate,

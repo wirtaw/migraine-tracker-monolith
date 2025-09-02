@@ -12,6 +12,7 @@ export class TestController {
     return { message: 'public ok' };
   }
 
+  @Roles(Role.USER)
   @Get('private')
   getPrivate() {
     return { message: 'private ok' };

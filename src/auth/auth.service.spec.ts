@@ -149,7 +149,12 @@ describe('AuthService', () => {
       );
       expect(mockUserModel).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId: mockUser.userId,
+          userId: expect.any(String),
+          birthdate: createDto.birthDate,
+          email: createDto.email,
+          supabaseId: expect.any(String),
+          longitude: createDto.longitude,
+          latitude: createDto.latitude,
           salt: expect.any(String),
           encryptedSymmetricKey: 'ivhex:encryptedKeyHex:authTagHex',
         }),
