@@ -30,6 +30,12 @@ export class RbacGuard implements CanActivate {
     if (isPublic) return true;
 
     const request: RequestWithUser = context.switchToHttp().getRequest();
+    const isSwagger = request.url?.startsWith('/docs');
+    const isSwaggerAsset =
+      request.url?.startsWith('/docs/') || request.url === '/docs';
+
+    if (isSwagger || isSwaggerAsset) return true;
+
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Missing token');
 

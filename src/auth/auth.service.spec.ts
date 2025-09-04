@@ -6,14 +6,26 @@ import { EncryptionService } from './encryption/encryption.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
-import { Model, HydratedDocument } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { CreateAuthDto } from './dto/create-auth.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
+interface UserInRequest {
+  userId: string;
+  supabaseId: string;
+  email: string;
+  birthDate: string;
+  longitude: string;
+  latitude: string;
+  salt: string;
+  encryptedSymmetricKey: string;
+}
+
 const mockUser: HydratedDocument<User> = {
   userId: 'user123',
+  supabaseId: 'user123',
   longitude: '-74.006',
   latitude: '40.7128',
   birthDate: '1990-01-01',
@@ -31,9 +43,9 @@ describe('AuthService', () => {
   let service: AuthService;
   let encryptionService: EncryptionService;
   let supabaseService: SupabaseService;
-  let mockUserModel: jest.Mocked<Model<UserDocument>>;
   let mockDocumentInstance: UserDocument;
   let jwtService: JwtService;
+  let userModelConstructorSpy: jest.Mock<UserDocument, [UserInRequest]>;
 
   const mockEncryptionService = {
     deriveSymmetricKey: jest.fn(),
@@ -59,9 +71,9 @@ describe('AuthService', () => {
       save: jest.fn().mockResolvedValue(mockUser),
     } as unknown as UserDocument;
 
-    mockUserModel = jest.fn().mockImplementation(() => {
-      return mockDocumentInstance;
-    }) as unknown as jest.Mocked<Model<UserDocument>>;
+    userModelConstructorSpy = jest
+      .fn()
+      .mockImplementation(() => mockDocumentInstance);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -80,7 +92,7 @@ describe('AuthService', () => {
         },
         {
           provide: getModelToken('User'),
-          useValue: mockUserModel,
+          useValue: userModelConstructorSpy,
         },
       ],
     }).compile();
@@ -111,6 +123,7 @@ describe('AuthService', () => {
     it('successfully register new user', async () => {
       const password = 'testpassword';
       const token = 'token';
+      const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
       const createDto: CreateAuthDto = {
         longitude: '1',
         latitude: '1',
@@ -119,6 +132,16 @@ describe('AuthService', () => {
         password,
       };
       const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      const expectedUserData: UserInRequest = {
+        userId: expect.any(String),
+        supabaseId: mockUser.userId,
+        email: createDto.email,
+        birthDate: createDto.birthDate,
+        longitude: createDto.longitude,
+        latitude: createDto.latitude,
+        salt: expect.any(String),
+        encryptedSymmetricKey,
+      };
 
       mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
         symmetricKeyBuffer,
@@ -128,7 +151,7 @@ describe('AuthService', () => {
         error: null,
       });
       mockEncryptionService.encryptSymmetricKey.mockResolvedValueOnce(
-        'ivhex:encryptedKeyHex:authTagHex',
+        encryptedSymmetricKey,
       );
       mockJwtService.sign.mockReturnValueOnce(token);
 
@@ -142,25 +165,19 @@ describe('AuthService', () => {
 
       expect(mockEncryptionService.deriveSymmetricKey).toHaveBeenCalledWith(
         password,
-        expect.any(String), // salt
+        expect.any(String),
       );
+
       expect(mockEncryptionService.encryptSymmetricKey).toHaveBeenCalledWith(
         symmetricKeyBuffer,
       );
-      expect(mockUserModel).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: expect.any(String),
-          birthdate: createDto.birthDate,
-          email: createDto.email,
-          supabaseId: expect.any(String),
-          longitude: createDto.longitude,
-          latitude: createDto.latitude,
-          salt: expect.any(String),
-          encryptedSymmetricKey: 'ivhex:encryptedKeyHex:authTagHex',
-        }),
-      );
-      const saveFn = mockDocumentInstance.save.bind(mockDocumentInstance);
-      expect(saveFn).toHaveBeenCalled();
+
+      const userPayload = userModelConstructorSpy.mock.calls[0][0];
+
+      expect(userPayload).toEqual(expectedUserData);
+
+      expect(userPayload.salt).toMatch(/^[a-zA-Z0-9+/=]+$/);
+      expect(userPayload.encryptedSymmetricKey).toBe(encryptedSymmetricKey);
     });
   });
 });
