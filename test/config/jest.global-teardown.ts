@@ -2,7 +2,8 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
+import type { Config } from '@jest/types';
 
 const execAsync = promisify(exec);
 
@@ -10,7 +11,10 @@ dotenv.config({ path: '.env.test.local' });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
-module.exports = async function (globalConfig, projectConfig) {
+module.exports = async function (
+  globalConfig: Config.GlobalConfig,
+  projectConfig: Config.ProjectConfig,
+) {
   console.log(globalConfig.testPathPatterns);
   console.log(projectConfig.cache);
   if (process.env.CI !== 'true') {

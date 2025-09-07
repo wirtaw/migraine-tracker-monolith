@@ -1,7 +1,7 @@
 // src/auth/jwt.service.ts
 import { Injectable } from '@nestjs/common';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 
 @Injectable()

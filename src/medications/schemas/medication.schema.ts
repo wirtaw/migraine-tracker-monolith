@@ -6,25 +6,25 @@ export type MedicationDocument = Medication & Document;
 @Schema()
 export class Medication {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  title: string;
+  title!: string;
 
   @Prop({ required: true })
-  dosage: string;
+  dosage!: string;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop({ default: Date.now, required: true })
-  updateAt: Date;
+  updateAt!: Date;
 }
 
 export const MedicationSchema = SchemaFactory.createForClass(Medication);

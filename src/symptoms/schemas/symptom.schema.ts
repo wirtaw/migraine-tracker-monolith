@@ -6,22 +6,22 @@ export type SymptomDocument = Symptom & Document;
 @Schema()
 export class Symptom {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  type: string;
+  type!: string;
 
   @Prop({ required: true })
-  severity: number;
+  severity!: number;
 
   @Prop()
-  note: string;
+  note?: string;
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const SymptomSchema = SchemaFactory.createForClass(Symptom);

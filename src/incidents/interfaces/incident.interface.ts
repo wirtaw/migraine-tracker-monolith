@@ -7,8 +7,8 @@ export interface IIncident {
   type: IncidentTypeEnum;
   startTime: Date;
   durationHours: number;
-  notes: string;
-  triggers: TriggerTypeEnum[];
+  notes: string | undefined;
+  triggers: TriggerTypeEnum[] | undefined;
   createdAt: Date;
   datetimeAt: Date;
 }

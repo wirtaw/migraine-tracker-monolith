@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import * as crypto from 'crypto';
+import crypto from 'node:crypto';
 import { AxiosResponse } from 'axios';
 import { ErrorExceptionLogging } from '../../utils/error.exception';
 

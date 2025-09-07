@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EncryptionService } from './encryption.service';
 import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
-import * as crypto from 'node:crypto';
+import crypto from 'node:crypto';
 
 describe('EncryptionService (integration)', () => {
   let service: EncryptionService;

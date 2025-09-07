@@ -1,6 +1,6 @@
 // src/auth/encryption/encryption.service.ts
 import { Injectable } from '@nestjs/common';
-import * as crypto from 'crypto';
+import crypto from 'node:crypto';
 import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
 
 @Injectable()

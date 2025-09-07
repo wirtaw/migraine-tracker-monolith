@@ -4,7 +4,7 @@ export interface IMedication {
   userId: string;
   title: string;
   dosage: string;
-  notes: string;
+  notes: string | undefined;
   datetimeAt: Date;
   createdAt: Date;
   updateAt: Date;

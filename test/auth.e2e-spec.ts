@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus } from '@nestjs/common';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 import { User, UserDocument } from '../src/users/schemas/user.schema';
 import { SupabaseService } from '../src/auth/supabase/supabase.service';
 import { ConfigService } from '@nestjs/config';
+import type { Server } from 'http';
 
 process.env.JWT_SECRET = 'test-secret-key';
 
@@ -108,7 +109,7 @@ describe('Auth E2E', () => {
     it('should register a new user and store encryptedSymmetricKey in correct format', async () => {
       const password = 'StrongPass123!';
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/register')
         .send({
           longitude: '1',
@@ -138,7 +139,7 @@ describe('Auth E2E', () => {
     it('should login an existing user', async () => {
       const password = 'StrongPass123!';
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email, password })
         .expect(HttpStatus.OK);

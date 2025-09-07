@@ -6,10 +6,10 @@ export type UserDocument = User & Document;
 @Schema()
 class FetchDataErrors {
   @Prop({ required: true })
-  forecast: string;
+  forecast!: string;
 
   @Prop({ required: true })
-  magneticWeather: string;
+  magneticWeather!: string;
 }
 
 const FetchDataErrorsSchema = SchemaFactory.createForClass(FetchDataErrors);
@@ -17,52 +17,52 @@ const FetchDataErrorsSchema = SchemaFactory.createForClass(FetchDataErrors);
 @Schema()
 export class User {
   @Prop({ required: true, unique: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true, unique: true })
-  supabaseId: string;
+  supabaseId!: string;
 
   @Prop({ required: true })
-  longitude: string;
+  longitude!: string;
 
   @Prop({ required: true })
-  latitude: string;
+  latitude!: string;
 
   @Prop({ required: true })
-  birthDate: string;
+  birthDate!: string;
 
   @Prop({ required: true })
-  email: string;
+  email!: string;
 
   @Prop({ required: false, default: true })
-  emailNotifications: boolean;
+  emailNotifications?: boolean;
 
   @Prop({ required: false, default: false })
-  dailySummary: boolean;
+  dailySummary?: boolean;
 
   @Prop({ required: false, default: false })
-  personalHealthData: boolean;
+  personalHealthData?: boolean;
 
   @Prop({ required: false, default: false })
-  securitySetup: boolean;
+  securitySetup?: boolean;
 
   @Prop({ required: false, default: false })
-  profileFilled: boolean;
+  profileFilled?: boolean;
 
   @Prop({ required: true })
-  salt: string;
+  salt!: string;
 
   @Prop({ required: true })
-  encryptedSymmetricKey: string; // Renamed from key
+  encryptedSymmetricKey!: string; // Renamed from key
 
   @Prop({ type: FetchDataErrorsSchema, required: false })
-  fetchDataErrors: FetchDataErrors;
+  fetchDataErrors?: FetchDataErrors;
 
   @Prop({ required: false, default: true })
-  fetchMagneticWeather: boolean;
+  fetchMagneticWeather?: boolean;
 
   @Prop({ required: false, default: true })
-  fetchWeather: boolean;
+  fetchWeather?: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

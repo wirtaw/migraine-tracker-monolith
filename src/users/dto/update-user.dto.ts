@@ -12,34 +12,34 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsString()
   @IsLongitude()
-  longitude: string;
+  longitude!: string;
 
   @IsNotEmpty()
   @IsString()
   @IsLatitude()
-  latitude: string;
+  latitude!: string;
 
   @IsNotEmpty()
   @IsString()
-  birthDate: string;
+  birthDate!: string;
 
   @IsNotEmpty()
   @IsBoolean()
-  emailNotifications: boolean;
+  emailNotifications!: boolean;
 
   @IsNotEmpty()
   @IsBoolean()
-  dailySummary: boolean;
+  dailySummary!: boolean;
 
   @IsNotEmpty()
   @IsBoolean()
-  personalHealthData: boolean;
+  personalHealthData!: boolean;
 
   @IsNotEmpty()
   @IsBoolean()
-  securitySetup: boolean;
+  securitySetup!: boolean;
 
   @IsNotEmpty()
   @IsBoolean()
-  profileFilled: boolean;
+  profileFilled!: boolean;
 }

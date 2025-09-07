@@ -58,7 +58,7 @@ export class MedicationsService {
       userId: medicationDoc.userId,
       title: medicationDoc.title,
       dosage: medicationDoc.dosage,
-      notes: medicationDoc.notes,
+      notes: medicationDoc?.notes,
       datetimeAt: medicationDoc.datetimeAt,
       createdAt: medicationDoc.createdAt,
       updateAt: medicationDoc.updateAt,

@@ -9,16 +9,16 @@ export type SleepDocument = Sleep & Document;
 @Schema()
 export class Weight {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  weight: number;
+  weight!: number;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const WeightSchema = SchemaFactory.createForClass(Weight);
@@ -26,16 +26,16 @@ export const WeightSchema = SchemaFactory.createForClass(Weight);
 @Schema()
 export class Height {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  height: number;
+  height!: number;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const HeightSchema = SchemaFactory.createForClass(Height);
@@ -43,19 +43,19 @@ export const HeightSchema = SchemaFactory.createForClass(Height);
 @Schema()
 export class BloodPressure {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  systolic: number;
+  systolic!: number;
 
   @Prop({ required: true })
-  diastolic: number;
+  diastolic!: number;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const BloodPressureSchema = SchemaFactory.createForClass(BloodPressure);
@@ -63,19 +63,19 @@ export const BloodPressureSchema = SchemaFactory.createForClass(BloodPressure);
 @Schema()
 export class Sleep {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  rate: number;
+  rate!: number;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop({ required: true })
-  startedAt: Date;
+  startedAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const SleepSchema = SchemaFactory.createForClass(Sleep);

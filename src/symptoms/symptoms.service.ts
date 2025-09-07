@@ -62,7 +62,7 @@ export class SymptomsService {
       userId: symptomDoc.userId,
       type: symptomDoc.type,
       severity: symptomDoc.severity,
-      note: symptomDoc.note,
+      note: symptomDoc?.note,
       createdAt: symptomDoc.createdAt,
       datetimeAt: symptomDoc.datetimeAt,
     };

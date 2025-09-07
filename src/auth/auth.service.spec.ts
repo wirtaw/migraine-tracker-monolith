@@ -1,5 +1,5 @@
 // src/auth/auth.service.spec.ts
-import * as crypto from 'node:crypto';
+import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption/encryption.service';

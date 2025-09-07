@@ -9,23 +9,23 @@ import {
 export class CreateAuthDto {
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
-  password: string;
+  password!: string;
 
   @IsString()
   @IsNotEmpty()
   @IsLongitude()
-  longitude: string;
+  longitude!: string;
 
   @IsString()
   @IsNotEmpty()
   @IsLatitude()
-  latitude: string;
+  latitude!: string;
 
   @IsString()
   @IsNotEmpty()
-  birthDate: string;
+  birthDate!: string;
 }

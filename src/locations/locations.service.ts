@@ -62,11 +62,11 @@ export class LocationService {
       userId: locationDoc.userId,
       latitude: locationDoc.latitude,
       longitude: locationDoc.longitude,
-      forecast: locationDoc.forecast,
-      solar: locationDoc.solar,
-      solarRadiation: locationDoc.solarRadiation,
+      forecast: locationDoc?.forecast,
+      solar: locationDoc?.solar,
+      solarRadiation: locationDoc?.solarRadiation,
       datetimeAt: locationDoc.datetimeAt,
-      incidentId: locationDoc.incidentId,
+      incidentId: locationDoc?.incidentId,
     };
   }
 }

@@ -14,17 +14,17 @@ export class UpdateIncidentDto extends PartialType(CreateIncidentDto) {
   @IsNotEmpty()
   @IsString()
   @IsEnum(IncidentTypeEnum)
-  type: IncidentTypeEnum;
+  type!: IncidentTypeEnum;
 
   @IsNotEmpty()
   @IsDateString()
-  startTime: Date;
+  startTime!: Date;
 
   @IsNotEmpty()
   @IsNumber()
-  durationHours: number;
+  durationHours!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 }

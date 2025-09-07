@@ -10,8 +10,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
 
 import helmet from 'helmet';
-import * as morgan from 'morgan';
-import * as express from 'express';
+import morgan from 'morgan';
+import express from 'express';
 import { NextFunction, Request, Response } from 'express';
 
 import { AppModule } from './app.module';
@@ -47,7 +47,7 @@ async function bootstrap() {
   app.use(
     morgan('tiny', {
       stream: {
-        write: (message) => Logger.log(message.trim()),
+        write: (message: string) => Logger.log(message.trim()),
       },
     }),
   );

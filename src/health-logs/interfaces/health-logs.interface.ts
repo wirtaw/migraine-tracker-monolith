@@ -2,7 +2,7 @@ export interface IWeight {
   id: string;
   userId: string;
   weight: number;
-  notes: string;
+  notes: string | undefined;
   datetimeAt: Date;
 }
 
@@ -10,7 +10,7 @@ export interface IHeight {
   id: string;
   userId: string;
   height: number;
-  notes: string;
+  notes: string | undefined;
   datetimeAt: Date;
 }
 
@@ -19,7 +19,7 @@ export interface IBloodPressure {
   userId: string;
   systolic: number;
   diastolic: number;
-  notes: string;
+  notes: string | undefined;
   datetimeAt: Date;
 }
 
@@ -27,7 +27,7 @@ export interface ISleep {
   id: string;
   userId: string;
   rate: number;
-  notes: string;
+  notes: string | undefined;
   startedAt: Date;
   datetimeAt: Date;
 }

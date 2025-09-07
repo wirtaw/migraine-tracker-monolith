@@ -4,7 +4,7 @@ import { SupabaseService } from './supabase.service';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 
-import * as Supabase from '@supabase/supabase-js';
+import Supabase from '@supabase/supabase-js';
 
 jest.mock('@supabase/supabase-js', () => {
   const actual: typeof Supabase = jest.requireActual('@supabase/supabase-js');

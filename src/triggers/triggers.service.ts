@@ -61,7 +61,7 @@ export class TriggersService {
           : '',
       userId: triggerDoc.userId,
       type: triggerDoc.type,
-      note: triggerDoc.note,
+      note: triggerDoc?.note,
       createdAt: triggerDoc.createdAt,
       datetimeAt: triggerDoc.datetimeAt,
     };

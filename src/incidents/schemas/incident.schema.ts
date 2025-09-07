@@ -9,19 +9,19 @@ export type IncidentDocument = Incident & Document;
 @Schema()
 export class Incident {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true, enum: IncidentTypeEnum })
-  type: IncidentTypeEnum;
+  type!: IncidentTypeEnum;
 
   @Prop({ required: true })
-  startTime: Date;
+  startTime!: Date;
 
   @Prop({ required: true })
-  durationHours: number;
+  durationHours!: number;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop([
     {
@@ -29,13 +29,13 @@ export class Incident {
       enum: TriggerTypeEnum,
     },
   ])
-  triggers: TriggerTypeEnum[];
+  triggers?: TriggerTypeEnum[];
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const IncidentSchema = SchemaFactory.createForClass(Incident);

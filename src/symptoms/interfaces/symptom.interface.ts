@@ -3,7 +3,7 @@ export interface ISymptom {
   userId: string;
   type: string;
   severity: number;
-  note: string;
+  note: string | undefined;
   createdAt: Date;
   datetimeAt: Date;
 }

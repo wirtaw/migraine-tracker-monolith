@@ -9,79 +9,79 @@ import {
 export class CreateWeightDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  weight: number;
+  weight!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export class CreateHeightDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  height: number;
+  height!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export class CreateBloodPressureDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  systolic: number;
+  systolic!: number;
 
   @IsNotEmpty()
   @IsNumber()
-  diastolic: number;
+  diastolic!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export class CreateSleepDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  rate: number;
+  rate!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  startedAt: Date;
+  startedAt!: Date;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }

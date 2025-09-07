@@ -5,17 +5,17 @@ import { CreateSymptomDto } from './create-symptom.dto';
 export class UpdateSymptomDto extends PartialType(CreateSymptomDto) {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId?: string;
 
   @IsNotEmpty()
   @IsString()
-  type: string;
+  type?: string;
 
   @IsOptional()
   @IsString()
-  note: string;
+  note?: string;
 
   @IsNotEmpty()
   @IsNumber()
-  severity: number;
+  severity?: number;
 }

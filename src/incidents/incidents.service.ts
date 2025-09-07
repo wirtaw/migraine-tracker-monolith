@@ -63,8 +63,8 @@ export class IncidentsService {
       type: incidentDoc.type,
       startTime: incidentDoc.startTime,
       durationHours: incidentDoc.durationHours,
-      notes: incidentDoc.notes,
-      triggers: incidentDoc.triggers,
+      notes: incidentDoc?.notes,
+      triggers: incidentDoc?.triggers,
       createdAt: incidentDoc.createdAt,
       datetimeAt: incidentDoc.datetimeAt,
     };

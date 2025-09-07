@@ -8,21 +8,21 @@ import {
 export class CreateMedicationDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsString()
-  title: string;
+  title!: string;
 
   @IsNotEmpty()
   @IsString()
-  dosage: string;
+  dosage!: string;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }

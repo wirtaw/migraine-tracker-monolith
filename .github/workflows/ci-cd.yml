@@ -49,6 +49,9 @@ jobs:
 
       - name: Format
         run: pnpm format
+
+      - name: Typecheck
+        run: pnpm typecheck
       
       - name: Wait for MongoDB to be ready
         run: |
@@ -85,7 +88,6 @@ jobs:
           MONGODB_USER: ${{ env.MONGODB_USER }}
           MONGODB_PASSWORD: ${{ env.MONGODB_PASSWORD }}
           MONGODB_HOST: ${{ env.MONGODB_HOST }}
-          MONGODB_CLUSTER: 
           MONGO_URI: ${{ env.MONGO_URI }}
 
       - name: Test E2E

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SymmetricKeyService } from './symmetric-key.service';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
-import { createHmac } from 'crypto';
+import { createHmac } from 'node:crypto';
 
 describe('SymmetricKeyService with HMAC', () => {
   let service: SymmetricKeyService;

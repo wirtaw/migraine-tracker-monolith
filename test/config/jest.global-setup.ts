@@ -3,7 +3,8 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
+import type { Config } from '@jest/types';
 
 declare global {
   // store mongod reference for teardown
@@ -16,7 +17,10 @@ dotenv.config({ path: '.env.test.local' });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
-module.exports = async function (globalConfig, projectConfig) {
+module.exports = async function (
+  globalConfig: Config.GlobalConfig,
+  projectConfig: Config.ProjectConfig,
+) {
   if (process.env.CI !== 'true') {
     console.log(globalConfig.testPathPatterns);
     console.log(projectConfig.cache);

@@ -9,23 +9,23 @@ import {
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
-  supabaseId: string;
+  supabaseId!: string;
 
   @IsNotEmpty()
   @IsString()
   @IsLongitude()
-  longitude: string;
+  longitude!: string;
 
   @IsNotEmpty()
   @IsString()
   @IsLatitude()
-  latitude: string;
+  latitude!: string;
 
   @IsNotEmpty()
   @IsString()
-  birthDate: string;
+  birthDate!: string;
 
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email!: string;
 }

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { SupabaseService } from '../src/auth/supabase/supabase.service';
 import { ConfigService } from '@nestjs/config';
 import { Role } from '../src/auth/enums/roles.enum';
+import type { Server } from 'http';
 
 process.env.JWT_SECRET = 'test-secret-key';
 
@@ -73,7 +74,7 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should allow access to public endpoint without token', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .get('/test/public')
       .expect(HttpStatus.OK);
 
@@ -81,13 +82,13 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should deny access to private endpoint without token', async () => {
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .get('/test/private')
       .expect(HttpStatus.UNAUTHORIZED);
   });
 
   it('should allow access to private endpoint with valid user token', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .get('/test/private')
       .set('Authorization', `Bearer ${userToken}`)
       .expect(HttpStatus.OK);
@@ -96,14 +97,14 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should deny access to admin endpoint with user role', async () => {
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Server)
       .get('/test/admin')
       .set('Authorization', `Bearer ${userToken}`)
       .expect(HttpStatus.FORBIDDEN);
   });
 
   it('should allow access to admin endpoint with admin role', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .get('/test/admin')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(HttpStatus.OK);

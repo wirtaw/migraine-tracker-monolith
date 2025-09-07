@@ -6,19 +6,19 @@ export type TriggerDocument = Trigger & Document;
 @Schema()
 export class Trigger {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  type: string;
+  type!: string;
 
   @Prop()
-  note: string;
+  note?: string;
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
 
 export const TriggerSchema = SchemaFactory.createForClass(Trigger);

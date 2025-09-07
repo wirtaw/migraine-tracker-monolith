@@ -227,7 +227,7 @@ export class HealthLogsService {
           : '',
       userId: weightDoc.userId,
       weight: weightDoc.weight,
-      notes: weightDoc.notes,
+      notes: weightDoc?.notes,
       datetimeAt: weightDoc.datetimeAt,
     };
   }
@@ -240,7 +240,7 @@ export class HealthLogsService {
           : '',
       userId: heightDoc.userId,
       height: heightDoc.height,
-      notes: heightDoc.notes,
+      notes: heightDoc?.notes,
       datetimeAt: heightDoc.datetimeAt,
     };
   }
@@ -256,7 +256,7 @@ export class HealthLogsService {
       userId: bloodPressureDoc.userId,
       systolic: bloodPressureDoc.systolic,
       diastolic: bloodPressureDoc.diastolic,
-      notes: bloodPressureDoc.notes,
+      notes: bloodPressureDoc?.notes,
       datetimeAt: bloodPressureDoc.datetimeAt,
     };
   }
@@ -269,7 +269,7 @@ export class HealthLogsService {
           : '',
       userId: sleepDoc.userId,
       rate: sleepDoc.rate,
-      notes: sleepDoc.notes,
+      notes: sleepDoc?.notes,
       startedAt: sleepDoc.startedAt,
       datetimeAt: sleepDoc.datetimeAt,
     };

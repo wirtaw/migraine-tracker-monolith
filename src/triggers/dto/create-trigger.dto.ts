@@ -8,17 +8,17 @@ import {
 export class CreateTriggerDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsString()
-  type: string;
+  type!: string;
 
   @IsOptional()
   @IsString()
-  note: string;
+  note?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }

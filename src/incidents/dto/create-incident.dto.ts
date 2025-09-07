@@ -13,30 +13,30 @@ import { TriggerTypeEnum } from '../../triggers/enums/trigger-type.enum';
 export class CreateIncidentDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsEnum(IncidentTypeEnum)
-  type: IncidentTypeEnum;
+  type!: IncidentTypeEnum;
 
   @IsNotEmpty()
   @IsDateString()
-  startTime: Date;
+  startTime!: Date;
 
   @IsNotEmpty()
   @IsNumber()
-  durationHours: number;
+  durationHours!: number;
 
   @IsOptional()
   @IsString()
-  notes: string;
+  notes?: string;
 
   @IsOptional()
   @IsArray()
   @IsEnum(TriggerTypeEnum, { each: true })
-  triggers: TriggerTypeEnum[];
+  triggers?: TriggerTypeEnum[];
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }

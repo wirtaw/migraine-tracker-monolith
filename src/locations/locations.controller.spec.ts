@@ -55,7 +55,7 @@ const mockILocations: ILocationData[] = [
     solar: [],
     solarRadiation: [],
     datetimeAt: new Date('2023-01-02T10:00:00Z'),
-    incidentId: null,
+    incidentId: undefined,
   },
 ];
 

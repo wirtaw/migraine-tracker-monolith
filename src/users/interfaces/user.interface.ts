@@ -17,7 +17,7 @@ export interface IUser {
   profileFilled: boolean;
   salt: string;
   encryptedSymmetricKey: string;
-  fetchDataErrors: IFetchDataErrors;
+  fetchDataErrors: IFetchDataErrors | undefined;
   fetchMagneticWeather: boolean;
   fetchWeather: boolean;
 }

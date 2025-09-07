@@ -6,61 +6,61 @@ export type LocationDocument = Location & Document;
 @Schema()
 class Forecast {
   @Prop()
-  description: string;
+  description?: string;
 
   @Prop()
-  temperature: number;
+  temperature?: number;
 
   @Prop()
-  pressure: number;
+  pressure?: number;
 
   @Prop()
-  humidity: number;
+  humidity?: number;
 
   @Prop()
-  windSpeed: number;
+  windSpeed?: number;
 
   @Prop()
-  clouds: number;
+  clouds?: number;
 
   @Prop()
-  uvi: number;
+  uvi?: number;
 
   @Prop({ required: true })
-  datetime: string;
+  datetime?: string;
 }
 
 @Schema()
 class Solar {
   @Prop()
-  kIndex: number;
+  kIndex?: number;
 
   @Prop()
-  aIndex: number;
+  aIndex?: number;
 
   @Prop()
-  flareProbability: number;
+  flareProbability?: number;
 
   @Prop({ required: true })
-  datetime: string;
+  datetime?: string;
 }
 
 @Schema()
 class SolarRadiation {
   @Prop()
-  uviIndex: number;
+  uviIndex?: number;
 
   @Prop()
-  ozone: number;
+  ozone?: number;
 
   @Prop()
-  solarFlux: number;
+  solarFlux?: number;
 
   @Prop()
-  sunsPotNumber: number;
+  sunsPotNumber?: number;
 
   @Prop({ required: true })
-  date: string;
+  date?: string;
 }
 
 const ForecastSchema = SchemaFactory.createForClass(Forecast);
@@ -70,31 +70,31 @@ const SolarRadiationSchema = SchemaFactory.createForClass(SolarRadiation);
 @Schema()
 export class Location {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  latitude: number;
+  latitude!: number;
 
   @Prop({ required: true })
-  longitude: number;
+  longitude!: number;
 
   @Prop({ type: [ForecastSchema] })
-  forecast: Forecast[];
+  forecast?: Forecast[];
 
   @Prop({ type: [SolarSchema] })
-  solar: Solar[];
+  solar?: Solar[];
 
   @Prop({ type: [SolarRadiationSchema] })
-  solarRadiation: SolarRadiation[];
+  solarRadiation?: SolarRadiation[];
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt: Date;
+  datetimeAt!: Date;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Incident', default: null })
-  incidentId: string | null;
+  incidentId?: string;
 }
 
 export const LocationSchema = SchemaFactory.createForClass(Location);

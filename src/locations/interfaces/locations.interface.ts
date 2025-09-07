@@ -1,27 +1,27 @@
 interface ISolar {
-  kIndex: number | null;
-  aIndex: number | null;
-  flareProbability: number | null;
-  datetime: string;
+  kIndex?: number;
+  aIndex?: number;
+  flareProbability?: number;
+  datetime?: string;
 }
 
 interface IForecast {
-  description: string;
-  temperature: number | null;
-  pressure: number | null;
-  humidity: number | null;
-  windSpeed: number | null;
-  clouds: number | null;
-  uvi: number | null;
-  datetime: string;
+  description?: string;
+  temperature?: number;
+  pressure?: number;
+  humidity?: number;
+  windSpeed?: number;
+  clouds?: number;
+  uvi?: number;
+  datetime?: string;
 }
 
 interface ISolarRadiation {
-  uviIndex: number | null;
-  ozone: number | null;
-  solarFlux: number | null;
-  sunsPotNumber: number | null;
-  date: string;
+  uviIndex?: number;
+  ozone?: number;
+  solarFlux?: number;
+  sunsPotNumber?: number;
+  date?: string;
 }
 
 export interface ILocationData {
@@ -29,9 +29,9 @@ export interface ILocationData {
   userId: string;
   latitude: number;
   longitude: number;
-  forecast: IForecast[] | [];
-  solar: ISolar[] | [];
-  solarRadiation: ISolarRadiation[] | [];
+  forecast: IForecast[] | undefined;
+  solar: ISolar[] | undefined;
+  solarRadiation: ISolarRadiation[] | undefined;
   datetimeAt: Date;
-  incidentId: string | null;
+  incidentId: string | undefined;
 }

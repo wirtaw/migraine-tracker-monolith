@@ -9,21 +9,21 @@ import {
 export class CreateSymptomDto {
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  userId!: string;
 
   @IsNotEmpty()
   @IsString()
-  type: string;
+  type!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  severity: number;
+  severity!: number;
 
   @IsOptional()
   @IsString()
-  note: string;
+  note?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt: Date;
+  datetimeAt!: Date;
 }
