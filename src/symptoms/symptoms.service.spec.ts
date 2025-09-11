@@ -11,7 +11,6 @@ import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockSymptom: HydratedDocument<Symptom> = {
@@ -22,7 +21,7 @@ const mockSymptom: HydratedDocument<Symptom> = {
   note: 'Started after stress',
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
-} as any;
+} as never;
 
 const mockSymptoms: HydratedDocument<Symptom>[] = [
   mockSymptom,
@@ -35,7 +34,7 @@ const mockSymptoms: HydratedDocument<Symptom>[] = [
     createdAt: new Date('2023-01-02T10:00:00Z'),
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
   },
-] as any;
+] as never;
 
 describe('SymptomsService', () => {
   let service: SymptomsService;

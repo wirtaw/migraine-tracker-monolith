@@ -15,7 +15,7 @@ interface HttpExceptionResponse {
 
 @Catch()
 export class AllExceptionsFilter extends BaseExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -59,7 +59,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       message: message,
-      error: error,
+      error,
     });
   }
 }

@@ -7,13 +7,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { type User } from '@supabase/supabase-js';
 import { SupabaseService } from '../supabase/supabase.service';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { Role } from '../enums/roles.enum';
 import { Permission } from '../enums/permissions.enum';
-import { RequestWithUser, User } from '../interfaces/auth.user.interface';
+import { RequestWithUser } from '../interfaces/auth.user.interface';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
@@ -49,10 +50,15 @@ export class RbacGuard implements CanActivate {
     const permissions = (user.user_metadata?.permissions as Permission[]) || [];
 
     request.user = {
+      id: user.id,
       userId: user.id,
       username: user.email,
       role,
       permissions,
+      app_metadata: user?.app_metadata,
+      user_metadata: user?.user_metadata,
+      aud: user.aud,
+      created_at: user.created_at,
     } as User;
 
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [

@@ -12,7 +12,6 @@ import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockTrigger: HydratedDocument<Trigger> = {
@@ -22,7 +21,7 @@ const mockTrigger: HydratedDocument<Trigger> = {
   note: 'Started after stress',
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
-} as any;
+} as never;
 
 const mockTriggers: HydratedDocument<Trigger>[] = [
   mockTrigger,
@@ -34,7 +33,7 @@ const mockTriggers: HydratedDocument<Trigger>[] = [
     createdAt: new Date('2023-01-02T10:00:00Z'),
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
   },
-] as any;
+] as never;
 
 describe('TriggersService', () => {
   let service: TriggersService;

@@ -1,6 +1,7 @@
 import { Request } from 'express';
 import { Permission } from '../enums/permissions.enum';
 import { Role } from '../enums/roles.enum';
+import { type User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
   userId: string;
@@ -10,5 +11,20 @@ export interface User {
 }
 
 export interface RequestWithUser extends Request {
-  user: User;
+  user: SupabaseUser;
+}
+
+export interface AuthRegisterResponse {
+  message: string;
+  user: {
+    userId: string;
+    email?: string;
+  };
+  token: string;
+}
+
+export interface AuthLoginResponse {
+  message: string;
+  access_token: string;
+  user: SupabaseUser;
 }

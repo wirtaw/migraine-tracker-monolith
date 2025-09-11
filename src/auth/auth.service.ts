@@ -15,6 +15,10 @@ import { User, UserDocument } from '../users/schemas/user.schema';
 import { EncryptionService } from './encryption/encryption.service';
 import { LoginDto } from './dto/login.dto';
 import { ErrorExceptionLogging } from '../utils/error.exception';
+import type {
+  AuthRegisterResponse,
+  AuthLoginResponse,
+} from './interfaces/auth.user.interface';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +29,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  async register(createAuthDto: CreateAuthDto) {
+  async register(createAuthDto: CreateAuthDto): Promise<AuthRegisterResponse> {
     const { email, password, ...userData } = createAuthDto;
 
     try {
@@ -65,7 +69,7 @@ export class AuthService {
       await newUser.save();
 
       const payload = { sub: newUser.userId };
-      const token = this.jwtService.sign(payload);
+      const token: string = this.jwtService.sign(payload);
 
       return {
         message: 'User successfully registered.',
@@ -74,11 +78,11 @@ export class AuthService {
       };
     } catch (error) {
       ErrorExceptionLogging(error, AuthService.name);
-      throw new BadRequestException();
+      throw error;
     }
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<AuthLoginResponse> {
     const { email, password } = loginDto;
 
     const { data, error } =

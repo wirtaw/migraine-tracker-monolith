@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 export const ErrorExceptionLogging = (
   error: unknown,
   serviceName: string = '',
-) => {
+): void => {
   if (error instanceof Error) {
     Logger.error(error.stack, serviceName);
   } else {

@@ -92,10 +92,23 @@ describe('AuthController', () => {
   describe('getProfile', () => {
     it('should return the user object from the request', () => {
       const request = {
-        user: { userId: '123', username: 'testuser' },
+        user: {
+          userId: '123',
+          username: 'testuser',
+          id: '123',
+          app_metadata: {
+            test: 'value',
+          },
+          user_metadata: {
+            test: 'value',
+          },
+          aud: '123',
+        },
       };
 
-      const result = controller.getProfile(request as RequestWithUser);
+      const result = controller.getProfile(
+        request as unknown as RequestWithUser,
+      );
       expect(result).toEqual(request.user);
     });
   });

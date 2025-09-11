@@ -11,7 +11,6 @@ import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockMedication: HydratedDocument<Medication> = {
@@ -23,7 +22,7 @@ const mockMedication: HydratedDocument<Medication> = {
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
   updateAt: new Date('2023-01-01T10:00:00Z'),
-} as any;
+} as never;
 
 const mockMedications: HydratedDocument<Medication>[] = [
   mockMedication,
@@ -37,7 +36,7 @@ const mockMedications: HydratedDocument<Medication>[] = [
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
     updateAt: new Date('2023-01-02T10:00:00Z'),
   },
-] as any;
+] as never;
 
 describe('MedicationsService', () => {
   let service: MedicationsService;

@@ -6,7 +6,7 @@ export interface Config {
   auth: AuthConfig;
 }
 
-export const getEnvFilePaths = () => {
+export const getEnvFilePaths = (): string[] => {
   const environment = currentEnvironment();
   return [
     `.env.${environment}.local`,

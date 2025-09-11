@@ -1,6 +1,7 @@
 // src/auth/auth.service.spec.ts
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption/encryption.service';
 import { SupabaseService } from './supabase/supabase.service';
@@ -37,7 +38,7 @@ const mockUser: HydratedDocument<User> = {
   profileFilled: true,
   salt: 'somesalt-16bytes',
   encryptedSymmetricKey: 'encryptedSymmetricKey',
-} as any;
+} as never;
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -120,17 +121,22 @@ describe('AuthService', () => {
   });
 
   describe('register()', () => {
-    it('successfully register new user', async () => {
-      const password = 'testpassword';
-      const token = 'token';
-      const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
-      const createDto: CreateAuthDto = {
+    let createDto: CreateAuthDto;
+    const password = 'testpassword';
+
+    beforeEach(() => {
+      createDto = {
         longitude: '1',
         latitude: '1',
         birthDate: '2000-01-01',
         email: 'testUser@email.com',
         password,
       };
+    });
+
+    it('successfully register new user', async () => {
+      const token = 'token';
+      const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
       const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
       const expectedUserData: UserInRequest = {
         userId: expect.any(String),
@@ -178,6 +184,51 @@ describe('AuthService', () => {
 
       expect(userPayload.salt).toMatch(/^[a-zA-Z0-9+/=]+$/);
       expect(userPayload.encryptedSymmetricKey).toBe(encryptedSymmetricKey);
+    });
+
+    it('failed to receive data from supabase on register new user', async () => {
+      const errMessage = 'wrong API key';
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+      mockSupabaseService.client.auth.signUp.mockResolvedValueOnce({
+        data: { user: { id: mockUser.userId, email: createDto.email } },
+        error: new Error(errMessage),
+      });
+
+      await expect(service.register(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throw not found a user from supabase if it undefined on register new user', async () => {
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+      mockSupabaseService.client.auth.signUp.mockResolvedValueOnce({
+        data: { user: undefined },
+        error: null,
+      });
+
+      await expect(service.register(createDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('failed any other exception on register new user', async () => {
+      const errMessage = 'wrong API key';
+
+      mockEncryptionService.deriveSymmetricKey.mockRejectedValue(
+        new BadRequestException(errMessage),
+      );
+
+      await expect(service.register(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

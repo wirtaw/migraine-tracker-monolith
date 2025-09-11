@@ -8,11 +8,16 @@ import {
   Get,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { type User } from '@supabase/supabase-js';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { RequestWithUser } from './interfaces/auth.user.interface';
+import {
+  type AuthRegisterResponse,
+  type AuthLoginResponse,
+  RequestWithUser,
+} from './interfaces/auth.user.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -38,7 +43,9 @@ export class AuthController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  async register(@Body() createAuthDto: CreateAuthDto) {
+  async register(
+    @Body() createAuthDto: CreateAuthDto,
+  ): Promise<AuthRegisterResponse> {
     return this.authService.register(createAuthDto);
   }
 
@@ -58,7 +65,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid credentials.',
   })
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<AuthLoginResponse> {
     return this.authService.login(loginDto);
   }
 
@@ -74,7 +81,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized access.',
   })
-  getProfile(req: RequestWithUser) {
+  getProfile(req: RequestWithUser): User {
     // The SupabaseAuthGuard will attach the user to the request
     return req.user;
   }

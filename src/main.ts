@@ -19,7 +19,7 @@ import { AppConfig } from './config/app/app.config';
 import { ControllerName } from './enums/index';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix(ControllerName.pathPrefix);

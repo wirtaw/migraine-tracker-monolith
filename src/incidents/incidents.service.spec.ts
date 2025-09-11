@@ -13,7 +13,6 @@ import { NotFoundException, Logger } from '@nestjs/common';
 import { IncidentTypeEnum } from './enums/incident-type.enum';
 import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockIncident: HydratedDocument<Incident> = {
@@ -26,7 +25,7 @@ const mockIncident: HydratedDocument<Incident> = {
   triggers: [TriggerTypeEnum.STRESS, TriggerTypeEnum.LACK_OF_SLEEP],
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
-} as any;
+} as never;
 
 const mockIncidents: HydratedDocument<Incident>[] = [
   mockIncident,
@@ -41,7 +40,7 @@ const mockIncidents: HydratedDocument<Incident>[] = [
     createdAt: new Date('2023-01-02T10:00:00Z'),
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
   },
-] as any;
+] as never;
 
 describe('IncidentsService', () => {
   let service: IncidentsService;

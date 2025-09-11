@@ -30,7 +30,6 @@ import {
 } from './dto/update-health-logs.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockWeight: HydratedDocument<Weight> = {
@@ -39,7 +38,7 @@ const mockWeight: HydratedDocument<Weight> = {
   weight: 75,
   notes: 'First weight log',
   datetimeAt: new Date('2023-01-01T10:00:00Z'),
-} as any;
+} as never;
 
 const mockHeight: HydratedDocument<Height> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
@@ -47,7 +46,7 @@ const mockHeight: HydratedDocument<Height> = {
   height: 180,
   notes: 'Initial height',
   datetimeAt: new Date('2023-01-01T10:00:00Z'),
-} as any;
+} as never;
 
 const mockBloodPressure: HydratedDocument<BloodPressure> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3c'),
@@ -56,7 +55,7 @@ const mockBloodPressure: HydratedDocument<BloodPressure> = {
   diastolic: 80,
   notes: 'Morning reading',
   datetimeAt: new Date('2023-01-01T10:00:00Z'),
-} as any;
+} as never;
 
 const mockSleep: HydratedDocument<Sleep> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3d'),
@@ -65,7 +64,7 @@ const mockSleep: HydratedDocument<Sleep> = {
   notes: 'Good sleep',
   startedAt: new Date('2023-01-01T00:00:00Z'),
   datetimeAt: new Date('2023-01-01T08:00:00Z'),
-} as any;
+} as never;
 
 describe('HealthLogsService', () => {
   let service: HealthLogsService;

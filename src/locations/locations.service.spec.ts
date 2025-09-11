@@ -11,7 +11,6 @@ import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockLocation: HydratedDocument<Location> = {
@@ -51,7 +50,7 @@ const mockLocation: HydratedDocument<Location> = {
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
   incidentId: 'incident123',
-} as any;
+} as never;
 
 const mockLocations: HydratedDocument<Location>[] = [
   mockLocation,
@@ -67,7 +66,7 @@ const mockLocations: HydratedDocument<Location>[] = [
     datetimeAt: new Date('2023-01-02T12:00:00Z'),
     incidentId: null,
   },
-] as any;
+] as never;
 
 describe('LocationService', () => {
   let service: LocationService;

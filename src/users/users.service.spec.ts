@@ -7,7 +7,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockUser: HydratedDocument<User> = {
@@ -30,7 +29,7 @@ const mockUser: HydratedDocument<User> = {
   },
   fetchMagneticWeather: true,
   fetchWeather: true,
-} as any;
+} as never;
 
 const mockUsers: HydratedDocument<User>[] = [
   mockUser,
@@ -54,7 +53,7 @@ const mockUsers: HydratedDocument<User>[] = [
     fetchMagneticWeather: true,
     fetchWeather: true,
   },
-] as any;
+] as never;
 
 describe('UserService', () => {
   let service: UserService;

@@ -4,11 +4,13 @@ import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import jwt from 'jsonwebtoken';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 
+type JwtPayload = jwt.JwtPayload;
+
 @Injectable()
 export class CustomJwtService {
   constructor(private readonly keyService: SymmetricKeyService) {}
 
-  async verifyToken(token: string): Promise<any> {
+  async verifyToken(token: string): Promise<JwtPayload | string> {
     const key = await this.keyService.getKey();
     return jwt.verify(token, key);
   }
