@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import jwt from 'jsonwebtoken';
-import { RequestWithUser } from './interfaces/auth.user.interface';
+import { UserPayloadWithKey } from './interfaces/auth.user.interface';
 
 type JwtPayload = jwt.JwtPayload;
 
@@ -15,8 +15,11 @@ export class CustomJwtService {
     return jwt.verify(token, key);
   }
 
-  async signPayload(payload: RequestWithUser): Promise<string> {
+  async signPayload(
+    payload: UserPayloadWithKey,
+    expiresIn: number,
+  ): Promise<string> {
     const key = await this.keyService.getKey();
-    return jwt.sign(payload, key, { expiresIn: '1h' });
+    return jwt.sign(payload, key, { expiresIn });
   }
 }

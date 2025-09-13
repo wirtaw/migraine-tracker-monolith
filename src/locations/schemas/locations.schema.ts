@@ -26,8 +26,8 @@ class Forecast {
   @Prop()
   uvi?: number;
 
-  @Prop({ required: true })
-  datetime?: string;
+  @Prop()
+  datetime!: string;
 }
 
 @Schema()
@@ -41,8 +41,8 @@ class Solar {
   @Prop()
   flareProbability?: number;
 
-  @Prop({ required: true })
-  datetime?: string;
+  @Prop()
+  datetime!: string;
 }
 
 @Schema()
@@ -59,8 +59,8 @@ class SolarRadiation {
   @Prop()
   sunsPotNumber?: number;
 
-  @Prop({ required: true })
-  date?: string;
+  @Prop()
+  date!: string;
 }
 
 const ForecastSchema = SchemaFactory.createForClass(Forecast);

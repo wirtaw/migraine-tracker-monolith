@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import crypto from 'node:crypto';
 import { SupabaseService } from './supabase/supabase.service';
@@ -16,20 +15,21 @@ import { EncryptionService } from './encryption/encryption.service';
 import { LoginDto } from './dto/login.dto';
 import { ErrorExceptionLogging } from '../utils/error.exception';
 import type {
-  AuthRegisterResponse,
-  AuthLoginResponse,
+  AuthResponse,
+  UserPayload,
 } from './interfaces/auth.user.interface';
+import { CustomJwtService } from './jwt.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly encryptionService: EncryptionService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: CustomJwtService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  async register(createAuthDto: CreateAuthDto): Promise<AuthRegisterResponse> {
+  async register(createAuthDto: CreateAuthDto): Promise<AuthResponse> {
     const { email, password, ...userData } = createAuthDto;
 
     try {
@@ -68,12 +68,18 @@ export class AuthService {
 
       await newUser.save();
 
-      const payload = { sub: newUser.userId };
-      const token: string = this.jwtService.sign(payload);
+      const payload: UserPayload = {
+        userId: newUser.userId,
+        email,
+      };
+      const token: string = await this.jwtService.signPayload(
+        { ...payload, key: encryptedSymmetricKey },
+        6 * 60,
+      );
 
       return {
         message: 'User successfully registered.',
-        user: { userId: newUser.userId, email: supabaseUser?.email },
+        user: payload,
         token,
       };
     } catch (error) {
@@ -82,7 +88,7 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<AuthLoginResponse> {
+  async login(loginDto: LoginDto): Promise<AuthResponse> {
     const { email, password } = loginDto;
 
     const { data, error } =
@@ -96,25 +102,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const supabaseUser = data.user;
+    const session = data?.session;
 
-    // You can fetch and decrypt user data from your Mongoose DB here
-    //const userInDb = await this.userModel
-    //  .findOne({ userId: supabaseUser.id })
-    //  .exec();
+    if (!session) {
+      ErrorExceptionLogging(error, AuthService.name);
+      throw new UnauthorizedException('Missing session object from Supabase.');
+    }
 
-    // Example of using the encryption service
-    // const decryptedKey = await this.encryptionService.decrypt(
-    //   userInDb.encryptedSymmetricKey,
-    //   password,
-    //   userInDb.salt,
-    //   userInDb.iv,
-    // );
+    const expiresIn = session.expires_in;
+    const user = data?.user;
+    const userInDb = await this.userModel.findOne({
+      supabaseId: user.id,
+    });
+
+    if (!userInDb || !userInDb?.encryptedSymmetricKey) {
+      ErrorExceptionLogging(error, AuthService.name);
+      throw new UnauthorizedException('Missing user with id in the database.');
+    }
+
+    const payload: UserPayload = {
+      userId: user.id,
+      email: user.email ?? '',
+    };
+    const token = await this.jwtService.signPayload(
+      { ...payload, key: userInDb.encryptedSymmetricKey },
+      expiresIn,
+    );
 
     return {
       message: 'Successfully logged in.',
-      access_token: data.session.access_token,
-      user: supabaseUser,
+      user: payload,
+      token,
     };
   }
 }

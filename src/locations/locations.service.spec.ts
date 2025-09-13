@@ -10,43 +10,46 @@ import {
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
+import {
+  IForecast,
+  ISolar,
+  ISolarRadiation,
+} from './interfaces/locations.interface';
 
 /* eslint-disable @typescript-eslint/unbound-method */
+
+const mockForecast: IForecast = {
+  description: 'clear sky',
+  temperature: 20,
+  pressure: 1012,
+  humidity: 50,
+  windSpeed: 5.5,
+  clouds: 10,
+  uvi: 5,
+  datetime: '2023-01-01T10:00:00Z',
+};
+const mockSolar: ISolar = {
+  kIndex: 3,
+  aIndex: 5,
+  flareProbability: 0.1,
+  datetime: '2023-01-01T10:00:00Z',
+};
+const mockSolarRadiation: ISolarRadiation = {
+  uviIndex: 5,
+  ozone: 300,
+  solarFlux: 100,
+  sunsPotNumber: 50,
+  date: '2023-01-01',
+};
 
 const mockLocation: HydratedDocument<Location> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
   userId: 'user123',
   latitude: 40.7128,
   longitude: -74.006,
-  forecast: [
-    {
-      description: 'clear sky',
-      temperature: 20,
-      pressure: 1012,
-      humidity: 50,
-      windSpeed: 5.5,
-      clouds: 10,
-      uvi: 5,
-      datetime: '2023-01-01T10:00:00Z',
-    },
-  ],
-  solar: [
-    {
-      kIndex: 3,
-      aIndex: 5,
-      flareProbability: 0.1,
-      datetime: '2023-01-01T10:00:00Z',
-    },
-  ],
-  solarRadiation: [
-    {
-      uviIndex: 5,
-      ozone: 300,
-      solarFlux: 100,
-      sunsPotNumber: 50,
-      date: '2023-01-01',
-    },
-  ],
+  forecast: [mockForecast],
+  solar: [mockSolar],
+  solarRadiation: [mockSolarRadiation],
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: new Date('2023-01-01T12:00:00Z'),
   incidentId: 'incident123',
@@ -155,9 +158,39 @@ describe('LocationService', () => {
         userId: 'testUser',
         latitude: 1,
         longitude: 1,
-        forecast: [],
-        solar: [],
-        solarRadiation: [],
+        forecast: [mockForecast],
+        solar: [mockSolar],
+        solarRadiation: [mockSolarRadiation],
+        datetimeAt: new Date(),
+        incidentId: null,
+      };
+
+      const result = await service.create(createDto);
+
+      expect(mockLocationModel).toHaveBeenCalledWith(createDto);
+      expect(mockDocumentInstance.save).toHaveBeenCalled();
+
+      expect(result).toEqual({
+        id: mockLocation._id.toString(),
+        userId: mockLocation.userId,
+        latitude: mockLocation.latitude,
+        longitude: mockLocation.longitude,
+        forecast: mockLocation.forecast,
+        solar: mockLocation.solar,
+        solarRadiation: mockLocation.solarRadiation,
+        datetimeAt: mockLocation.datetimeAt,
+        incidentId: mockLocation.incidentId,
+      });
+    });
+
+    it('should create and return a location entry with empty forecast, solar and solarRadiation', async () => {
+      const createDto: CreateLocationDto = {
+        userId: 'testUser',
+        latitude: 1,
+        longitude: 1,
+        forecast: undefined,
+        solar: undefined,
+        solarRadiation: undefined,
         datetimeAt: new Date(),
         incidentId: null,
       };

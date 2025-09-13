@@ -14,8 +14,7 @@ import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import {
-  type AuthRegisterResponse,
-  type AuthLoginResponse,
+  type AuthResponse,
   RequestWithUser,
 } from './interfaces/auth.user.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -43,9 +42,7 @@ export class AuthController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  async register(
-    @Body() createAuthDto: CreateAuthDto,
-  ): Promise<AuthRegisterResponse> {
+  async register(@Body() createAuthDto: CreateAuthDto): Promise<AuthResponse> {
     return this.authService.register(createAuthDto);
   }
 
@@ -65,7 +62,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid credentials.',
   })
-  async login(@Body() loginDto: LoginDto): Promise<AuthLoginResponse> {
+  async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(loginDto);
   }
 

@@ -1,11 +1,11 @@
-interface ISolar {
+export interface ISolar {
   kIndex?: number;
   aIndex?: number;
   flareProbability?: number;
-  datetime?: string;
+  datetime: string;
 }
 
-interface IForecast {
+export interface IForecast {
   description?: string;
   temperature?: number;
   pressure?: number;
@@ -13,15 +13,15 @@ interface IForecast {
   windSpeed?: number;
   clouds?: number;
   uvi?: number;
-  datetime?: string;
+  datetime: string;
 }
 
-interface ISolarRadiation {
+export interface ISolarRadiation {
   uviIndex?: number;
   ozone?: number;
   solarFlux?: number;
   sunsPotNumber?: number;
-  date?: string;
+  date: string;
 }
 
 export interface ILocationData {

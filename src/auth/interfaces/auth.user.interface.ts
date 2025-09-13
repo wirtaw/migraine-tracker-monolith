@@ -14,17 +14,17 @@ export interface RequestWithUser extends Request {
   user: SupabaseUser;
 }
 
-export interface AuthRegisterResponse {
-  message: string;
-  user: {
-    userId: string;
-    email?: string;
-  };
-  token: string;
+export interface UserPayload {
+  userId: string;
+  email?: string;
 }
 
-export interface AuthLoginResponse {
+export interface UserPayloadWithKey extends UserPayload {
+  key: string;
+}
+
+export interface AuthResponse {
   message: string;
-  access_token: string;
-  user: SupabaseUser;
+  user: UserPayload;
+  token: string;
 }

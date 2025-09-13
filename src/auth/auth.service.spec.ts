@@ -1,15 +1,22 @@
 // src/auth/auth.service.spec.ts
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption/encryption.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { JwtService } from '@nestjs/jwt';
+import { CustomJwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { LoginDto } from './dto/login.dto';
+import { createUserModelMock } from './mocks/createUserModelMock';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -44,8 +51,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let encryptionService: EncryptionService;
   let supabaseService: SupabaseService;
-  let mockDocumentInstance: UserDocument;
-  let jwtService: JwtService;
+  let jwtService: CustomJwtService;
   let userModelConstructorSpy: jest.Mock<UserDocument, [UserInRequest]>;
 
   const mockEncryptionService = {
@@ -63,19 +69,15 @@ describe('AuthService', () => {
   };
 
   const mockJwtService = {
-    sign: jest.fn(),
+    signPayload: jest.fn(),
   };
 
+  let userModelMock;
+
   beforeEach(async () => {
-    mockDocumentInstance = {
-      ...mockUser,
-      save: jest.fn().mockResolvedValue(mockUser),
-    } as unknown as UserDocument;
-
-    userModelConstructorSpy = jest
-      .fn()
-      .mockImplementation(() => mockDocumentInstance);
-
+    const mock = createUserModelMock(mockUser);
+    userModelMock = mock.userModelMock;
+    userModelConstructorSpy = userModelMock;
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -88,18 +90,18 @@ describe('AuthService', () => {
           useValue: mockSupabaseService,
         },
         {
-          provide: JwtService,
+          provide: CustomJwtService,
           useValue: mockJwtService,
         },
         {
           provide: getModelToken('User'),
-          useValue: userModelConstructorSpy,
+          useValue: userModelMock,
         },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService);
+    jwtService = module.get<CustomJwtService>(CustomJwtService);
     encryptionService = module.get<EncryptionService>(EncryptionService);
     supabaseService = module.get<SupabaseService>(SupabaseService);
 
@@ -159,7 +161,7 @@ describe('AuthService', () => {
       mockEncryptionService.encryptSymmetricKey.mockResolvedValueOnce(
         encryptedSymmetricKey,
       );
-      mockJwtService.sign.mockReturnValueOnce(token);
+      mockJwtService.signPayload.mockReturnValueOnce(token);
 
       const result = await service.register(createDto);
 
@@ -228,6 +230,133 @@ describe('AuthService', () => {
 
       await expect(service.register(createDto)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('login()', () => {
+    let loginDto: LoginDto;
+    const password = 'testpassword';
+
+    beforeEach(() => {
+      loginDto = {
+        email: 'testUser@email.com',
+        password,
+      };
+    });
+
+    it('successfully login with existing user creds', async () => {
+      const user: SupabaseUser = {
+        id: 'test',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        email: 'test@mail.com',
+        created_at: new Date().toLocaleDateString(),
+      };
+      const access_token = 'test';
+      const refresh_token = 'test';
+      const token_type = '';
+      const session: Session = {
+        access_token,
+        refresh_token,
+        expires_in: 100,
+        token_type,
+        user,
+      };
+      const token = 'token';
+      /*const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
+      const expectedUserData: UserInRequest = {
+        userId: user.id,
+        supabaseId: user.id,
+        email: user.email ?? '',
+        birthDate: expect.any(String),
+        longitude: expect.any(String),
+        latitude: expect.any(String),
+        salt: expect.any(String),
+        encryptedSymmetricKey,
+      };*/
+
+      mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
+        data: {
+          user,
+          session,
+          weakPassword: undefined,
+        },
+        error: null,
+      });
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      const result = await service.login(loginDto);
+
+      //const userPayload = userModelConstructorSpy.mock.calls[0][0];
+
+      //expect(userPayload).toEqual(expectedUserData);
+
+      expect(result).toStrictEqual({
+        message: 'Successfully logged in.',
+        token,
+        user: {
+          userId: user.id,
+          email: user.email,
+        },
+      });
+    });
+
+    it('failed login with user creds, then got error on Supabase request', async () => {
+      const errMessage = 'wrong API key';
+      const user: SupabaseUser = {
+        id: 'test',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        created_at: new Date().toLocaleDateString(),
+      };
+      const access_token = 'test';
+      const refresh_token = 'test';
+      const token_type = '';
+      const session: Session = {
+        access_token,
+        refresh_token,
+        expires_in: 100,
+        token_type,
+        user,
+      };
+
+      mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
+        data: {
+          user,
+          session,
+          weakPassword: undefined,
+        },
+        error: new Error(errMessage),
+      });
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('failed login with user creds, then doesnt got session in the Supabase data response', async () => {
+      const user: SupabaseUser = {
+        id: 'test',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        created_at: new Date().toLocaleDateString(),
+      };
+
+      mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
+        data: {
+          user,
+          session: undefined,
+          weakPassword: undefined,
+        },
+        error: null,
+      });
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
       );
     });
   });
