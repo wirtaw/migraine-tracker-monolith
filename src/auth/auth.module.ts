@@ -21,7 +21,7 @@ import { RbacGuard } from './guard/rbac.guard';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'dev-secret', // fallback dla lokalnego dev
+        secret: config.get<string>('JWT_SECRET') || 'dev-secret',
         signOptions: { expiresIn: '1h' },
       }),
     }),

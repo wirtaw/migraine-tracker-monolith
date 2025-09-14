@@ -19,6 +19,7 @@ import type {
   UserPayload,
 } from './interfaces/auth.user.interface';
 import { CustomJwtService } from './jwt.service';
+import { Role } from './enums/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -71,6 +72,7 @@ export class AuthService {
       const payload: UserPayload = {
         userId: newUser.userId,
         email,
+        role: Role.GUEST,
       };
       const token: string = await this.jwtService.signPayload(
         { ...payload, key: encryptedSymmetricKey },
@@ -120,9 +122,12 @@ export class AuthService {
       throw new UnauthorizedException('Missing user with id in the database.');
     }
 
+    const role = (user.user_metadata?.role as Role) || Role.GUEST;
+
     const payload: UserPayload = {
       userId: user.id,
       email: user.email ?? '',
+      role,
     };
     const token = await this.jwtService.signPayload(
       { ...payload, key: userInDb.encryptedSymmetricKey },

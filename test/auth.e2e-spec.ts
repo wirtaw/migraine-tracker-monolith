@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Server } from 'http';
 import type { AuthResponse } from '../src/auth/interfaces/auth.user.interface';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
+import { Role } from '../src/auth/enums/roles.enum';
 
 process.env.JWT_SECRET = 'test-secret-key';
 
@@ -169,6 +170,7 @@ describe('Auth E2E', () => {
       expect(body.user).toEqual({
         userId: singInUserId,
         email,
+        role: Role.GUEST,
       });
 
       const userInDb = await userModel

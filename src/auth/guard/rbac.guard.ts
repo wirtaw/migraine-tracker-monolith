@@ -8,19 +8,25 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { type User } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
 import { SupabaseService } from '../supabase/supabase.service';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { Role } from '../enums/roles.enum';
 import { Permission } from '../enums/permissions.enum';
-import { RequestWithUser } from '../interfaces/auth.user.interface';
+import {
+  RequestWithUser,
+  DecodedUserPayload,
+} from '../interfaces/auth.user.interface';
+import { CustomJwtService } from '../jwt.service';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly supabaseService: SupabaseService,
+    private readonly jwtService: CustomJwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,26 +46,49 @@ export class RbacGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Missing token');
 
-    const {
-      data: { user },
-      error,
-    } = await this.supabaseService.client.auth.getUser(token);
-    if (error || !user) throw new UnauthorizedException('Invalid token');
+    let role: Role = Role.USER;
+    let permissions: Permission[] = [];
 
-    const role = (user.user_metadata?.role as Role) || Role.USER;
-    const permissions = (user.user_metadata?.permissions as Permission[]) || [];
+    try {
+      const payload: DecodedUserPayload =
+        await this.jwtService.verifyToken(token);
 
-    request.user = {
-      id: user.id,
-      userId: user.id,
-      username: user.email,
-      role,
-      permissions,
-      app_metadata: user?.app_metadata,
-      user_metadata: user?.user_metadata,
-      aud: user.aud,
-      created_at: user.created_at,
-    } as User;
+      if (payload?.expire_in && Date.now() / 1000 > payload?.expire_in) {
+        throw new UnauthorizedException('Token expired');
+      }
+
+      request.session = {
+        userId: payload.userId,
+        key: payload.key,
+      };
+    } catch (exception) {
+      if (
+        exception instanceof UnauthorizedException ||
+        exception instanceof jwt.TokenExpiredError
+      ) {
+        throw exception;
+      }
+
+      const {
+        data: { user },
+        error,
+      } = await this.supabaseService.client.auth.getUser(token);
+      if (error || !user) throw new UnauthorizedException('Invalid token');
+
+      request.user = {
+        id: user?.id,
+        userId: user?.id,
+        username: user?.email,
+        role: user?.role,
+        app_metadata: user?.app_metadata,
+        user_metadata: user?.user_metadata,
+        aud: user?.aud,
+        created_at: user?.created_at,
+      } as User;
+
+      role = (user.user_metadata?.role as Role) || Role.GUEST;
+      permissions = (user.user_metadata?.permissions as Permission[]) || [];
+    }
 
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),

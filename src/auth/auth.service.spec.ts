@@ -17,6 +17,7 @@ import { CustomJwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { createUserModelMock } from './mocks/createUserModelMock';
+import { Role } from './enums/roles.enum';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -167,7 +168,11 @@ describe('AuthService', () => {
 
       expect(result).toStrictEqual({
         message: 'User successfully registered.',
-        user: { userId: mockUser.userId, email: createDto.email },
+        user: {
+          userId: mockUser.userId,
+          email: createDto.email,
+          role: Role.GUEST,
+        },
         token,
       });
 
@@ -299,6 +304,7 @@ describe('AuthService', () => {
         user: {
           userId: user.id,
           email: user.email,
+          role: Role.GUEST,
         },
       });
     });

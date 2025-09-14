@@ -25,6 +25,7 @@ export class SymmetricKeyService {
     return hmac.digest('hex');
   }
 
+  //TODO add getJWTKey method
   async getKey(): Promise<string> {
     const now = Date.now();
     if (this.cachedKey && now - this.lastFetched < this.ttl) {

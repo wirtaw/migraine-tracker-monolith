@@ -8,11 +8,17 @@ import { Reflector } from '@nestjs/core';
 import { SupabaseService } from '../supabase/supabase.service';
 import { Role } from '../enums/roles.enum';
 import { Permission } from '../enums/permissions.enum';
+import { CustomJwtService } from '../jwt.service';
 
 describe('RbacGuard', () => {
   let guard: RbacGuard;
   let reflector: Reflector;
   let supabaseService: SupabaseService;
+  let jwtService: CustomJwtService;
+
+  const mockJwtService = {
+    verifyToken: jest.fn(),
+  };
 
   beforeEach(() => {
     reflector = new Reflector();
@@ -23,8 +29,9 @@ describe('RbacGuard', () => {
         },
       },
     } as unknown as SupabaseService;
+    jwtService = mockJwtService as unknown as CustomJwtService;
 
-    guard = new RbacGuard(reflector, supabaseService);
+    guard = new RbacGuard(reflector, supabaseService, jwtService);
   });
 
   const createMockContext = (token?: string): ExecutionContext => {
@@ -51,6 +58,75 @@ describe('RbacGuard', () => {
     expect(result).toBe(true);
   });
 
+  it('should allow access with valid JWT token and session data', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+
+    mockJwtService.verifyToken.mockResolvedValue({
+      userId: 'jwt-user-id',
+      email: 'jwt@example.com',
+      key: 'encryptedKey123',
+      expire_in: Math.floor(Date.now() / 1000) + 60,
+    });
+
+    const context = createMockContext('valid-jwt-token');
+    const result = await guard.canActivate(context);
+    expect(result).toBe(true);
+  });
+
+  it('should throw UnauthorizedException if JWT token is expired', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+
+    mockJwtService.verifyToken.mockResolvedValue({
+      userId: 'expired-user-id',
+      email: 'expired@example.com',
+      key: 'expiredKey',
+      expire_in: Math.floor(Date.now() / 1000) - 10,
+    });
+
+    const context = createMockContext('expired-jwt-token');
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
+  });
+
+  it('should fallback to Supabase if JWT verification fails', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
+
+    supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
+      data: {
+        user: {
+          id: 'supabase-id',
+          email: 'supabase@example.com',
+          user_metadata: {
+            role: Role.USER,
+            permissions: [],
+          },
+        },
+      },
+      error: null,
+    });
+
+    const context = createMockContext('fallback-token');
+    const result = await guard.canActivate(context);
+    expect(result).toBe(true);
+  });
+
+  it('should allow access if JWT token has no expire_in field', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+
+    mockJwtService.verifyToken.mockResolvedValue({
+      userId: 'no-exp-user-id',
+      email: 'no-exp@example.com',
+      key: 'no-exp-key',
+    });
+
+    const context = createMockContext('no-exp-token');
+    const result = await guard.canActivate(context);
+    expect(result).toBe(true);
+  });
+
   it('should throw UnauthorizedException if token is missing', async () => {
     const context = createMockContext();
     await expect(guard.canActivate(context)).rejects.toThrow(
@@ -60,6 +136,7 @@ describe('RbacGuard', () => {
 
   it('should throw UnauthorizedException if Supabase returns error', async () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
     supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
       data: { user: null },
       error: { message: 'Invalid token' },
@@ -77,6 +154,7 @@ describe('RbacGuard', () => {
       if (key === 'permissions') return [Permission.MANAGE_USERS];
       return false;
     });
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
 
     supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
       data: {
@@ -103,6 +181,7 @@ describe('RbacGuard', () => {
       .mockImplementation((key) =>
         key === 'roles' ? [Role.ADMIN] : undefined,
       );
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
 
     supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
       data: {
@@ -126,10 +205,11 @@ describe('RbacGuard', () => {
 
   it('should allow access with valid USER role and permission if metadata exist', async () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
-      if (key === 'roles') return [Role.USER];
+      if (key === 'roles') return [Role.GUEST];
       if (key === 'permissions') return [];
       return false;
     });
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
 
     supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
       data: {
@@ -153,6 +233,7 @@ describe('RbacGuard', () => {
       .mockImplementation((key) =>
         key === 'permissions' ? [Permission.MANAGE_USERS] : undefined,
       );
+    mockJwtService.verifyToken.mockRejectedValue(new Error('Invalid JWT'));
 
     supabaseService.client.auth.getUser = jest.fn().mockResolvedValue({
       data: {
