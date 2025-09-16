@@ -29,7 +29,7 @@ describe('CustomJwtService', () => {
         role: Role.GUEST,
       };
 
-      const token = await jwtService.signPayload(payload, 3600);
+      const token = await jwtService.signPayload(payload, '6 h');
 
       expect(typeof token).toBe('string');
 

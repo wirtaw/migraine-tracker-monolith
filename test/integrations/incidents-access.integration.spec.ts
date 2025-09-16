@@ -145,7 +145,7 @@ describe('Incidents Access Flow (integration)', () => {
         key: 'fakeKey',
         role: Role.GUEST,
       },
-      3600,
+      '6 h',
     );
 
     await request(app.getHttpServer() as Server)
@@ -163,7 +163,7 @@ describe('Incidents Access Flow (integration)', () => {
         key: 'expiredKey',
         role: Role.USER,
       },
-      1,
+      '1 s',
     );
 
     await request(app.getHttpServer() as Server)

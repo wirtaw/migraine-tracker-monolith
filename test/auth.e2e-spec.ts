@@ -2,18 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus } from '@nestjs/common';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { HttpService } from '@nestjs/axios';
 import { AppModule } from '../src/app.module';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 import { User, UserDocument } from '../src/users/schemas/user.schema';
 import { SupabaseService } from '../src/auth/supabase/supabase.service';
-import { ConfigService } from '@nestjs/config';
 import type { Server } from 'http';
 import type { AuthResponse } from '../src/auth/interfaces/auth.user.interface';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { Role } from '../src/auth/enums/roles.enum';
+import { of } from 'rxjs';
 
-process.env.JWT_SECRET = 'test-secret-key';
+process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
+process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
 
 describe('Auth E2E', () => {
   let app: INestApplication;
@@ -39,6 +41,8 @@ describe('Auth E2E', () => {
     user,
   };
   const singInUserId = 'userId-0001';
+  const workerKey = 'secure_worker_key';
+  const jwtSecret = 'secure_jwt_secret';
 
   // Mock SupabaseService
   const mockSupabaseService = {
@@ -65,17 +69,25 @@ describe('Auth E2E', () => {
     },
   };
 
+  const mockHttpService = {
+    get: jest.fn().mockReturnValue(
+      of({
+        data: {
+          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+          JWT_SECRET: jwtSecret,
+        },
+      }),
+    ),
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(ConfigService)
-      .useValue({
-        get: (k: string) =>
-          k === 'JWT_SECRET' ? 'test-secret-key' : undefined,
-      })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
+      .overrideProvider(HttpService)
+      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();

@@ -66,7 +66,9 @@ export class EncryptionService {
   }
 
   private async getMasterKey(): Promise<Buffer> {
-    const masterKey = await this.symmetricKeyService.getKey();
+    const masterKey = await this.symmetricKeyService.getKey(
+      'JWT_SYMMETRIC_KEY_ENCRYPTION_KEY',
+    );
     return Buffer.from(masterKey.padEnd(this.keyLength, '\0')).slice(
       0,
       this.keyLength,

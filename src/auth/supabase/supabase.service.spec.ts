@@ -1,8 +1,8 @@
 // src/auth/supabase.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { SupabaseService } from './supabase.service';
-import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SupabaseService } from './supabase.service';
 
 import Supabase from '@supabase/supabase-js';
 

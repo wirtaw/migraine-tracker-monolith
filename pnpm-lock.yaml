@@ -41,6 +41,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.55.0
         version: 2.55.0
+      '@types/ms':
+        specifier: ^2.1.0
+        version: 2.1.0
       axios:
         specifier: ^1.11.0
         version: 1.11.0

@@ -20,8 +20,7 @@ import { RbacGuard } from './guard/rbac.guard';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'dev-secret',
+      useFactory: () => ({
         signOptions: { expiresIn: '1h' },
       }),
     }),

@@ -3,19 +3,21 @@ import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { SupabaseService } from '../src/auth/supabase/supabase.service';
-import { ConfigService } from '@nestjs/config';
 import { Role } from '../src/auth/enums/roles.enum';
 import type { Server } from 'http';
+import { HttpService } from '@nestjs/axios';
+import { of } from 'rxjs';
 
-process.env.JWT_SECRET = 'test-secret-key';
+process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
+process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
 
 describe('RBAC + SupabaseAuthGuard E2E', () => {
   let app: INestApplication;
   const userToken = 'valid-user-token';
   const adminToken = 'valid-admin-token';
-  const jwtKwyValue = 'test-secret-key';
+  const workerKey = 'secure_worker_key';
+  const jwtSecret = 'secure_jwt_secret';
 
-  // Mock SupabaseService z różnymi scenariuszami tokenów
   const mockSupabaseService = {
     client: {
       auth: {
@@ -53,16 +55,25 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
     },
   };
 
+  const mockHttpService = {
+    get: jest.fn().mockReturnValue(
+      of({
+        data: {
+          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+          JWT_SECRET: jwtSecret,
+        },
+      }),
+    ),
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(ConfigService)
-      .useValue({
-        get: (k: string) => (k === 'JWT_SECRET' ? jwtKwyValue : undefined),
-      })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
+      .overrideProvider(HttpService)
+      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();

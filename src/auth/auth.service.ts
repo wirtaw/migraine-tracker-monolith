@@ -20,6 +20,7 @@ import type {
 } from './interfaces/auth.user.interface';
 import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
+import { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -76,7 +77,7 @@ export class AuthService {
       };
       const token: string = await this.jwtService.signPayload(
         { ...payload, key: encryptedSymmetricKey },
-        6 * 60,
+        '6 h',
       );
 
       return {
@@ -111,7 +112,7 @@ export class AuthService {
       throw new UnauthorizedException('Missing session object from Supabase.');
     }
 
-    const expiresIn = session.expires_in;
+    const expiresIn = session.expires_in as unknown as StringValue;
     const user = data?.user;
     const userInDb = await this.userModel.findOne({
       supabaseId: user.id,
