@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, HttpStatus } from '@nestjs/common';
+import { INestApplication, HttpStatus, Logger } from '@nestjs/common';
 import request from 'supertest';
 import type { Server } from 'http';
 import { Connection } from 'mongoose';
+import { of } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { AppModule } from '../../src/app.module';
 import { CustomJwtService } from '../../src/auth/jwt.service';
@@ -26,7 +28,7 @@ describe('Incidents Access Flow (integration)', () => {
     id: 'mock-supabase-id',
     email,
     app_metadata: {},
-    user_metadata: {},
+    user_metadata: { role: Role.USER },
     aud: '',
     created_at: new Date().toLocaleDateString(),
   };
@@ -67,6 +69,17 @@ describe('Incidents Access Flow (integration)', () => {
     },
   };
 
+  const mockHttpService = {
+    get: jest.fn().mockReturnValue(
+      of({
+        data: {
+          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: 'mocked_worker_key',
+          JWT_SECRET: 'mocked_jwt_secret',
+        },
+      }),
+    ),
+  };
+
   beforeAll(async () => {
     createDto = {
       userId: 'testUser',
@@ -82,6 +95,8 @@ describe('Incidents Access Flow (integration)', () => {
     })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
+      .overrideProvider(HttpService)
+      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -116,6 +131,7 @@ describe('Incidents Access Flow (integration)', () => {
     const body = loginRes.body as AuthResponse;
 
     token = body.token;
+    Logger.log(`token: ${token}`);
     expect(token).toBeDefined();
   });
 

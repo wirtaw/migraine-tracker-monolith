@@ -80,7 +80,7 @@ describe('RbacGuard', () => {
       userId: 'expired-user-id',
       email: 'expired@example.com',
       key: 'expiredKey',
-      expire_in: Math.floor(Date.now() / 1000) - 10,
+      exp: Math.floor(Date.now() / 1000) - 100,
     });
 
     const context = createMockContext('expired-jwt-token');
@@ -203,9 +203,9 @@ describe('RbacGuard', () => {
     );
   });
 
-  it('should allow access with valid USER role and permission if metadata exist', async () => {
+  it('should throw ForbiddenException if metadata is empty and token invalid', async () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
-      if (key === 'roles') return [Role.GUEST];
+      if (key === 'roles') return [Role.USER];
       if (key === 'permissions') return [];
       return false;
     });
@@ -223,8 +223,9 @@ describe('RbacGuard', () => {
     });
 
     const context = createMockContext('user-token');
-    const result = await guard.canActivate(context);
-    expect(result).toBe(true);
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('should throw ForbiddenException if permissions are insufficient', async () => {

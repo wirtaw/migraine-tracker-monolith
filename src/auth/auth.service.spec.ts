@@ -73,12 +73,9 @@ describe('AuthService', () => {
     signPayload: jest.fn(),
   };
 
-  let userModelMock;
-
   beforeEach(async () => {
-    const mock = createUserModelMock(mockUser);
-    userModelMock = mock.userModelMock;
-    userModelConstructorSpy = userModelMock;
+    const { userModelMock: successMock } = createUserModelMock(mockUser);
+    userModelConstructorSpy = successMock;
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -96,7 +93,7 @@ describe('AuthService', () => {
         },
         {
           provide: getModelToken('User'),
-          useValue: userModelMock,
+          useValue: successMock,
         },
       ],
     }).compile();
@@ -245,7 +242,7 @@ describe('AuthService', () => {
 
     beforeEach(() => {
       loginDto = {
-        email: 'testUser@email.com',
+        email: mockUser.email,
         password,
       };
     });
@@ -256,7 +253,7 @@ describe('AuthService', () => {
         app_metadata: {},
         user_metadata: {},
         aud: '',
-        email: 'test@mail.com',
+        email: loginDto.email,
         created_at: new Date().toLocaleDateString(),
       };
       const access_token = 'test';
@@ -270,17 +267,6 @@ describe('AuthService', () => {
         user,
       };
       const token = 'token';
-      /*const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
-      const expectedUserData: UserInRequest = {
-        userId: user.id,
-        supabaseId: user.id,
-        email: user.email ?? '',
-        birthDate: expect.any(String),
-        longitude: expect.any(String),
-        latitude: expect.any(String),
-        salt: expect.any(String),
-        encryptedSymmetricKey,
-      };*/
 
       mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
         data: {
@@ -362,6 +348,75 @@ describe('AuthService', () => {
       });
 
       await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('failed login with non existing user in the database', async () => {
+      const { userModelMock: failedSaveMock } = createUserModelMock(mockUser, {
+        findOneResult: null,
+        findByIdResult: null,
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: failedSaveMock,
+          },
+        ],
+      }).compile();
+
+      const serviceWithFailedSaveMock = module.get<AuthService>(AuthService);
+
+      loginDto = {
+        email: 'testUser+unknown@email.com',
+        password,
+      };
+      const user: SupabaseUser = {
+        id: 'test',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        email: loginDto.email,
+        created_at: new Date().toLocaleDateString(),
+      };
+      const access_token = 'test';
+      const refresh_token = 'test';
+      const token_type = '';
+      const session: Session = {
+        access_token,
+        refresh_token,
+        expires_in: 100,
+        token_type,
+        user,
+      };
+      const token = 'token';
+
+      mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
+        data: {
+          user,
+          session,
+          weakPassword: undefined,
+        },
+        error: null,
+      });
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      await expect(serviceWithFailedSaveMock.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
       );
     });

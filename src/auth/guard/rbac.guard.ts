@@ -46,14 +46,14 @@ export class RbacGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Missing token');
 
-    let role: Role = Role.USER;
+    let role: Role = Role.GUEST;
     let permissions: Permission[] = [];
 
     try {
       const payload: DecodedUserPayload =
         await this.jwtService.verifyToken(token);
 
-      if (payload?.expire_in && Date.now() / 1000 > payload?.expire_in) {
+      if (payload?.exp && Math.round(Date.now() / 1000) + 1 > payload?.exp) {
         throw new UnauthorizedException('Token expired');
       }
 
@@ -61,6 +61,7 @@ export class RbacGuard implements CanActivate {
         userId: payload.userId,
         key: payload.key,
       };
+      role = (payload?.role as Role) || Role.USER;
     } catch (exception) {
       if (
         exception instanceof UnauthorizedException ||
@@ -69,25 +70,29 @@ export class RbacGuard implements CanActivate {
         throw exception;
       }
 
-      const {
-        data: { user },
-        error,
-      } = await this.supabaseService.client.auth.getUser(token);
-      if (error || !user) throw new UnauthorizedException('Invalid token');
+      try {
+        const {
+          data: { user },
+          error,
+        } = await this.supabaseService.client.auth.getUser(token);
+        if (error || !user) throw new UnauthorizedException('Invalid token');
 
-      request.user = {
-        id: user?.id,
-        userId: user?.id,
-        username: user?.email,
-        role: user?.role,
-        app_metadata: user?.app_metadata,
-        user_metadata: user?.user_metadata,
-        aud: user?.aud,
-        created_at: user?.created_at,
-      } as User;
+        request.user = {
+          id: user?.id,
+          userId: user?.id,
+          username: user?.email,
+          role: user?.role,
+          app_metadata: user?.app_metadata,
+          user_metadata: user?.user_metadata,
+          aud: user?.aud,
+          created_at: user?.created_at,
+        } as User;
 
-      role = (user.user_metadata?.role as Role) || Role.GUEST;
-      permissions = (user.user_metadata?.permissions as Permission[]) || [];
+        role = (user.user_metadata?.role as Role) || Role.GUEST;
+        permissions = (user.user_metadata?.permissions as Permission[]) || [];
+      } catch {
+        throw new UnauthorizedException('Supabase fallback failed');
+      }
     }
 
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
