@@ -34,6 +34,12 @@ export class EncryptionService {
   }
 
   encryptSensitiveData(data: string, symmetricKey: Buffer): string {
+    if (Buffer.byteLength(symmetricKey) !== 32) {
+      throw new Error(
+        `Invalid encryption key length: ${Buffer.byteLength(symmetricKey)} bytes`,
+      );
+    }
+
     const iv = crypto.randomBytes(this.ivLength);
     const cipher = crypto.createCipheriv(this.algorithm, symmetricKey, iv);
 
@@ -42,11 +48,16 @@ export class EncryptionService {
 
     const authTag = cipher.getAuthTag();
 
-    // Format: iv:encryptedData:authTag
     return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
   }
 
   decryptSensitiveData(encryptedPayload: string, symmetricKey: Buffer): string {
+    if (Buffer.byteLength(symmetricKey) !== 32) {
+      throw new Error(
+        `Invalid encryption key length: ${Buffer.byteLength(symmetricKey)} bytes`,
+      );
+    }
+
     const [ivHex, encryptedData, authTagHex] = encryptedPayload.split(':');
     if (!ivHex || !encryptedData || !authTagHex) {
       throw new Error('Invalid encrypted data format');

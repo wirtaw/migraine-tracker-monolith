@@ -1,11 +1,12 @@
+import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, HttpStatus, Logger } from '@nestjs/common';
+import { INestApplication, HttpStatus } from '@nestjs/common';
 import request from 'supertest';
 import type { Server } from 'http';
-import { Connection } from 'mongoose';
+import { Connection, Model } from 'mongoose';
 import { of } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
-import { getConnectionToken } from '@nestjs/mongoose';
+import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { AppModule } from '../../src/app.module';
 import { CustomJwtService } from '../../src/auth/jwt.service';
 import { Role } from '../../src/auth/enums/roles.enum';
@@ -15,15 +16,20 @@ import { IncidentTypeEnum } from '../../src/incidents/enums/incident-type.enum';
 import { TriggerTypeEnum } from '../../src/triggers/enums/trigger-type.enum';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { SupabaseService } from '../../src/auth/supabase/supabase.service';
+import {
+  Incident,
+  IncidentDocument,
+} from '../../src/incidents/schemas/incident.schema';
 
 describe('Incidents Access Flow (integration)', () => {
   let app: INestApplication;
   let jwtService: CustomJwtService;
   let connection: Connection;
+  let incidentModel: Model<IncidentDocument>;
+  let mockHttpService;
   const email = 'accessUser@example.com';
   const password = 'StrongPass123!';
   let token: string;
-  let createDto: CreateIncidentDto;
   const user: SupabaseUser = {
     id: 'mock-supabase-id',
     email,
@@ -43,6 +49,10 @@ describe('Incidents Access Flow (integration)', () => {
     user,
   };
   const singInUserId = 'userId-0001';
+  const triggersCreate: TriggerTypeEnum[] = [
+    TriggerTypeEnum.STRESS,
+    TriggerTypeEnum.LACK_OF_SLEEP,
+  ];
 
   // Mock SupabaseService
   const mockSupabaseService = {
@@ -69,26 +79,17 @@ describe('Incidents Access Flow (integration)', () => {
     },
   };
 
-  const mockHttpService = {
-    get: jest.fn().mockReturnValue(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: 'mocked_worker_key',
-          JWT_SECRET: 'mocked_jwt_secret',
-        },
-      }),
-    ),
-  };
-
   beforeAll(async () => {
-    createDto = {
-      userId: 'testUser',
-      type: IncidentTypeEnum.AURA_EPISODE,
-      startTime: new Date(),
-      durationHours: 1,
-      notes: 'Test notes',
-      triggers: [TriggerTypeEnum.STRESS, TriggerTypeEnum.LACK_OF_SLEEP],
-      datetimeAt: new Date(),
+    mockHttpService = {
+      get: jest.fn().mockReturnValue(
+        of({
+          data: {
+            JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
+              '0123456789abcdef0123456789abcdef',
+            JWT_SECRET: 'mocked_jwt_secret',
+          },
+        }),
+      ),
     };
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -104,6 +105,9 @@ describe('Incidents Access Flow (integration)', () => {
 
     jwtService = moduleFixture.get<CustomJwtService>(CustomJwtService);
     connection = moduleFixture.get<Connection>(getConnectionToken());
+    incidentModel = moduleFixture.get<Model<IncidentDocument>>(
+      getModelToken(Incident.name),
+    );
   });
 
   afterAll(async () => {
@@ -131,22 +135,50 @@ describe('Incidents Access Flow (integration)', () => {
     const body = loginRes.body as AuthResponse;
 
     token = body.token;
-    Logger.log(`token: ${token}`);
     expect(token).toBeDefined();
   });
 
   it('should allow access to POST /incidents with valid token and USER role', async () => {
+    const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
+    const incidentDateTime = '2023-01-01T12:00:00.000Z';
+    const createDto: CreateIncidentDto = {
+      userId: 'user123',
+      type: IncidentTypeEnum.MIGRAINE_ATTACK,
+      startTime: incidentStartDateTime,
+      durationHours: 2,
+      notes: 'Started after stress',
+      triggers: triggersCreate,
+      datetimeAt: incidentDateTime,
+    };
     const res = await request(app.getHttpServer() as Server)
       .post('/incidents')
       .set('Authorization', `Bearer ${token}`)
       .send(createDto)
       .expect(HttpStatus.CREATED);
 
-    expect(res.body).toHaveProperty('type', IncidentTypeEnum.AURA_EPISODE);
+    const incidentInDb = await incidentModel
+      .findOne({ userId: createDto.userId })
+      .lean();
+
+    expect(incidentInDb).toBeTruthy();
+    expect(res.body).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
+    expect(res.body).toHaveProperty('durationHours', 2);
+    expect(res.body).toHaveProperty('startTime', incidentStartDateTime);
     expect(res.body).toHaveProperty('notes', createDto.notes);
   });
 
   it('should reject access to POST /incidents without token', async () => {
+    const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
+    const incidentDateTime = '2023-01-01T12:00:00.000Z';
+    const createDto: CreateIncidentDto = {
+      userId: 'user123',
+      type: IncidentTypeEnum.MIGRAINE_ATTACK,
+      startTime: incidentStartDateTime,
+      durationHours: 2,
+      notes: 'Started after stress',
+      triggers: triggersCreate,
+      datetimeAt: incidentDateTime,
+    };
     await request(app.getHttpServer() as Server)
       .post('/incidents')
       .send(createDto)
@@ -154,6 +186,17 @@ describe('Incidents Access Flow (integration)', () => {
   });
 
   it('should reject access to POST /incidents with insufficient role', async () => {
+    const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
+    const incidentDateTime = '2023-01-01T12:00:00.000Z';
+    const createDto: CreateIncidentDto = {
+      userId: 'user123',
+      type: IncidentTypeEnum.MIGRAINE_ATTACK,
+      startTime: incidentStartDateTime,
+      durationHours: 2,
+      notes: 'Started after stress',
+      triggers: triggersCreate,
+      datetimeAt: incidentDateTime,
+    };
     const guestToken = await jwtService.signPayload(
       {
         userId: 'guest-id',
@@ -172,14 +215,25 @@ describe('Incidents Access Flow (integration)', () => {
   });
 
   it('should reject access to POST /incidents with expired token', async () => {
+    const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
+    const incidentDateTime = '2023-01-01T12:00:00.000Z';
+    const createDto: CreateIncidentDto = {
+      userId: 'user123',
+      type: IncidentTypeEnum.MIGRAINE_ATTACK,
+      startTime: incidentStartDateTime,
+      durationHours: 2,
+      notes: 'Started after stress',
+      triggers: triggersCreate,
+      datetimeAt: incidentDateTime,
+    };
     const expiredToken = await jwtService.signPayload(
       {
         userId: 'expired-id',
         email: 'expired@example.com',
-        key: 'expiredKey',
+        key: crypto.randomBytes(32).toString('hex'),
         role: Role.USER,
       },
-      '1 s',
+      '1s',
     );
 
     await request(app.getHttpServer() as Server)

@@ -21,7 +21,7 @@ export class CreateIncidentDto {
 
   @IsNotEmpty()
   @IsDateString()
-  startTime!: Date;
+  startTime!: string;
 
   @IsNotEmpty()
   @IsNumber()
@@ -38,5 +38,5 @@ export class CreateIncidentDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }

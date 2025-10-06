@@ -39,6 +39,6 @@ import { RbacGuard } from './guard/rbac.guard';
     RbacGuard,
     { provide: APP_GUARD, useClass: RbacGuard },
   ],
-  exports: [JwtModule, SupabaseService],
+  exports: [JwtModule, SupabaseService, EncryptionService],
 })
 export class AuthModule {}

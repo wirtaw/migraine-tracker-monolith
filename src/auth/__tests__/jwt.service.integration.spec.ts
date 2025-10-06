@@ -16,8 +16,9 @@ describe('CustomJwtService (integration)', () => {
     get: jest.fn().mockReturnValue(
       of({
         data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: 'mocked_worker_key',
-          JWT_SECRET: 'mocked_jwt_secret',
+          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
+            'mocked-test-symmetric-secret-key-long',
+          JWT_SECRET: 'test-secret-key-long',
         },
       }),
     ),
@@ -46,7 +47,7 @@ describe('CustomJwtService (integration)', () => {
       role: Role.USER,
     };
 
-    const token = await jwtService.signPayload(payload, '6 Hrs');
+    const token = await jwtService.signPayload(payload, '6 h');
     expect(typeof token).toBe('string');
 
     const decoded = await jwtService.verifyToken(token);

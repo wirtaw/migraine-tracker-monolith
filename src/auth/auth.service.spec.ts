@@ -295,6 +295,50 @@ describe('AuthService', () => {
       });
     });
 
+    it('successfully login with existing user creds without email', async () => {
+      const user: SupabaseUser = {
+        id: 'test',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        email: '',
+        created_at: new Date().toLocaleDateString(),
+      };
+      const access_token = 'test';
+      const refresh_token = 'test';
+      const token_type = '';
+      const session: Session = {
+        access_token,
+        refresh_token,
+        expires_in: 100,
+        token_type,
+        user,
+      };
+      const token = 'token';
+
+      mockSupabaseService.client.auth.signInWithPassword.mockResolvedValueOnce({
+        data: {
+          user,
+          session,
+          weakPassword: undefined,
+        },
+        error: null,
+      });
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      const result = await service.login(loginDto);
+
+      expect(result).toStrictEqual({
+        message: 'Successfully logged in.',
+        token,
+        user: {
+          userId: user.id,
+          email: '',
+          role: Role.GUEST,
+        },
+      });
+    });
+
     it('failed login with user creds, then got error on Supabase request', async () => {
       const errMessage = 'wrong API key';
       const user: SupabaseUser = {

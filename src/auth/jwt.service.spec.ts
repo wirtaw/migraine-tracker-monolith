@@ -1,4 +1,6 @@
-import { CustomJwtService } from './jwt.service';
+import crypto from 'node:crypto';
+import { Test } from '@nestjs/testing';
+import { CustomJwtService as JwtService } from './jwt.service';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import {
   UserPayloadWithKey,
@@ -8,30 +10,81 @@ import jwt from 'jsonwebtoken';
 import { Role } from './enums/roles.enum';
 
 describe('CustomJwtService', () => {
-  let jwtService: CustomJwtService;
+  let jwtService: JwtService;
   let mockKeyService: Partial<SymmetricKeyService>;
-  const secretKey = 'test-secret-key';
+  let keyService: SymmetricKeyService;
+  const secretKey = 'test-secret-key-long';
+  const normalizedKey = crypto.createHash('sha256').update(secretKey).digest();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockKeyService = {
       getKey: jest.fn().mockResolvedValue(secretKey),
     };
 
-    jwtService = new CustomJwtService(mockKeyService as SymmetricKeyService);
+    const module = await Test.createTestingModule({
+      providers: [
+        JwtService,
+        {
+          provide: SymmetricKeyService,
+          useValue: mockKeyService,
+        },
+      ],
+    }).compile();
+
+    jwtService = module.get(JwtService);
+    keyService = module.get(SymmetricKeyService);
+  });
+
+  it('should be defined', () => {
+    expect(jwtService).toBeDefined();
+    expect(keyService).toBeDefined();
   });
 
   describe('signPayload()', () => {
+    it('should throw if key is missing from keyService', async () => {
+      jest.spyOn(keyService, 'getKey').mockResolvedValue('');
+
+      await expect(
+        jwtService.signPayload(
+          {
+            userId: 'user123',
+            email: 'test@mail.com',
+            key: 'irrelevant',
+            role: Role.USER,
+          },
+          '1h',
+        ),
+      ).rejects.toThrow(/Missing or invalid symmetric key/);
+    });
+
+    it('should throw if raw key is too short', async () => {
+      jest.spyOn(keyService, 'getKey').mockResolvedValue('short');
+
+      await expect(
+        jwtService.signPayload(
+          {
+            userId: 'user123',
+            email: 'test@mail.com',
+            key: 'irrelevant',
+            role: Role.USER,
+          },
+          '1h',
+        ),
+      ).rejects.toThrow(/Raw key too short/);
+    });
+
     it('should sign payload and return a valid JWT', async () => {
       const payload: UserPayloadWithKey = {
         userId: 'user123',
         email: 'test@mail.com',
-        key: 'encryptedKey123',
+        key: crypto.randomBytes(32).toString('hex'),
         role: Role.GUEST,
       };
 
       const token = await jwtService.signPayload(payload, '6 h');
 
       expect(typeof token).toBe('string');
+      expect(token.length).toBe(303);
 
       const decoded = jwt.decode(token) as DecodedUserPayload;
       expect(decoded.userId).toBe(payload.userId);
@@ -45,11 +98,11 @@ describe('CustomJwtService', () => {
       const payload: UserPayloadWithKey = {
         userId: 'user456',
         email: 'verify@mail.com',
-        key: 'secureKey456',
+        key: crypto.randomBytes(32).toString('hex'),
         role: Role.GUEST,
       };
 
-      const token = jwt.sign(payload, secretKey, { expiresIn: 600 });
+      const token = jwt.sign(payload, normalizedKey, { expiresIn: 600 });
 
       const result = await jwtService.verifyToken(token);
 
@@ -73,14 +126,48 @@ describe('CustomJwtService', () => {
       const payload: UserPayloadWithKey = {
         userId: 'expiredUser',
         email: 'expired@mail.com',
-        key: 'expiredKey',
+        key: crypto.randomBytes(32).toString('hex'),
         role: Role.GUEST,
       };
 
-      const expiredToken = jwt.sign(payload, secretKey, { expiresIn: -10 }); // already expired
+      const expiredToken = jwt.sign(payload, normalizedKey, { expiresIn: -10 }); // already expired
 
       await expect(jwtService.verifyToken(expiredToken)).rejects.toThrow(
         jwt.TokenExpiredError,
+      );
+    });
+
+    it('should throw if key is missing from keyService', async () => {
+      jest.spyOn(keyService, 'getKey').mockResolvedValue('');
+
+      const payload: UserPayloadWithKey = {
+        userId: 'user456',
+        email: 'verify@mail.com',
+        key: crypto.randomBytes(32).toString('hex'),
+        role: Role.GUEST,
+      };
+
+      const token = jwt.sign(payload, normalizedKey, { expiresIn: 600 });
+
+      await expect(jwtService.verifyToken(token)).rejects.toThrow(
+        /Missing or invalid symmetric key/,
+      );
+    });
+
+    it('should throw if key is too short from keyService', async () => {
+      jest.spyOn(keyService, 'getKey').mockResolvedValue('short');
+
+      const payload: UserPayloadWithKey = {
+        userId: 'user456',
+        email: 'verify@mail.com',
+        key: crypto.randomBytes(32).toString('hex'),
+        role: Role.GUEST,
+      };
+
+      const token = jwt.sign(payload, normalizedKey, { expiresIn: 600 });
+
+      await expect(jwtService.verifyToken(token)).rejects.toThrow(
+        /Raw key too short/,
       );
     });
   });

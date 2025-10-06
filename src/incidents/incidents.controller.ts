@@ -8,6 +8,7 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,7 @@ import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from 'src/auth/interfaces/auth.user.interface';
 
 @ApiTags('incidents')
 @ApiBearerAuth('JWT-auth')
@@ -45,9 +47,11 @@ export class IncidentsController {
     description: 'Invalid input data.',
   })
   async create(
+    @Req() req: RequestWithUser,
     @Body() createIncidentDto: CreateIncidentDto,
   ): Promise<IIncident | null> {
-    return this.incidentsService.create(createIncidentDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.incidentsService.create(createIncidentDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -57,8 +61,9 @@ export class IncidentsController {
     status: HttpStatus.OK,
     description: 'The incidents list',
   })
-  async findAll(): Promise<IIncident[]> {
-    return this.incidentsService.findAll();
+  async findAll(@Req() req: RequestWithUser): Promise<IIncident[]> {
+    const encryptionKey = req?.session?.key || '';
+    return this.incidentsService.findAll(encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -72,8 +77,12 @@ export class IncidentsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The incident not found.',
   })
-  async findOne(@Param('id') id: string): Promise<IIncident | null> {
-    return this.incidentsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<IIncident | null> {
+    const encryptionKey = req?.session?.key || '';
+    return this.incidentsService.findOne(id, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -98,8 +107,10 @@ export class IncidentsController {
   async update(
     @Param('id') id: string,
     @Body() updateIncidentDto: UpdateIncidentDto,
+    @Req() req: RequestWithUser,
   ): Promise<IIncident | null> {
-    return this.incidentsService.update(id, updateIncidentDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.incidentsService.update(id, updateIncidentDto, encryptionKey);
   }
 
   @Roles(Role.USER)
