@@ -10,7 +10,12 @@ import {
 } from './schemas/incident.schema';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
-import { NotFoundException, Logger } from '@nestjs/common';
+import {
+  NotFoundException,
+  Logger,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { IncidentTypeEnum } from './enums/incident-type.enum';
 import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
 import { EncryptionService } from '../auth/encryption/encryption.service';
@@ -333,6 +338,7 @@ describe('IncidentsService', () => {
       const result = await service.findOne(
         mockIncident._id.toHexString(),
         symmetricKey,
+        mockIncidents[0].userId,
       );
 
       expect(mockIncidentModel.findById).toHaveBeenCalledWith(
@@ -360,6 +366,7 @@ describe('IncidentsService', () => {
         service.findOne(
           mockWInvalidTypeIncident._id.toHexString(),
           symmetricKey,
+          mockIncidents[0].userId,
         ),
       ).rejects.toThrow(Error);
     });
@@ -373,6 +380,7 @@ describe('IncidentsService', () => {
         service.findOne(
           mockWInvalidTriggerIncident._id.toHexString(),
           symmetricKey,
+          mockIncidents[0].userId,
         ),
       ).rejects.toThrow(Error);
     });
@@ -386,6 +394,7 @@ describe('IncidentsService', () => {
         service.findOne(
           mockWInvalidBrokenIncident._id.toHexString(),
           symmetricKey,
+          mockIncidents[0].userId,
         ),
       ).rejects.toThrow(Error);
     });
@@ -395,14 +404,20 @@ describe('IncidentsService', () => {
         exec: () => null,
       });
       await expect(
-        service.findOne('nonExistentId', symmetricKey),
+        service.findOne('nonExistentId', symmetricKey, mockIncidents[0].userId),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if user has no access', async () => {
+      await expect(
+        service.findOne(mockIncident._id.toHexString(), symmetricKey, 'test'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('update', () => {
     it('should update and return the updated incident with minimal not changed', async () => {
-      const incidentStartDateTime = '2025-10-21T00:00:00.000Z';
+      const incidentStartDateTime = '2025-10-10T00:00:00.000Z';
       const updateDto: UpdateIncidentDto = {
         notes: 'Updated notes',
         type: IncidentTypeEnum.AURA_EPISODE,
@@ -470,8 +485,8 @@ describe('IncidentsService', () => {
     });
 
     it('should update and return the updated incident full updated', async () => {
-      const incidentStartDateTime = '2025-10-21T00:00:00.000Z';
-      const incidentDateTime = '2025-10-11T00:00:00.000Z';
+      const incidentStartDateTime = '2025-10-11T00:00:00.000Z';
+      const incidentDateTime = '2025-10-21T00:00:00.000Z';
       const updateDto: UpdateIncidentDto = {
         notes: 'Updated notes',
         type: IncidentTypeEnum.AURA_EPISODE,
@@ -548,6 +563,23 @@ describe('IncidentsService', () => {
           datetimeAt: new Date(incidentDateTime),
         }),
       );
+    });
+
+    it('should throw NotFoundException if datetimeAt is after startTime', async () => {
+      const incidentStartDateTime = '2025-10-21T00:00:00.000Z';
+      const incidentDateTime = '2025-10-11T00:00:00.000Z';
+      const updateDto: UpdateIncidentDto = {
+        notes: 'Updated notes',
+        type: IncidentTypeEnum.AURA_EPISODE,
+        startTime: incidentStartDateTime,
+        durationHours: 2,
+        triggers: [TriggerTypeEnum.EXERCISE, TriggerTypeEnum.LACK_OF_SLEEP],
+        datetimeAt: incidentDateTime,
+      };
+
+      await expect(
+        service.update(mockIncident._id.toHexString(), updateDto, symmetricKey),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException if incident not found during update', async () => {

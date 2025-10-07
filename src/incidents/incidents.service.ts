@@ -1,5 +1,11 @@
 import { createHash } from 'crypto';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Incident, IncidentDocument } from './schemas/incident.schema';
@@ -63,11 +69,16 @@ export class IncidentsService {
       .filter((item) => !!item);
   }
 
-  async findOne(id: string, key: string): Promise<IIncident> {
+  async findOne(id: string, key: string, userId: string): Promise<IIncident> {
     const incident = await this.incidentModel.findById(id).exec();
     if (!incident) {
       throw new NotFoundException(`Incident with ID "${id}" not found`);
     }
+
+    if (incident.userId !== userId) {
+      throw new ForbiddenException(`Access denied to incident "${id}"`);
+    }
+
     return this.mapToIIncident(incident, key);
   }
 
@@ -120,6 +131,17 @@ export class IncidentsService {
       encryptedUpdate.datetimeAt = this.encryptionService.encryptSensitiveData(
         new Date(updateIncidentDto.datetimeAt).toISOString(),
         bufferKey,
+      );
+    }
+
+    if (
+      updateIncidentDto.startTime &&
+      updateIncidentDto.datetimeAt &&
+      new Date(updateIncidentDto.datetimeAt) <
+        new Date(updateIncidentDto.startTime)
+    ) {
+      throw new BadRequestException(
+        'datetimeAt cannot be earlier than startTime',
       );
     }
 

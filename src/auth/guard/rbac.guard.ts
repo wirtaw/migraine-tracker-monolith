@@ -53,7 +53,7 @@ export class RbacGuard implements CanActivate {
       const payload: DecodedUserPayload =
         await this.jwtService.verifyToken(token);
 
-      if (payload?.exp && Math.round(Date.now() / 1000) + 1 > payload?.exp) {
+      if (payload?.exp && Math.round(Date.now() / 1000) + 5 > payload?.exp) {
         throw new UnauthorizedException('Token expired');
       }
 

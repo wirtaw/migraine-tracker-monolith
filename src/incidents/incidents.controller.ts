@@ -9,6 +9,8 @@ import {
   HttpStatus,
   HttpCode,
   Req,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -46,6 +48,7 @@ export class IncidentsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async create(
     @Req() req: RequestWithUser,
     @Body() createIncidentDto: CreateIncidentDto,
@@ -82,7 +85,8 @@ export class IncidentsController {
     @Req() req: RequestWithUser,
   ): Promise<IIncident | null> {
     const encryptionKey = req?.session?.key || '';
-    return this.incidentsService.findOne(id, encryptionKey);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.findOne(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -93,7 +97,7 @@ export class IncidentsController {
     description: 'Data for updating a incident',
   })
   @ApiResponse({
-    status: HttpStatus.CREATED,
+    status: HttpStatus.OK,
     description: 'The incident has been successfully updated.',
   })
   @ApiResponse({

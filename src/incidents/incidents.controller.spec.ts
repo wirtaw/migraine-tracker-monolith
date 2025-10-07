@@ -47,10 +47,11 @@ const mockIncidentsService = {
   update: jest.fn().mockResolvedValue(mockIIncident),
   remove: jest.fn().mockResolvedValue(undefined),
 };
+const userId = 'user-123';
 
 const encryptedIncident: Partial<IncidentDocument> = {
   id: 'incident001',
-  userId: 'user123',
+  userId,
   type: 'enc(MIGRAINE_ATTACK)',
   startTime: `enc(${mockIIncident.startTime.toISOString()})`,
   durationHours: `enc(${mockIIncident.durationHours})`,
@@ -68,7 +69,7 @@ describe('IncidentsController', () => {
   const symmetricKey = 'test-secret-key-long';
   const mockRequest: RequestWithUser = {
     session: {
-      userId: 'user-123',
+      userId,
       key: symmetricKey,
     },
   } as RequestWithUser;
@@ -183,7 +184,7 @@ describe('IncidentsController', () => {
 
       const result = await controller.findOne(id, mockRequest);
 
-      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey);
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
       expect(result).toEqual(mockIIncident);
     });
 
@@ -222,7 +223,7 @@ describe('IncidentsController', () => {
       await expect(controller.findOne(id, mockRequest)).rejects.toThrow(
         NotFoundException,
       );
-      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey);
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
     });
   });
 

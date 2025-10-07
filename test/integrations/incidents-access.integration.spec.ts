@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, HttpStatus } from '@nestjs/common';
+import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import type { Server } from 'http';
 import { Connection, Model } from 'mongoose';
@@ -30,6 +30,7 @@ describe('Incidents Access Flow (integration)', () => {
   const email = 'accessUser@example.com';
   const password = 'StrongPass123!';
   let token: string;
+  let incidentId: string;
   const user: SupabaseUser = {
     id: 'mock-supabase-id',
     email,
@@ -101,6 +102,7 @@ describe('Incidents Access Flow (integration)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
     jwtService = moduleFixture.get<CustomJwtService>(CustomJwtService);
@@ -159,6 +161,8 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentInDb = await incidentModel
       .findOne({ userId: createDto.userId })
       .lean();
+
+    incidentId = incidentInDb?._id as string;
 
     expect(incidentInDb).toBeTruthy();
     expect(res.body).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
@@ -242,4 +246,76 @@ describe('Incidents Access Flow (integration)', () => {
       .send(createDto)
       .expect(HttpStatus.UNAUTHORIZED);
   });
+
+  it('should return 400 for invalid date format', async () => {
+    const invalidDto = {
+      userId: 'user123',
+      type: IncidentTypeEnum.MIGRAINE_ATTACK,
+      startTime: 'not-a-date',
+      durationHours: 2,
+      notes: 'Invalid date test',
+      triggers: [TriggerTypeEnum.STRESS],
+      datetimeAt: '2023-01-01T12:00:00.000Z',
+    };
+
+    await request(app.getHttpServer() as Server)
+      .post('/incidents')
+      .set('Authorization', `Bearer ${token}`)
+      .send(invalidDto)
+      .expect(HttpStatus.BAD_REQUEST);
+  });
+
+  it('should return 400 when required fields are missing', async () => {
+    const incompleteDto = {
+      userId: 'user123',
+      notes: 'Missing type and startTime',
+    };
+
+    await request(app.getHttpServer() as Server)
+      .post('/incidents')
+      .set('Authorization', `Bearer ${token}`)
+      .send(incompleteDto)
+      .expect(HttpStatus.BAD_REQUEST);
+  });
+
+  it('should return 400 for invalid incident type', async () => {
+    const invalidEnumDto = {
+      userId: 'user123',
+      type: 'INVALID_TYPE',
+      startTime: '2023-01-01T10:00:00.000Z',
+      durationHours: 2,
+      notes: 'Invalid enum test',
+      triggers: [TriggerTypeEnum.STRESS],
+      datetimeAt: '2023-01-01T12:00:00.000Z',
+    };
+
+    await request(app.getHttpServer() as Server)
+      .post('/incidents')
+      .set('Authorization', `Bearer ${token}`)
+      .send(invalidEnumDto)
+      .expect(HttpStatus.BAD_REQUEST);
+  });
+
+  it('should return 200 update only notes field and preserve others', async () => {
+    const patchDto = { notes: 'Updated notes only' };
+
+    const res = await request(app.getHttpServer() as Server)
+      .patch(`/incidents/${incidentId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(patchDto)
+      .expect(HttpStatus.OK);
+
+    expect(res.body).toHaveProperty('notes', 'Updated notes only');
+    expect(res.body).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
+  });
+
+  /* TODO create different incident several users
+  it('should return 403 when accessing incident owned by another user', async () => {
+    const otherIncidentId = '1';
+
+    await request(app.getHttpServer() as Server)
+      .get(`/incidents/${otherIncidentId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.FORBIDDEN);
+  });*/
 });

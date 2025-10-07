@@ -5,6 +5,7 @@ import {
   Logger,
   HttpException,
   HttpStatus,
+  ValidationPipe,
 } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
@@ -124,6 +125,14 @@ async function bootstrap(): Promise<void> {
    * @description  global filter for exceptions
    */
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   if (process.env.NODE_ENV !== 'test') {
     await app.listen(appConfig.port, () =>
