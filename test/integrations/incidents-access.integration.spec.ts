@@ -41,7 +41,7 @@ describe('Incidents Access Flow (integration)', () => {
   };
   const access_token = 'test';
   const refresh_token = 'test';
-  const token_type = '';
+  const token_type = 'bearer';
   const session: Session = {
     access_token,
     refresh_token,
