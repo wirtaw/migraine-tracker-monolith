@@ -240,7 +240,12 @@ describe('IncidentsController', () => {
 
       const result = await controller.update(id, updateDto, mockRequest);
 
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto, symmetricKey);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIIncident);
     });
 
@@ -260,7 +265,12 @@ describe('IncidentsController', () => {
       await expect(
         controller.update(id, updateDto, mockRequest),
       ).rejects.toThrow(NotFoundException);
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto, symmetricKey);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
     });
   });
 

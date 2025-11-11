@@ -444,6 +444,7 @@ describe('IncidentsService', () => {
         mockIncident._id.toHexString(),
         updateDto,
         symmetricKey,
+        mockIncidents[0].userId,
       );
 
       expect(mockIncidentModel.findByIdAndUpdate).toHaveBeenCalledWith(
@@ -517,6 +518,7 @@ describe('IncidentsService', () => {
         mockIncident._id.toHexString(),
         updateDto,
         symmetricKey,
+        mockIncidents[0].userId,
       );
 
       expect(mockIncidentModel.findByIdAndUpdate).toHaveBeenCalledWith(
@@ -578,7 +580,12 @@ describe('IncidentsService', () => {
       };
 
       await expect(
-        service.update(mockIncident._id.toHexString(), updateDto, symmetricKey),
+        service.update(
+          mockIncident._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          mockIncidents[0].userId,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -597,6 +604,7 @@ describe('IncidentsService', () => {
             durationHours: 1,
           },
           symmetricKey,
+          mockIncidents[0].userId,
         ),
       ).rejects.toThrow(NotFoundException);
     });

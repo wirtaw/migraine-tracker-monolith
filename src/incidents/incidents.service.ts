@@ -86,7 +86,17 @@ export class IncidentsService {
     id: string,
     updateIncidentDto: UpdateIncidentDto,
     key: string,
+    userId: string,
   ): Promise<IIncident> {
+    const incident = await this.incidentModel.findById(id).exec();
+    if (!incident) {
+      throw new NotFoundException(`Incident with ID "${id}" not found`);
+    }
+
+    if (incident.userId !== userId) {
+      throw new ForbiddenException(`Access denied to incident "${id}"`);
+    }
+
     const bufferKey = createHash('sha256').update(key).digest();
 
     const encryptedUpdate: Partial<Incident> = {};

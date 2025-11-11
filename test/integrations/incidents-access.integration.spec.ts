@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 import { Connection, Model } from 'mongoose';
 import { of } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
@@ -20,6 +20,8 @@ import {
   Incident,
   IncidentDocument,
 } from '../../src/incidents/schemas/incident.schema';
+import { IIncident } from '../../src/incidents/interfaces/incident.interface';
+import { isObjectIdOrString } from '../helper/index';
 
 describe('Incidents Access Flow (integration)', () => {
   let app: INestApplication;
@@ -144,7 +146,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: 'user123',
+      userId: user.id,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -160,22 +162,26 @@ describe('Incidents Access Flow (integration)', () => {
 
     const incidentInDb = await incidentModel
       .findOne({ userId: createDto.userId })
-      .lean();
+      .lean<IncidentDocument>();
 
-    incidentId = incidentInDb?._id as string;
+    const resBody = res.body as IIncident;
+
+    incidentId = resBody?.id;
 
     expect(incidentInDb).toBeTruthy();
-    expect(res.body).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
-    expect(res.body).toHaveProperty('durationHours', 2);
-    expect(res.body).toHaveProperty('startTime', incidentStartDateTime);
-    expect(res.body).toHaveProperty('notes', createDto.notes);
+    expect(isObjectIdOrString(incidentInDb?._id)).toBeTruthy();
+    //expect(resBody?.id).toEqual(incidentInDb?._id.toString());
+    expect(resBody).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
+    expect(resBody).toHaveProperty('durationHours', 2);
+    expect(resBody).toHaveProperty('startTime', incidentStartDateTime);
+    expect(resBody).toHaveProperty('notes', createDto.notes);
   });
 
   it('should reject access to POST /incidents without token', async () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: 'user123',
+      userId: user.id,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -193,7 +199,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: 'user123',
+      userId: user.id,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -222,7 +228,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: 'user123',
+      userId: user.id,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -249,7 +255,7 @@ describe('Incidents Access Flow (integration)', () => {
 
   it('should return 400 for invalid date format', async () => {
     const invalidDto = {
-      userId: 'user123',
+      userId: user.id,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: 'not-a-date',
       durationHours: 2,
@@ -308,14 +314,4 @@ describe('Incidents Access Flow (integration)', () => {
     expect(res.body).toHaveProperty('notes', 'Updated notes only');
     expect(res.body).toHaveProperty('type', IncidentTypeEnum.MIGRAINE_ATTACK);
   });
-
-  /* TODO create different incident several users
-  it('should return 403 when accessing incident owned by another user', async () => {
-    const otherIncidentId = '1';
-
-    await request(app.getHttpServer() as Server)
-      .get(`/incidents/${otherIncidentId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .expect(HttpStatus.FORBIDDEN);
-  });*/
 });

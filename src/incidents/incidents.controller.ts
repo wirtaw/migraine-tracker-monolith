@@ -25,7 +25,7 @@ import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
-import { RequestWithUser } from 'src/auth/interfaces/auth.user.interface';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('incidents')
 @ApiBearerAuth('JWT-auth')
@@ -114,7 +114,13 @@ export class IncidentsController {
     @Req() req: RequestWithUser,
   ): Promise<IIncident | null> {
     const encryptionKey = req?.session?.key || '';
-    return this.incidentsService.update(id, updateIncidentDto, encryptionKey);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.update(
+      id,
+      updateIncidentDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)

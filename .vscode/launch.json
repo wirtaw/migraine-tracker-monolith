@@ -4,12 +4,18 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-    {
-        "command": "pnpm test",
-        "name": "Run pnpm test",
-        "request": "launch",
-        "type": "node-terminal"
-    },
+        {
+            "command": "pnpm test",
+            "name": "Run pnpm test",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "pnpm test:integrations",
+            "name": "Run pnpm test:integrations",
+            "request": "launch",
+            "type": "node-terminal"
+        },
         {
             "type": "node",
             "request": "launch",
