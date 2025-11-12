@@ -3,7 +3,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -28,7 +27,6 @@ export class IncidentsService {
     key: string,
   ): Promise<IIncident> {
     const bufferKey = createHash('sha256').update(key).digest();
-    Logger.log(`CreateDTO`, { createIncidentDto });
     const createdIncident = new this.incidentModel({
       ...createIncidentDto,
       type: this.encryptionService.encryptSensitiveData(
@@ -62,8 +60,8 @@ export class IncidentsService {
     return this.mapToIIncident(savedIncident, key);
   }
 
-  async findAll(key: string): Promise<IIncident[]> {
-    const incidents = await this.incidentModel.find().exec();
+  async findAll(key: string, userId: string): Promise<IIncident[]> {
+    const incidents = await this.incidentModel.find({ userId }).exec();
     return incidents
       .map((incident) => this.mapToIIncident(incident, key))
       .filter((item) => !!item);
@@ -123,7 +121,7 @@ export class IncidentsService {
         );
     }
 
-    if (updateIncidentDto.notes !== undefined) {
+    if (updateIncidentDto.notes) {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateIncidentDto.notes,
         bufferKey,
@@ -166,8 +164,10 @@ export class IncidentsService {
     return this.mapToIIncident(updatedIncident, key);
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.incidentModel.deleteOne({ _id: id }).exec();
+  async remove(id: string, userId: string): Promise<void> {
+    const result = await this.incidentModel
+      .deleteOne({ _id: id, userId })
+      .exec();
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Incident with ID "${id}" not found`);
     }

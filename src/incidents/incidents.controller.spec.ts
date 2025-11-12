@@ -67,12 +67,7 @@ describe('IncidentsController', () => {
   let controller: IncidentsController;
   let service: IncidentsService;
   const symmetricKey = 'test-secret-key-long';
-  const mockRequest: RequestWithUser = {
-    session: {
-      userId,
-      key: symmetricKey,
-    },
-  } as RequestWithUser;
+  let mockRequest: RequestWithUser;
   let encryptionService: EncryptionService;
 
   beforeEach(async () => {
@@ -98,6 +93,12 @@ describe('IncidentsController', () => {
         },
       ],
     }).compile();
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+    } as RequestWithUser;
 
     controller = module.get<IncidentsController>(IncidentsController);
     service = module.get<IncidentsService>(IncidentsService);
@@ -172,8 +173,25 @@ describe('IncidentsController', () => {
       const findAllSpy = jest.spyOn(service, 'findAll');
       const result = await controller.findAll(mockRequest);
 
-      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey);
+      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual(mockIIncidents);
+    });
+
+    it('should return empty if no user', async () => {
+      const id = 'nonExistentId';
+      const findAllSpy = jest.spyOn(service, 'findAll');
+      mockRequest = {
+        session: {
+          userId: id,
+          key: symmetricKey,
+        },
+      } as RequestWithUser;
+
+      jest.spyOn(mockIncidentsService, 'findAll').mockResolvedValue([]);
+
+      const result = await controller.findAll(mockRequest);
+      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, id);
+      expect(result).toEqual([]);
     });
   });
 
@@ -279,9 +297,9 @@ describe('IncidentsController', () => {
       const id = mockIIncident.id;
       const removeSpy = jest.spyOn(service, 'remove');
 
-      const result = await controller.remove(id);
+      const result = await controller.remove(id, mockRequest);
 
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
     });
 
@@ -292,8 +310,31 @@ describe('IncidentsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const removeSpy = jest.spyOn(service, 'remove');
 
-      await expect(controller.remove(id)).rejects.toThrow(NotFoundException);
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      await expect(controller.remove(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
+    });
+
+    it('should rethrow NotFoundException from service during remove if unknown userId', async () => {
+      mockRequest = {
+        session: {
+          userId: 'unknown-userId',
+          key: symmetricKey,
+        },
+      } as RequestWithUser;
+      jest
+        .spyOn(service, 'remove')
+        .mockRejectedValueOnce(new NotFoundException());
+      const removeSpy = jest.spyOn(service, 'remove');
+
+      await expect(
+        controller.remove(mockIIncident.id, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+      expect(removeSpy).toHaveBeenCalledWith(
+        mockIIncident.id,
+        'unknown-userId',
+      );
     });
   });
 });

@@ -66,7 +66,8 @@ export class IncidentsController {
   })
   async findAll(@Req() req: RequestWithUser): Promise<IIncident[]> {
     const encryptionKey = req?.session?.key || '';
-    return this.incidentsService.findAll(encryptionKey);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.findAll(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -135,7 +136,8 @@ export class IncidentsController {
     description: 'The incident not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.incidentsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.remove(id, userId);
   }
 }
