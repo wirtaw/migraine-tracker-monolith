@@ -5,6 +5,8 @@ import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { IMedication } from './interfaces/medication.interface';
 import { NotFoundException } from '@nestjs/common';
+import { EncryptionService } from '../auth/encryption/encryption.service';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 const mockIMedication: IMedication = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -39,9 +41,13 @@ const mockMedicationsService = {
   remove: jest.fn().mockResolvedValue(undefined),
 };
 
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
 describe('MedicationsController', () => {
   let controller: MedicationsController;
   let service: MedicationsService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -51,11 +57,30 @@ describe('MedicationsController', () => {
           provide: MedicationsService,
           useValue: mockMedicationsService,
         },
+        {
+          provide: EncryptionService,
+          useValue: {
+            encryptSensitiveData: jest.fn((v: string) => `enc(${v})`),
+            decryptSensitiveData: jest.fn((v: string) =>
+              v.replace(/^enc\((.*)\)$/, '$1'),
+            ),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<MedicationsController>(MedicationsController);
     service = module.get<MedicationsService>(MedicationsService);
+
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
   });
 
   afterEach(() => {
@@ -73,23 +98,38 @@ describe('MedicationsController', () => {
         title: 'Test Medication',
         dosage: '100mg',
         notes: 'Test note',
-        datetimeAt: new Date(),
+        datetimeAt: new Date().toISOString(),
       };
       const createSpy = jest.spyOn(service, 'create');
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockRequest);
 
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      expect(createSpy).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockIMedication);
+    });
+
+    it('should encrypt fields in service call', async () => {
+      // This tests that the controller passes the correct key to the service,
+      // where encryption happens.
+      const createDto: CreateMedicationDto = {
+        userId: 'testUser',
+        title: 'Test Medication',
+        dosage: '100mg',
+        notes: 'Test note',
+        datetimeAt: new Date().toISOString(),
+      };
+      await controller.create(createDto, mockRequest);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.create).toHaveBeenCalledWith(createDto, symmetricKey);
     });
   });
 
   describe('findAll', () => {
     it('should return an array of medications', async () => {
       const findAllSpy = jest.spyOn(service, 'findAll');
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockRequest);
 
-      expect(findAllSpy).toHaveBeenCalled();
+      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual(mockIMedications);
     });
   });
@@ -99,9 +139,9 @@ describe('MedicationsController', () => {
       const id = mockIMedication.id;
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      const result = await controller.findOne(id);
+      const result = await controller.findOne(id, mockRequest);
 
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
       expect(result).toEqual(mockIMedication);
     });
 
@@ -112,8 +152,10 @@ describe('MedicationsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      await expect(controller.findOne(id)).rejects.toThrow(NotFoundException);
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      await expect(controller.findOne(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
     });
   });
 
@@ -125,9 +167,14 @@ describe('MedicationsController', () => {
       };
       const updateSpy = jest.spyOn(service, 'update');
 
-      const result = await controller.update(id, updateDto);
+      const result = await controller.update(id, updateDto, mockRequest);
 
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIMedication);
     });
 
@@ -141,10 +188,15 @@ describe('MedicationsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const updateSpy = jest.spyOn(service, 'update');
 
-      await expect(controller.update(id, updateDto)).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        controller.update(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
       );
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
     });
   });
 
@@ -153,9 +205,9 @@ describe('MedicationsController', () => {
       const id = mockIMedication.id;
       const removeSpy = jest.spyOn(service, 'remove');
 
-      const result = await controller.remove(id);
+      const result = await controller.remove(id, mockRequest);
 
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
     });
 
@@ -166,8 +218,10 @@ describe('MedicationsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const removeSpy = jest.spyOn(service, 'remove');
 
-      await expect(controller.remove(id)).rejects.toThrow(NotFoundException);
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      await expect(controller.remove(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
     });
   });
 });

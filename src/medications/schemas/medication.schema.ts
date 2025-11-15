@@ -18,7 +18,7 @@ export class Medication {
   notes?: string;
 
   @Prop({ required: true })
-  datetimeAt!: Date;
+  datetimeAt!: string;
 
   @Prop({ default: Date.now })
   createdAt!: Date;

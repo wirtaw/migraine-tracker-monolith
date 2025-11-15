@@ -24,5 +24,5 @@ export class CreateMedicationDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
