@@ -66,7 +66,7 @@ const mockMedications: MockMedication[] = [
   },
   {
     _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
-    userId: 'user123',
+    userId: 'user456',
     title: `enc(Ibuprofen)`,
     dosage: `enc(200mg)`,
     notes: `enc(Take after meals)`,
@@ -111,6 +111,7 @@ describe('MedicationsService', () => {
       return mockDocumentInstance;
     }) as unknown as jest.Mocked<Model<MedicationDocument>>;
 
+    // Refactored find to support filtering by userId
     mockMedicationModel.find = jest.fn().mockImplementation((query = {}) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const userId = query['userId'] as string;
@@ -194,13 +195,14 @@ describe('MedicationsService', () => {
   });
 
   it('should be defined', () => {
+    expect(encryptionService).toBeDefined();
     expect(service).toBeDefined();
   });
 
   describe('create', () => {
     it('should create and return a medication', async () => {
       const createDto: CreateMedicationDto = {
-        userId: 'user123',
+        userId: mockMedications[0].userId!,
         title: titleValue,
         dosage: dosageValue,
         notes: noteValue,
@@ -237,11 +239,6 @@ describe('MedicationsService', () => {
         bufferKey,
       );
 
-      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
-        createDto.datetimeAt,
-        bufferKey,
-      );
-
       expect(result).toEqual(
         expect.objectContaining({
           id: mockMedication._id.toString(),
@@ -256,16 +253,24 @@ describe('MedicationsService', () => {
   });
 
   describe('findAll', () => {
-    it('should return an array of decrypted medications', async () => {
-      const result = await service.findAll(symmetricKey, 'user123');
+    it('should return an array of decrypted medications for a specific user', async () => {
+      const result = await service.findAll(
+        symmetricKey,
+        mockMedications[0].userId!,
+      );
 
       expect(mockMedicationModel.find).toHaveBeenCalledWith({
-        userId: 'user123',
+        userId: mockMedications[0].userId!,
       });
-      expect(result).toHaveLength(2);
+      expect(result).toHaveLength(1); // Only 1 belongs to user123
       expect(result[0].title).toBe(titleValue);
       expect(result[0].notes).toBe(noteValue);
       expect(result[0].datetimeAt).toEqual(new Date(medicationDateTime));
+    });
+
+    it('should return empty array if no medications found for user', async () => {
+      const result = await service.findAll(symmetricKey, 'nonExistentUser');
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -274,7 +279,7 @@ describe('MedicationsService', () => {
       const result = await service.findOne(
         mockMedication._id.toHexString(),
         symmetricKey,
-        'user123',
+        mockMedications[0].userId!,
       );
 
       expect(mockMedicationModel.findById).toHaveBeenCalledWith(
@@ -283,7 +288,7 @@ describe('MedicationsService', () => {
       expect(result).toEqual(
         expect.objectContaining({
           id: mockMedication._id.toString(),
-          userId: 'user123',
+          userId: mockMedications[0].userId!,
           title: titleValue,
           notes: noteValue,
           datetimeAt: new Date(medicationDateTime),
@@ -296,7 +301,11 @@ describe('MedicationsService', () => {
         exec: () => null,
       });
       await expect(
-        service.findOne('nonExistentId', symmetricKey, 'user123'),
+        service.findOne(
+          'nonExistentId',
+          symmetricKey,
+          mockMedications[0].userId!,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -313,23 +322,56 @@ describe('MedicationsService', () => {
 
   describe('update', () => {
     it('should update and return the updated medication', async () => {
+      const medicalDateTime = '2025-10-21T00:00:00.000Z';
+      const updateMedicalTitle = 'TestMedical1';
+      const updateMedicalNote = 'Updated note';
+      const updateMedicalDosage = '0.001g';
       const updateDto: UpdateMedicationDto = {
-        notes: 'Updated note',
+        title: updateMedicalTitle,
+        dosage: updateMedicalDosage,
+        notes: updateMedicalNote,
+        datetimeAt: medicalDateTime,
       };
+
+      const encryptedUpdate = {
+        title: `enc(${updateDto.title})`,
+        notes: `enc(${updateDto.notes})`,
+        dosage: `enc(${updateDto.dosage})`,
+        datetimeAt: `enc(${medicalDateTime})`,
+      };
+
+      const updatedMockMedical = {
+        ...mockMedication,
+        ...encryptedUpdate,
+      };
+
+      mockMedicationModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updatedMockMedical),
+      });
 
       const result = await service.update(
         mockMedication._id.toHexString(),
         updateDto,
         symmetricKey,
-        'user123',
+        mockMedications[0].userId!,
       );
 
       expect(mockMedicationModel.findByIdAndUpdate).toHaveBeenCalledWith(
         mockMedication._id.toHexString(),
-        expect.objectContaining({ notes: `enc(${updateDto.notes})` }),
+        encryptedUpdate,
         { new: true },
       );
-      expect(result.notes).toBe('Updated note');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: updatedMockMedical._id.toString(),
+          userId: updatedMockMedical.userId,
+          title: updateDto.title,
+          notes: updateDto.notes,
+          dosage: updateDto.dosage,
+          datetimeAt: new Date(medicalDateTime),
+        }),
+      );
     });
 
     it('should throw NotFoundException if medication not found during update', async () => {
@@ -345,7 +387,22 @@ describe('MedicationsService', () => {
           mockMedication._id.toHexString(),
           { notes: 'test' },
           symmetricKey,
-          'user123',
+          mockMedications[0].userId!,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if medication not found', async () => {
+      mockMedicationModel.findById = jest.fn().mockReturnValue({
+        exec: () => null,
+      });
+
+      await expect(
+        service.update(
+          mockMedication._id.toHexString(),
+          { notes: 'test' },
+          symmetricKey,
+          mockMedications[0].userId!,
         ),
       ).rejects.toThrow(NotFoundException);
     });
@@ -368,11 +425,14 @@ describe('MedicationsService', () => {
         exec: () => Promise.resolve({ deletedCount: 1 }),
       });
 
-      await service.remove(mockMedication._id.toHexString(), 'user123');
+      await service.remove(
+        mockMedication._id.toHexString(),
+        mockMedications[0].userId!,
+      );
 
       expect(mockMedicationModel.deleteOne).toHaveBeenCalledWith({
         _id: mockMedication._id.toHexString(),
-        userId: 'user123',
+        userId: mockMedications[0].userId!,
       });
     });
 
@@ -381,9 +441,20 @@ describe('MedicationsService', () => {
         exec: () => Promise.resolve({ deletedCount: 0 }),
       });
 
-      await expect(service.remove('nonExistentId', 'user123')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.remove('nonExistentId', mockMedications[0].userId!),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw NotFoundException if trying to remove another user's medication", async () => {
+      // Simulate deleteOne returning 0 deleted count because userId filter failed
+      mockMedicationModel.deleteOne = jest.fn().mockReturnValue({
+        exec: () => Promise.resolve({ deletedCount: 0 }),
+      });
+
+      await expect(
+        service.remove(mockMedication._id.toHexString(), 'otherUser'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

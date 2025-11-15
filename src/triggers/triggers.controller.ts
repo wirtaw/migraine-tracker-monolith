@@ -8,6 +8,9 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +25,7 @@ import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { ITrigger } from './interfaces/trigger.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('triggers')
 @ApiBearerAuth('JWT-auth')
@@ -44,10 +48,13 @@ export class TriggersController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async create(
     @Body() createTriggerDto: CreateTriggerDto,
+    @Req() req: RequestWithUser,
   ): Promise<ITrigger | null> {
-    return this.triggersService.create(createTriggerDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.triggersService.create(createTriggerDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -57,8 +64,10 @@ export class TriggersController {
     status: HttpStatus.OK,
     description: 'The triggers list',
   })
-  async findAll(): Promise<ITrigger[]> {
-    return this.triggersService.findAll();
+  async findAll(@Req() req: RequestWithUser): Promise<ITrigger[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.triggersService.findAll(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -72,8 +81,13 @@ export class TriggersController {
     status: HttpStatus.NOT_FOUND,
     description: 'The trigger not found.',
   })
-  async findOne(@Param('id') id: string): Promise<ITrigger | null> {
-    return this.triggersService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<ITrigger | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.triggersService.findOne(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -98,8 +112,16 @@ export class TriggersController {
   async update(
     @Param('id') id: string,
     @Body() updateTriggerDto: UpdateTriggerDto,
+    @Req() req: RequestWithUser,
   ): Promise<ITrigger | null> {
-    return this.triggersService.update(id, updateTriggerDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.triggersService.update(
+      id,
+      updateTriggerDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -114,7 +136,8 @@ export class TriggersController {
     description: 'The trigger not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.triggersService.remove(id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.triggersService.remove(id, userId);
   }
 }

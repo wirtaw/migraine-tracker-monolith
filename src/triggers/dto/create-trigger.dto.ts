@@ -20,5 +20,5 @@ export class CreateTriggerDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }

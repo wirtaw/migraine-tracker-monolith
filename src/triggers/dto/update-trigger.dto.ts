@@ -1,17 +1,26 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsDateString,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateTriggerDto } from './create-trigger.dto';
 
 export class UpdateTriggerDto extends PartialType(CreateTriggerDto) {
   @IsNotEmpty()
   @IsString()
-  userId!: string;
+  userId?: string;
 
   @IsNotEmpty()
   @IsString()
-  type!: string;
+  type?: string;
 
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsDateString()
+  datetimeAt?: string;
 }
