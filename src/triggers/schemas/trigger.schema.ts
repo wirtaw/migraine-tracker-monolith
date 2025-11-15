@@ -18,7 +18,7 @@ export class Trigger {
   createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
 
 export const TriggerSchema = SchemaFactory.createForClass(Trigger);

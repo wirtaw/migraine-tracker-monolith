@@ -733,7 +733,7 @@ describe('IncidentsService', () => {
       );
     });
 
-    it('should throw NotFoundException if datetimeAt is after startTime', async () => {
+    it('should throw BadRequestException if datetimeAt is after startTime', async () => {
       const incidentStartDateTime = '2025-10-21T00:00:00.000Z';
       const incidentDateTime = '2025-10-11T00:00:00.000Z';
       const updateDto: UpdateIncidentDto = {

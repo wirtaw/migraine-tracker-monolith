@@ -1,15 +1,16 @@
-// src/trigger/trigger.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { TriggersController } from './triggers.controller';
 import { TriggersService } from './triggers.service';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
-import { ITrigger } from './interfaces/trigger.interface'; // Ensure this path is correct
+import { ITrigger } from './interfaces/trigger.interface';
 import { NotFoundException } from '@nestjs/common';
+import { EncryptionService } from '../auth/encryption/encryption.service';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 // Mock data conforming to ITrigger interface
 const mockITrigger: ITrigger = {
-  id: '60c72b2f9b1d8e001c8e4d3a', // String ID for ITrigger
+  id: '60c72b2f9b1d8e001c8e4d3a',
   userId: 'user123',
   type: 'Headache',
   note: 'Started after stress',
@@ -29,36 +30,58 @@ const mockITriggers: ITrigger[] = [
   },
 ];
 
-// Mock the TriggersService methods
 const mockTriggersService = {
   create: jest.fn().mockResolvedValue(mockITrigger),
   findAll: jest.fn().mockResolvedValue(mockITriggers),
   findOne: jest.fn().mockResolvedValue(mockITrigger),
   update: jest.fn().mockResolvedValue(mockITrigger),
-  remove: jest.fn().mockResolvedValue(undefined), // remove returns void
+  remove: jest.fn().mockResolvedValue(undefined),
 };
 
-describe('TriggerController', () => {
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
+describe('TriggersController', () => {
   let controller: TriggersController;
   let service: TriggersService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TriggersController],
       providers: [
         {
-          provide: TriggersService, // Provide the mock service
+          provide: TriggersService,
           useValue: mockTriggersService,
+        },
+        {
+          provide: EncryptionService,
+          useValue: {
+            encryptSensitiveData: jest.fn((v: string) => `enc(${v})`),
+            decryptSensitiveData: jest.fn((v: string) =>
+              v.replace(/^enc\((.*)\)$/, '$1'),
+            ),
+          },
         },
       ],
     }).compile();
 
     controller = module.get<TriggersController>(TriggersController);
     service = module.get<TriggersService>(TriggersService);
+
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Clear mocks after each test
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -71,13 +94,13 @@ describe('TriggerController', () => {
         userId: 'testUser',
         type: 'TestType',
         note: 'Test note',
-        datetimeAt: new Date(),
+        datetimeAt: new Date().toISOString(),
       };
       const createSpy = jest.spyOn(service, 'create');
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockRequest);
 
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      expect(createSpy).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockITrigger);
     });
   });
@@ -85,9 +108,9 @@ describe('TriggerController', () => {
   describe('findAll', () => {
     it('should return an array of triggers', async () => {
       const findAllSpy = jest.spyOn(service, 'findAll');
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockRequest);
 
-      expect(findAllSpy).toHaveBeenCalled();
+      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual(mockITriggers);
     });
   });
@@ -97,9 +120,9 @@ describe('TriggerController', () => {
       const id = mockITrigger.id;
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      const result = await controller.findOne(id);
+      const result = await controller.findOne(id, mockRequest);
 
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
       expect(result).toEqual(mockITrigger);
     });
 
@@ -110,8 +133,10 @@ describe('TriggerController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      await expect(controller.findOne(id)).rejects.toThrow(NotFoundException);
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      await expect(controller.findOne(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
     });
   });
 
@@ -125,9 +150,14 @@ describe('TriggerController', () => {
       };
       const updateSpy = jest.spyOn(service, 'update');
 
-      const result = await controller.update(id, updateDto);
+      const result = await controller.update(id, updateDto, mockRequest);
 
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockITrigger);
     });
 
@@ -143,10 +173,15 @@ describe('TriggerController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const updateSpy = jest.spyOn(service, 'update');
 
-      await expect(controller.update(id, updateDto)).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        controller.update(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
       );
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
     });
   });
 
@@ -155,10 +190,10 @@ describe('TriggerController', () => {
       const id = mockITrigger.id;
       const removeSpy = jest.spyOn(service, 'remove');
 
-      const result = await controller.remove(id);
+      const result = await controller.remove(id, mockRequest);
 
-      expect(removeSpy).toHaveBeenCalledWith(id);
-      expect(result).toBeUndefined(); // remove returns void (undefined)
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
+      expect(result).toBeUndefined();
     });
 
     it('should rethrow NotFoundException from service during remove', async () => {
@@ -168,8 +203,10 @@ describe('TriggerController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const removeSpy = jest.spyOn(service, 'remove');
 
-      await expect(controller.remove(id)).rejects.toThrow(NotFoundException);
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      await expect(controller.remove(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
     });
   });
 });
