@@ -8,6 +8,9 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +25,7 @@ import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { IMedication } from './interfaces/medication.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('medications')
 @ApiBearerAuth('JWT-auth')
@@ -44,10 +48,13 @@ export class MedicationsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async create(
     @Body() createMedicationDto: CreateMedicationDto,
+    @Req() req: RequestWithUser,
   ): Promise<IMedication | null> {
-    return this.medicationsService.create(createMedicationDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.medicationsService.create(createMedicationDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -57,8 +64,10 @@ export class MedicationsController {
     status: HttpStatus.OK,
     description: 'The medications list',
   })
-  async findAll(): Promise<IMedication[]> {
-    return this.medicationsService.findAll();
+  async findAll(@Req() req: RequestWithUser): Promise<IMedication[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.medicationsService.findAll(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -72,8 +81,13 @@ export class MedicationsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The medication not found.',
   })
-  async findOne(@Param('id') id: string): Promise<IMedication | null> {
-    return this.medicationsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<IMedication | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.medicationsService.findOne(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -84,7 +98,7 @@ export class MedicationsController {
     description: 'Data for updating a medication',
   })
   @ApiResponse({
-    status: HttpStatus.CREATED,
+    status: HttpStatus.OK,
     description: 'The medication has been successfully updated.',
   })
   @ApiResponse({
@@ -98,8 +112,16 @@ export class MedicationsController {
   async update(
     @Param('id') id: string,
     @Body() updateMedicationDto: UpdateMedicationDto,
+    @Req() req: RequestWithUser,
   ): Promise<IMedication | null> {
-    return this.medicationsService.update(id, updateMedicationDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.medicationsService.update(
+      id,
+      updateMedicationDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -114,7 +136,8 @@ export class MedicationsController {
     description: 'The medication not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.medicationsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.medicationsService.remove(id, userId);
   }
 }

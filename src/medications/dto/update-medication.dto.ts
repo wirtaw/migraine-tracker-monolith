@@ -21,5 +21,5 @@ export class UpdateMedicationDto extends PartialType(CreateMedicationDto) {
 
   @IsOptional()
   @IsDateString()
-  datetimeAt?: Date;
+  datetimeAt?: string;
 }
