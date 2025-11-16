@@ -57,7 +57,6 @@ describe('Incidents Access Flow (integration)', () => {
     TriggerTypeEnum.LACK_OF_SLEEP,
   ];
 
-  // Mock SupabaseService
   const mockSupabaseService = {
     client: {
       auth: {

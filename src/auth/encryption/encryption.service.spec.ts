@@ -36,7 +36,7 @@ describe('EncryptionService', () => {
     const key = await service.deriveSymmetricKey(password, salt);
 
     expect(key).toBeInstanceOf(Buffer);
-    expect(key.length).toBe(32); // AES-256 key length
+    expect(key.length).toBe(32);
   });
 
   it('should encrypt and decrypt sensitive data correctly', async () => {
@@ -50,12 +50,11 @@ describe('EncryptionService', () => {
       symmetricKey,
     );
 
-    // Format: iv:encryptedData:authTag
     const parts = encryptedPayload.split(':');
     expect(parts).toHaveLength(3);
-    expect(parts[0]).toHaveLength(32); // IV hex length (16 bytes)
+    expect(parts[0]).toHaveLength(32);
     expect(parts[1]).toBeTruthy();
-    expect(parts[2]).toHaveLength(32); // AuthTag hex length (16 bytes)
+    expect(parts[2]).toHaveLength(32);
 
     const decrypted = service.decryptSensitiveData(
       encryptedPayload,
@@ -70,9 +69,9 @@ describe('EncryptionService', () => {
     const encryptedKeyPayload = await service.encryptSymmetricKey(symmetricKey);
     const parts = encryptedKeyPayload.split(':');
     expect(parts).toHaveLength(3);
-    expect(parts[0]).toHaveLength(32); // IV
-    expect(parts[1]).toBeTruthy(); // Encrypted key
-    expect(parts[2]).toHaveLength(32); // AuthTag
+    expect(parts[0]).toHaveLength(32);
+    expect(parts[1]).toBeTruthy();
+    expect(parts[2]).toHaveLength(32);
 
     const decryptedKey = await service.decryptSymmetricKey(encryptedKeyPayload);
     expect(decryptedKey.equals(symmetricKey)).toBe(true);

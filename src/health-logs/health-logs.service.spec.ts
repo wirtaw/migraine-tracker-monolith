@@ -1,19 +1,16 @@
+import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthLogsService } from './health-logs.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Weight,
-  WeightDocument,
-  WeightSchema,
   Height,
-  HeightDocument,
-  HeightSchema,
   BloodPressure,
-  BloodPressureDocument,
-  BloodPressureSchema,
   Sleep,
-  SleepDocument,
+  WeightSchema,
+  HeightSchema,
+  BloodPressureSchema,
   SleepSchema,
 } from './schemas/health-logs.schema';
 import {
@@ -28,155 +25,161 @@ import {
   UpdateBloodPressureDto,
   UpdateSleepDto,
 } from './dto/update-health-logs.dto';
-import { NotFoundException, Logger } from '@nestjs/common';
+import { NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { EncryptionService } from '../auth/encryption/encryption.service';
 
-/* eslint-disable @typescript-eslint/unbound-method */
+const userId = 'user123';
+const otherUserId = 'user456';
+const logDateTime = '2023-01-01T10:00:00.000Z';
+const updatedDateTime = '2023-01-02T10:00:00.000Z';
+const noteValue = 'Test note';
+const updatedNote = 'Updated note';
+
+const weightValue = 75;
+const updatedWeightValue = 80;
+
+const heightValue = 180;
+const updatedHeightValue = 182;
+
+const systolicValue = 120;
+const diastolicValue = 80;
+const updatedSystolic = 125;
+const updatedDiastolic = 85;
+
+const sleepRateValue = 7;
+const updatedSleepRate = 8;
+const startedAtValue = '2023-01-01T00:00:00.000Z';
+const updatedStartedAt = '2023-01-02T00:00:00.000Z';
 
 const mockWeight: HydratedDocument<Weight> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
-  userId: 'user123',
-  weight: 75,
-  notes: 'First weight log',
-  datetimeAt: new Date('2023-01-01T10:00:00Z'),
+  userId,
+  weight: `enc(${weightValue})`,
+  notes: noteValue ? `enc(${noteValue})` : '',
+  datetimeAt: `enc(${logDateTime})`,
 } as never;
 
 const mockHeight: HydratedDocument<Height> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
-  userId: 'user123',
-  height: 180,
-  notes: 'Initial height',
-  datetimeAt: new Date('2023-01-01T10:00:00Z'),
+  userId,
+  height: `enc(${heightValue})`,
+  notes: noteValue ? `enc(${noteValue})` : '',
+  datetimeAt: `enc(${logDateTime})`,
 } as never;
 
 const mockBloodPressure: HydratedDocument<BloodPressure> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3c'),
-  userId: 'user123',
-  systolic: 120,
-  diastolic: 80,
-  notes: 'Morning reading',
-  datetimeAt: new Date('2023-01-01T10:00:00Z'),
+  userId,
+  systolic: `enc(${systolicValue})`,
+  diastolic: `enc(${diastolicValue})`,
+  notes: noteValue ? `enc(${noteValue})` : '',
+  datetimeAt: `enc(${logDateTime})`,
 } as never;
 
 const mockSleep: HydratedDocument<Sleep> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3d'),
-  userId: 'user123',
-  rate: 7,
-  notes: 'Good sleep',
-  startedAt: new Date('2023-01-01T00:00:00Z'),
-  datetimeAt: new Date('2023-01-01T08:00:00Z'),
+  userId,
+  rate: `enc(${sleepRateValue})`,
+  notes: noteValue ? `enc(${noteValue})` : '',
+  startedAt: `enc(${startedAtValue})`,
+  datetimeAt: `enc(${logDateTime})`,
 } as never;
+
+type MockDoc<T> = Partial<T> & { id?: string; _id?: Types.ObjectId };
+
+const mockWeights: MockDoc<Weight>[] = [mockWeight];
+const mockHeights: MockDoc<Height>[] = [mockHeight];
+const mockBloodPressures: MockDoc<BloodPressure>[] = [mockBloodPressure];
+const mockSleeps: MockDoc<Sleep>[] = [mockSleep];
+
+type MockModel<T> = jest.Mock & {
+  find: jest.Mock;
+  findById: jest.Mock;
+  findByIdAndUpdate: jest.Mock;
+  deleteOne: jest.Mock;
+  new (dto: Partial<T>): T & { save: jest.Mock };
+};
+
+const createMockModel = <T>(data: MockDoc<T>[]): MockModel<T> => {
+  const mockModel = jest.fn((dto: Partial<T>) => ({
+    ...dto,
+    save: jest.fn().mockResolvedValue({
+      ...dto,
+      _id: new Types.ObjectId(),
+    }),
+  })) as unknown as MockModel<T>;
+
+  mockModel.find = jest
+    .fn()
+    .mockImplementation((query: Record<string, unknown> = {}) => {
+      const uid = query['userId'] as string;
+      const matched = uid
+        ? data.filter((d) => 'userId' in d && d.userId === uid)
+        : data;
+      return { exec: jest.fn().mockResolvedValue(matched) };
+    });
+
+  mockModel.findById = jest.fn().mockImplementation((id: string) => {
+    const found =
+      data.find((d) => d.id === id || d._id?.toHexString() === id) || null;
+    return { exec: jest.fn().mockResolvedValue(found) };
+  });
+
+  mockModel.findByIdAndUpdate = jest
+    .fn()
+    .mockImplementation(
+      (id: string, update: Partial<T>, options?: { new?: boolean }) => {
+        const found = data.find(
+          (d) => d.id === id || d._id?.toHexString() === id,
+        );
+        if (!found) return { exec: jest.fn().mockResolvedValue(null) };
+
+        const updated = { ...found, ...update };
+
+        if (options?.new) return { exec: jest.fn().mockResolvedValue(updated) };
+
+        return { exec: jest.fn().mockResolvedValue(found) };
+      },
+    );
+
+  mockModel.deleteOne = jest.fn().mockReturnValue({
+    exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+  });
+
+  return mockModel;
+};
 
 describe('HealthLogsService', () => {
   let service: HealthLogsService;
-  let weightModel: Model<WeightDocument>;
-  let heightModel: Model<HeightDocument>;
-  let bloodPressureModel: Model<BloodPressureDocument>;
-  let sleepModel: Model<SleepDocument>;
-
-  let mockWeightModel: jest.Mocked<Model<WeightDocument>>;
-  let mockHeightModel: jest.Mocked<Model<HeightDocument>>;
-  let mockBloodPressureModel: jest.Mocked<Model<BloodPressureDocument>>;
-  let mockSleepModel: jest.Mocked<Model<SleepDocument>>;
-
-  let mockWeightDocumentInstance: WeightDocument;
-  let mockHeightDocumentInstance: HeightDocument;
-  let mockBloodPressureDocumentInstance: BloodPressureDocument;
-  let mockSleepDocumentInstance: SleepDocument;
-
+  let weightModel: Model<Weight>;
+  let heightModel: Model<Height>;
+  let bloodPressureModel: Model<BloodPressure>;
+  let sleepModel: Model<Sleep>;
+  let encryptionService: EncryptionService;
   let module: TestingModule;
 
+  const symmetricKey = crypto.randomBytes(32).toString('hex');
+
+  const mockEncryptionService = {
+    encryptSensitiveData: jest.fn(
+      (value: string, _key: Buffer) => `enc(${value})`,
+    ),
+    decryptSensitiveData: jest.fn((value: string, _key: Buffer) => {
+      if (typeof value === 'string') {
+        return value.replace(/^enc\((.*)\)$/, '$1');
+      }
+      throw new Error(
+        `decryptSensitiveData: expected string, got ${typeof value}`,
+      );
+    }),
+  };
+
+  const mockWeightModel = createMockModel(mockWeights);
+  const mockHeightModel = createMockModel(mockHeights);
+  const mockBloodPressureModel = createMockModel(mockBloodPressures);
+  const mockSleepModel = createMockModel(mockSleeps);
+
   beforeEach(async () => {
-    // Mock document instances
-    mockWeightDocumentInstance = {
-      ...mockWeight,
-      save: jest.fn().mockResolvedValue(mockWeight),
-    } as unknown as WeightDocument;
-    mockHeightDocumentInstance = {
-      ...mockHeight,
-      save: jest.fn().mockResolvedValue(mockHeight),
-    } as unknown as HeightDocument;
-    mockBloodPressureDocumentInstance = {
-      ...mockBloodPressure,
-      save: jest.fn().mockResolvedValue(mockBloodPressure),
-    } as unknown as BloodPressureDocument;
-    mockSleepDocumentInstance = {
-      ...mockSleep,
-      save: jest.fn().mockResolvedValue(mockSleep),
-    } as unknown as SleepDocument;
-
-    // Mock models with their methods
-    mockWeightModel = jest
-      .fn()
-      .mockImplementation(
-        () => mockWeightDocumentInstance,
-      ) as unknown as jest.Mocked<Model<WeightDocument>>;
-    mockWeightModel.find = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue([mockWeight]) });
-    mockWeightModel.findById = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue(mockWeight) });
-    mockWeightModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockWeightDocumentInstance),
-    });
-    mockWeightModel.deleteOne = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-    });
-
-    mockHeightModel = jest
-      .fn()
-      .mockImplementation(
-        () => mockHeightDocumentInstance,
-      ) as unknown as jest.Mocked<Model<HeightDocument>>;
-    mockHeightModel.find = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue([mockHeight]) });
-    mockHeightModel.findById = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue(mockHeight) });
-    mockHeightModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockHeightDocumentInstance),
-    });
-    mockHeightModel.deleteOne = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-    });
-
-    mockBloodPressureModel = jest
-      .fn()
-      .mockImplementation(
-        () => mockBloodPressureDocumentInstance,
-      ) as unknown as jest.Mocked<Model<BloodPressureDocument>>;
-    mockBloodPressureModel.find = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue([mockBloodPressure]),
-    });
-    mockBloodPressureModel.findById = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockBloodPressure),
-    });
-    mockBloodPressureModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockBloodPressureDocumentInstance),
-    });
-    mockBloodPressureModel.deleteOne = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-    });
-
-    mockSleepModel = jest
-      .fn()
-      .mockImplementation(
-        () => mockSleepDocumentInstance,
-      ) as unknown as jest.Mocked<Model<SleepDocument>>;
-    mockSleepModel.find = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue([mockSleep]) });
-    mockSleepModel.findById = jest
-      .fn()
-      .mockReturnValue({ exec: jest.fn().mockResolvedValue(mockSleep) });
-    mockSleepModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockSleepDocumentInstance),
-    });
-    mockSleepModel.deleteOne = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-    });
-
     let dbUri =
       !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
         ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
@@ -211,16 +214,23 @@ describe('HealthLogsService', () => {
           useValue: mockBloodPressureModel,
         },
         { provide: getModelToken(Sleep.name), useValue: mockSleepModel },
+        {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
+        },
       ],
     }).compile();
 
     service = module.get<HealthLogsService>(HealthLogsService);
-    weightModel = module.get<Model<WeightDocument>>(getModelToken(Weight.name));
-    heightModel = module.get<Model<HeightDocument>>(getModelToken(Height.name));
-    bloodPressureModel = module.get<Model<BloodPressureDocument>>(
+    weightModel = module.get<Model<Weight>>(getModelToken(Weight.name));
+    heightModel = module.get<Model<Height>>(getModelToken(Height.name));
+    bloodPressureModel = module.get<Model<BloodPressure>>(
       getModelToken(BloodPressure.name),
     );
-    sleepModel = module.get<Model<SleepDocument>>(getModelToken(Sleep.name));
+    sleepModel = module.get<Model<Sleep>>(getModelToken(Sleep.name));
+    encryptionService = module.get<EncryptionService>(EncryptionService);
+
+    jest.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -236,491 +246,806 @@ describe('HealthLogsService', () => {
   });
 
   it('should be defined', () => {
+    expect(encryptionService).toBeDefined();
     expect(service).toBeDefined();
   });
 
+  // ===========================================================================
+  // WEIGHT TESTS
+  // ===========================================================================
   describe('Weight logs', () => {
-    it('should create and return a weight log', async () => {
-      const createDto: CreateWeightDto = {
-        userId: 'testUser',
-        weight: 70,
-        notes: 'Test note',
-        datetimeAt: new Date(),
-      };
-      const result = await service.createWeight(createDto);
+    describe('Weight logs - create', () => {
+      it('should create and return a weight log', async () => {
+        const createDto: CreateWeightDto = {
+          userId,
+          weight: 70,
+          notes: noteValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createWeight(createDto, symmetricKey);
 
-      expect(mockWeightModel).toHaveBeenCalledWith(createDto);
-      expect(mockWeightDocumentInstance.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        id: mockWeight._id.toString(),
-        userId: mockWeight.userId,
-        weight: mockWeight.weight,
-        notes: mockWeight.notes,
-        datetimeAt: mockWeight.datetimeAt,
+        expect(mockWeightModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            weight: `enc(${createDto.weight})`,
+            notes: `enc(${createDto.notes})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.weight).toBe(70);
+      });
+
+      it('should create and return a weight log without notes', async () => {
+        const createDto: CreateWeightDto = {
+          userId,
+          weight: 73,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createWeight(createDto, symmetricKey);
+
+        expect(mockWeightModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            weight: `enc(${createDto.weight})`,
+            notes: 'enc()',
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.weight).toBe(73);
+        expect(result.notes).toEqual('');
       });
     });
 
-    it('should return an array of weight logs', async () => {
-      const result = await service.findAllWeights();
-      expect(mockWeightModel.find).toHaveBeenCalled();
-      expect(result).toEqual([
-        {
-          id: mockWeight._id.toString(),
-          userId: mockWeight.userId,
-          weight: mockWeight.weight,
-          notes: mockWeight.notes,
-          datetimeAt: mockWeight.datetimeAt,
-        },
-      ]);
-    });
+    describe('Weight logs - find', () => {
+      it('should return a single weight log', async () => {
+        const result = await service.findOneWeight(
+          mockWeight._id.toHexString(),
+          symmetricKey,
+          userId,
+        );
+        expect(result.weight).toBe(weightValue);
+      });
 
-    it('should return a single weight log', async () => {
-      const result = await service.findOneWeight(mockWeight._id.toHexString());
-      expect(mockWeightModel.findById).toHaveBeenCalledWith(
-        mockWeight._id.toHexString(),
-      );
-      expect(result).toEqual({
-        id: mockWeight._id.toString(),
-        userId: mockWeight.userId,
-        weight: mockWeight.weight,
-        notes: mockWeight.notes,
-        datetimeAt: mockWeight.datetimeAt,
+      it('should throw NotFoundException if user missing weight', async () => {
+        await expect(
+          service.findOneWeight('nonExistentId', symmetricKey, userId),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch on findOne', async () => {
+        await expect(
+          service.findOneWeight(
+            mockWeight._id.toHexString(),
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
       });
     });
 
-    it('should throw NotFoundException if weight log not found', async () => {
-      mockWeightModel.findById = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(service.findOneWeight('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
+    describe('Weight logs - findAll', () => {
+      it('should return an array of weight logs filtered by userId', async () => {
+        const result = await service.findAllWeights(symmetricKey, userId);
+        expect(mockWeightModel.find).toHaveBeenCalledWith({ userId });
+        expect(result).toHaveLength(1);
+        expect(result[0].weight).toBe(weightValue);
+      });
 
-    it('should update and return the updated weight log', async () => {
-      const updateDto: UpdateWeightDto = {
-        weight: 71,
-        notes: 'Next weight log',
-        datetimeAt: new Date('2023-01-01T10:00:00Z'),
-      };
-      const updatedMockWeight = { ...mockWeight, notes: 'Updated notes' };
-      mockWeightModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => updatedMockWeight });
-      const result = await service.updateWeight(
-        mockWeight._id.toHexString(),
-        updateDto,
-      );
-
-      expect(mockWeightModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockWeight._id.toHexString(),
-        updateDto,
-        { new: true },
-      );
-      expect(result).toEqual({
-        id: updatedMockWeight._id.toString(),
-        userId: updatedMockWeight.userId,
-        weight: updatedMockWeight.weight,
-        notes: updatedMockWeight.notes,
-        datetimeAt: updatedMockWeight.datetimeAt,
+      it('should return empty array for unknown user', async () => {
+        const result = await service.findAllWeights(symmetricKey, otherUserId);
+        expect(mockWeightModel.find).toHaveBeenCalledWith({
+          userId: otherUserId,
+        });
+        expect(result).toHaveLength(0);
       });
     });
 
-    it('should throw NotFoundException if weight log not found during update', async () => {
-      mockWeightModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(
-        service.updateWeight('nonExistentId', {
-          weight: 71,
-          notes: 'Next weight log',
-          datetimeAt: new Date('2023-01-01T10:00:00Z'),
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
+    describe('Weight logs - update', () => {
+      it('should update and return the updated weight log (all fields)', async () => {
+        const updateDto: UpdateWeightDto = {
+          weight: updatedWeightValue,
+          notes: updatedNote,
+          datetimeAt: updatedDateTime,
+        };
 
-    it('should remove a weight log', async () => {
-      await service.removeWeight(mockWeight._id.toHexString());
-      expect(mockWeightModel.deleteOne).toHaveBeenCalledWith({
-        _id: mockWeight._id.toHexString(),
+        const result = await service.updateWeight(
+          mockWeight._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          userId,
+        );
+
+        expect(mockWeightModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          mockWeight._id.toHexString(),
+          expect.objectContaining({
+            weight: `enc(${updateDto.weight})`,
+            notes: `enc(${updateDto.notes})`,
+            datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
+          }),
+          { new: true },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            weight: updatedWeightValue,
+            notes: updatedNote,
+            datetimeAt: new Date(updatedDateTime),
+          }),
+        );
+      });
+
+      it('should throw NotFoundException if weight log not found during update', async () => {
+        mockWeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateWeight(
+            'nonExistentId',
+            { weight: 80 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw NotFoundException if weight log not found after update', async () => {
+        mockWeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockWeight });
+        mockWeightModel.findByIdAndUpdate = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateWeight(
+            mockWeight._id.toHexString(),
+            { weight: 80 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch during update weight log', async () => {
+        mockWeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockWeight });
+        await expect(
+          service.updateWeight(
+            mockWeight._id.toHexString(),
+            { weight: 80 },
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
       });
     });
 
-    it('should throw NotFoundException if weight log not found during remove', async () => {
-      mockWeightModel.deleteOne = jest
-        .fn()
-        .mockReturnValue({ exec: () => Promise.resolve({ deletedCount: 0 }) });
-      await expect(service.removeWeight('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
+    describe('Weight logs - delete', () => {
+      it('should remove a weight log', async () => {
+        await service.removeWeight(mockWeight._id.toHexString(), userId);
+        expect(mockWeightModel.deleteOne).toHaveBeenCalledWith({
+          _id: mockWeight._id.toHexString(),
+          userId,
+        });
+      });
+
+      it('should throw NotFoundException if weight log not found during remove', async () => {
+        mockWeightModel.deleteOne = jest.fn().mockReturnValue({
+          exec: () => ({
+            deletedCount: 0,
+          }),
+        });
+        await expect(
+          service.removeWeight(mockWeight._id.toHexString(), userId),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
   });
 
+  // ===========================================================================
+  // HEIGHT TESTS
+  // ===========================================================================
   describe('Height logs', () => {
-    it('should create and return a height log', async () => {
-      const createDto: CreateHeightDto = {
-        userId: 'testUser',
-        height: 175,
-        notes: 'Test note',
-        datetimeAt: new Date(),
-      };
-      const result = await service.createHeight(createDto);
+    describe('Height logs - create', () => {
+      it('should create and return a height log', async () => {
+        const createDto: CreateHeightDto = {
+          userId,
+          height: 175,
+          notes: noteValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createHeight(createDto, symmetricKey);
 
-      expect(mockHeightModel).toHaveBeenCalledWith(createDto);
-      expect(mockHeightDocumentInstance.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        id: mockHeight._id.toString(),
-        userId: mockHeight.userId,
-        height: mockHeight.height,
-        notes: mockHeight.notes,
-        datetimeAt: mockHeight.datetimeAt,
+        expect(mockHeightModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            height: `enc(${createDto.height})`,
+            notes: `enc(${createDto.notes})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.height).toBe(175);
       });
-    });
 
-    it('should return an array of height logs', async () => {
-      const result = await service.findAllHeights();
-      expect(mockHeightModel.find).toHaveBeenCalled();
-      expect(result).toEqual([
-        {
-          id: mockHeight._id.toString(),
-          userId: mockHeight.userId,
-          height: mockHeight.height,
-          notes: mockHeight.notes,
-          datetimeAt: mockHeight.datetimeAt,
-        },
-      ]);
-    });
-
-    it('should return a single height log', async () => {
-      const result = await service.findOneHeight(mockHeight._id.toHexString());
-      expect(mockHeightModel.findById).toHaveBeenCalledWith(
-        mockHeight._id.toHexString(),
-      );
-      expect(result).toEqual({
-        id: mockHeight._id.toString(),
-        userId: mockHeight.userId,
-        height: mockHeight.height,
-        notes: mockHeight.notes,
-        datetimeAt: mockHeight.datetimeAt,
-      });
-    });
-
-    it('should throw NotFoundException if height log not found', async () => {
-      mockHeightModel.findById = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(service.findOneHeight('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should update and return the updated height log', async () => {
-      const updateDto: UpdateHeightDto = {
-        height: 176,
-        notes: 'Update height',
-        datetimeAt: new Date('2023-01-01T10:00:00Z'),
-      };
-      const updatedMockHeight = { ...mockHeight, notes: 'Updated notes' };
-      mockHeightModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => updatedMockHeight });
-      const result = await service.updateHeight(
-        mockHeight._id.toHexString(),
-        updateDto,
-      );
-
-      expect(mockHeightModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockHeight._id.toHexString(),
-        updateDto,
-        { new: true },
-      );
-      expect(result).toEqual({
-        id: updatedMockHeight._id.toString(),
-        userId: updatedMockHeight.userId,
-        height: updatedMockHeight.height,
-        notes: updatedMockHeight.notes,
-        datetimeAt: updatedMockHeight.datetimeAt,
-      });
-    });
-
-    it('should throw NotFoundException if height log not found during update', async () => {
-      mockHeightModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(
-        service.updateHeight('nonExistentId', {
+      it('should create and return a height log without notes', async () => {
+        const createDto: CreateHeightDto = {
+          userId,
           height: 176,
-          notes: 'Update height',
-          datetimeAt: new Date('2023-01-01T10:00:00Z'),
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
+          notes: '',
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createHeight(createDto, symmetricKey);
 
-    it('should remove a height log', async () => {
-      await service.removeHeight(mockHeight._id.toHexString());
-      expect(mockHeightModel.deleteOne).toHaveBeenCalledWith({
-        _id: mockHeight._id.toHexString(),
+        expect(mockHeightModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            height: `enc(${createDto.height})`,
+            notes: 'enc()',
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.height).toBe(176);
+        expect(result.notes).toBe('');
       });
     });
 
-    it('should throw NotFoundException if height log not found during remove', async () => {
-      mockHeightModel.deleteOne = jest
-        .fn()
-        .mockReturnValue({ exec: () => Promise.resolve({ deletedCount: 0 }) });
-      await expect(service.removeHeight('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
+    describe('Height logs - find', () => {
+      it('should return a single height log', async () => {
+        const result = await service.findOneHeight(
+          mockHeight._id.toHexString(),
+          symmetricKey,
+          userId,
+        );
+        expect(result.height).toBe(heightValue);
+      });
+
+      it('should throw NotFoundException if user missing height', async () => {
+        await expect(
+          service.findOneHeight('nonExistentId', symmetricKey, userId),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch on findOne', async () => {
+        await expect(
+          service.findOneHeight(
+            mockHeight._id.toHexString(),
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Height logs - findAll', () => {
+      it('should return an array of height logs filtered by userId', async () => {
+        const result = await service.findAllHeights(symmetricKey, userId);
+        expect(mockHeightModel.find).toHaveBeenCalledWith({ userId });
+        expect(result).toHaveLength(1);
+        expect(result[0].height).toBe(heightValue);
+      });
+
+      it('should return empty array for unknown user', async () => {
+        const result = await service.findAllHeights(symmetricKey, otherUserId);
+        expect(mockHeightModel.find).toHaveBeenCalledWith({
+          userId: otherUserId,
+        });
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('Height logs - update', () => {
+      it('should update and return the updated height log (all fields)', async () => {
+        const updateDto: UpdateHeightDto = {
+          height: updatedHeightValue,
+          notes: updatedNote,
+          datetimeAt: updatedDateTime,
+        };
+
+        const result = await service.updateHeight(
+          mockHeight._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          userId,
+        );
+
+        expect(mockHeightModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          mockHeight._id.toHexString(),
+          expect.objectContaining({
+            height: `enc(${updateDto.height})`,
+            notes: `enc(${updateDto.notes})`,
+            datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
+          }),
+          { new: true },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            height: updatedHeightValue,
+            notes: updatedNote,
+            datetimeAt: new Date(updatedDateTime),
+          }),
+        );
+      });
+
+      it('should throw NotFoundException if height log not found during update', async () => {
+        mockHeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateHeight(
+            'nonExistentId',
+            { height: 80 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw NotFoundException if height log not found after update', async () => {
+        mockHeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockHeight });
+
+        mockHeightModel.findByIdAndUpdate = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+
+        await expect(
+          service.updateHeight(
+            mockHeight._id.toHexString(),
+            { height: 80 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch during update height log', async () => {
+        mockHeightModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockHeight });
+        await expect(
+          service.updateHeight(
+            mockWeight._id.toHexString(),
+            { height: 80 },
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Height logs - delete', () => {
+      it('should remove a height log', async () => {
+        await service.removeHeight(mockHeight._id.toHexString(), userId);
+        expect(mockHeightModel.deleteOne).toHaveBeenCalledWith({
+          _id: mockHeight._id.toHexString(),
+          userId,
+        });
+      });
+      it('should throw NotFoundException if height log not found during remove', async () => {
+        mockHeightModel.deleteOne = jest.fn().mockReturnValue({
+          exec: () => ({
+            deletedCount: 0,
+          }),
+        });
+        await expect(
+          service.removeHeight(mockHeight._id.toHexString(), userId),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
   });
 
+  // ===========================================================================
+  // BLOOD PRESSURE TESTS
+  // ===========================================================================
   describe('Blood Pressure logs', () => {
-    it('should create and return a blood pressure log', async () => {
-      const createDto: CreateBloodPressureDto = {
-        userId: 'testUser',
-        systolic: 125,
-        diastolic: 85,
-        notes: 'Test note',
-        datetimeAt: new Date(),
-      };
-      const result = await service.createBloodPressure(createDto);
+    describe('Blood Pressure logs - create', () => {
+      it('should create and return a blood pressure log', async () => {
+        const createDto: CreateBloodPressureDto = {
+          userId,
+          systolic: 110,
+          diastolic: 70,
+          notes: noteValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createBloodPressure(
+          createDto,
+          symmetricKey,
+        );
 
-      expect(mockBloodPressureModel).toHaveBeenCalledWith(createDto);
-      expect(mockBloodPressureDocumentInstance.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        id: mockBloodPressure._id.toString(),
-        userId: mockBloodPressure.userId,
-        systolic: mockBloodPressure.systolic,
-        diastolic: mockBloodPressure.diastolic,
-        notes: mockBloodPressure.notes,
-        datetimeAt: mockBloodPressure.datetimeAt,
+        expect(mockBloodPressureModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            systolic: `enc(${createDto.systolic})`,
+            diastolic: `enc(${createDto.diastolic})`,
+            notes: `enc(${createDto.notes})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.systolic).toBe(110);
       });
-    });
 
-    it('should return an array of blood pressure logs', async () => {
-      const result = await service.findAllBloodPressures();
-      expect(mockBloodPressureModel.find).toHaveBeenCalled();
-      expect(result).toEqual([
-        {
-          id: mockBloodPressure._id.toString(),
-          userId: mockBloodPressure.userId,
-          systolic: mockBloodPressure.systolic,
-          diastolic: mockBloodPressure.diastolic,
-          notes: mockBloodPressure.notes,
-          datetimeAt: mockBloodPressure.datetimeAt,
-        },
-      ]);
-    });
-
-    it('should return a single blood pressure log', async () => {
-      const result = await service.findOneBloodPressure(
-        mockBloodPressure._id.toHexString(),
-      );
-      expect(mockBloodPressureModel.findById).toHaveBeenCalledWith(
-        mockBloodPressure._id.toHexString(),
-      );
-      expect(result).toEqual({
-        id: mockBloodPressure._id.toString(),
-        userId: mockBloodPressure.userId,
-        systolic: mockBloodPressure.systolic,
-        diastolic: mockBloodPressure.diastolic,
-        notes: mockBloodPressure.notes,
-        datetimeAt: mockBloodPressure.datetimeAt,
-      });
-    });
-
-    it('should throw NotFoundException if blood pressure log not found', async () => {
-      mockBloodPressureModel.findById = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(
-        service.findOneBloodPressure('nonExistentId'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should update and return the updated blood pressure log', async () => {
-      const updateDto: UpdateBloodPressureDto = {
-        systolic: 130,
-        diastolic: 80,
-        notes: 'Update morning reading',
-        datetimeAt: new Date('2023-01-01T12:00:00Z'),
-      };
-      const updatedMockBloodPressure = {
-        ...mockBloodPressure,
-        notes: 'Updated notes',
-      };
-      mockBloodPressureModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => updatedMockBloodPressure });
-      const result = await service.updateBloodPressure(
-        mockBloodPressure._id.toHexString(),
-        updateDto,
-      );
-
-      expect(mockBloodPressureModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockBloodPressure._id.toHexString(),
-        updateDto,
-        { new: true },
-      );
-      expect(result).toEqual({
-        id: updatedMockBloodPressure._id.toString(),
-        userId: updatedMockBloodPressure.userId,
-        systolic: updatedMockBloodPressure.systolic,
-        diastolic: updatedMockBloodPressure.diastolic,
-        notes: updatedMockBloodPressure.notes,
-        datetimeAt: updatedMockBloodPressure.datetimeAt,
-      });
-    });
-
-    it('should throw NotFoundException if blood pressure log not found during update', async () => {
-      mockBloodPressureModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(
-        service.updateBloodPressure('nonExistentId', {
+      it('should create and return a blood pressure log without notes', async () => {
+        const createDto: CreateBloodPressureDto = {
+          userId,
           systolic: 130,
-          diastolic: 80,
-          notes: 'Update morning reading',
-          datetimeAt: new Date('2023-01-01T12:00:00Z'),
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
+          diastolic: 40,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createBloodPressure(
+          createDto,
+          symmetricKey,
+        );
 
-    it('should remove a blood pressure log', async () => {
-      await service.removeBloodPressure(mockBloodPressure._id.toHexString());
-      expect(mockBloodPressureModel.deleteOne).toHaveBeenCalledWith({
-        _id: mockBloodPressure._id.toHexString(),
+        expect(mockBloodPressureModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            systolic: `enc(${createDto.systolic})`,
+            diastolic: `enc(${createDto.diastolic})`,
+            notes: 'enc()',
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.systolic).toBe(130);
+        expect(result.diastolic).toBe(40);
+        expect(result.notes).toBe('');
       });
     });
 
-    it('should throw NotFoundException if blood pressure log not found during remove', async () => {
-      mockBloodPressureModel.deleteOne = jest
-        .fn()
-        .mockReturnValue({ exec: () => Promise.resolve({ deletedCount: 0 }) });
-      await expect(
-        service.removeBloodPressure('nonExistentId'),
-      ).rejects.toThrow(NotFoundException);
+    describe('Blood Pressure logs - find', () => {
+      it('should return a single blood pressure log', async () => {
+        const result = await service.findOneBloodPressure(
+          mockBloodPressure._id.toHexString(),
+          symmetricKey,
+          userId,
+        );
+        expect(result.systolic).toBe(systolicValue);
+      });
+
+      it('should throw NotFoundException if user missing blood pressure', async () => {
+        await expect(
+          service.findOneBloodPressure('nonExistentId', symmetricKey, userId),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch on findOne', async () => {
+        await expect(
+          service.findOneBloodPressure(
+            mockBloodPressure._id.toHexString(),
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Blood Pressure logs - findAll', () => {
+      it('should return an array of blood pressure logs filtered by userId', async () => {
+        const result = await service.findAllBloodPressures(
+          symmetricKey,
+          userId,
+        );
+        expect(mockBloodPressureModel.find).toHaveBeenCalledWith({ userId });
+        expect(result).toHaveLength(1);
+        expect(result[0].systolic).toBe(systolicValue);
+      });
+
+      it('should return empty array for unknown user', async () => {
+        const result = await service.findAllBloodPressures(
+          symmetricKey,
+          otherUserId,
+        );
+        expect(mockBloodPressureModel.find).toHaveBeenCalledWith({
+          userId: otherUserId,
+        });
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('Blood Pressure logs - update', () => {
+      it('should update and return the updated blood pressure log (all fields)', async () => {
+        const updateDto: UpdateBloodPressureDto = {
+          systolic: updatedSystolic,
+          diastolic: updatedDiastolic,
+          notes: updatedNote,
+          datetimeAt: updatedDateTime,
+        };
+
+        const result = await service.updateBloodPressure(
+          mockBloodPressure._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          userId,
+        );
+
+        expect(mockBloodPressureModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          mockBloodPressure._id.toHexString(),
+          expect.objectContaining({
+            systolic: `enc(${updateDto.systolic})`,
+            diastolic: `enc(${updateDto.diastolic})`,
+            notes: `enc(${updateDto.notes})`,
+            datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
+          }),
+          { new: true },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            systolic: updatedSystolic,
+            diastolic: updatedDiastolic,
+            notes: updatedNote,
+            datetimeAt: new Date(updatedDateTime),
+          }),
+        );
+      });
+
+      it('should throw NotFoundException if blood pressure log not found during update', async () => {
+        mockBloodPressureModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateBloodPressure(
+            'nonExistentId',
+            { systolic: 100, diastolic: 70 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw NotFoundException if blood pressure log not found after update', async () => {
+        mockBloodPressureModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockBloodPressure });
+
+        mockBloodPressureModel.findByIdAndUpdate = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+
+        await expect(
+          service.updateBloodPressure(
+            mockBloodPressure._id.toHexString(),
+            { systolic: 100, diastolic: 70 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch during update blood pressure log', async () => {
+        mockBloodPressureModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockBloodPressure });
+        await expect(
+          service.updateBloodPressure(
+            mockWeight._id.toHexString(),
+            { systolic: 100, diastolic: 70 },
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Blood Pressure logs - delete', () => {
+      it('should remove a blood pressure log', async () => {
+        await service.removeBloodPressure(
+          mockBloodPressure._id.toHexString(),
+          userId,
+        );
+        expect(mockBloodPressureModel.deleteOne).toHaveBeenCalledWith({
+          _id: mockBloodPressure._id.toHexString(),
+          userId,
+        });
+      });
+
+      it('should throw NotFoundException if blood pressure log not found during remove', async () => {
+        mockBloodPressureModel.deleteOne = jest.fn().mockReturnValue({
+          exec: () => ({
+            deletedCount: 0,
+          }),
+        });
+        await expect(
+          service.removeBloodPressure(
+            mockBloodPressure._id.toHexString(),
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
   });
 
+  // ===========================================================================
+  // SLEEP TESTS
+  // ===========================================================================
   describe('Sleep logs', () => {
-    it('should create and return a sleep log', async () => {
-      const createDto: CreateSleepDto = {
-        userId: 'testUser',
-        rate: 8,
-        notes: 'Test note',
-        startedAt: new Date(),
-        datetimeAt: new Date(),
-      };
-      const result = await service.createSleep(createDto);
+    describe('Sleep logs - create', () => {
+      it('should create and return a sleep log', async () => {
+        const createDto: CreateSleepDto = {
+          userId,
+          rate: 6,
+          notes: noteValue,
+          startedAt: startedAtValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createSleep(createDto, symmetricKey);
 
-      expect(mockSleepModel).toHaveBeenCalledWith(createDto);
-      expect(mockSleepDocumentInstance.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        id: mockSleep._id.toString(),
-        userId: mockSleep.userId,
-        rate: mockSleep.rate,
-        notes: mockSleep.notes,
-        startedAt: mockSleep.startedAt,
-        datetimeAt: mockSleep.datetimeAt,
+        expect(mockSleepModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            rate: `enc(${createDto.rate})`,
+            notes: `enc(${createDto.notes})`,
+            startedAt: `enc(${createDto.startedAt})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.rate).toBe(6);
+      });
+
+      it('should create and return a sleep log without notes', async () => {
+        const createDto: CreateSleepDto = {
+          userId,
+          rate: 5,
+          startedAt: startedAtValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createSleep(createDto, symmetricKey);
+
+        expect(mockSleepModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            rate: `enc(${createDto.rate})`,
+            notes: 'enc()',
+            startedAt: `enc(${createDto.startedAt})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.rate).toBe(5);
+        expect(result.notes).toBe('');
       });
     });
 
-    it('should return an array of sleep logs', async () => {
-      const result = await service.findAllSleeps();
-      expect(mockSleepModel.find).toHaveBeenCalled();
-      expect(result).toEqual([
-        {
-          id: mockSleep._id.toString(),
-          userId: mockSleep.userId,
-          rate: mockSleep.rate,
-          notes: mockSleep.notes,
-          startedAt: mockSleep.startedAt,
-          datetimeAt: mockSleep.datetimeAt,
-        },
-      ]);
-    });
+    describe('Sleep logs - find', () => {
+      it('should return a single sleep log', async () => {
+        const result = await service.findOneSleep(
+          mockSleep._id.toHexString(),
+          symmetricKey,
+          userId,
+        );
+        expect(result.rate).toBe(sleepRateValue);
+      });
 
-    it('should return a single sleep log', async () => {
-      const result = await service.findOneSleep(mockSleep._id.toHexString());
-      expect(mockSleepModel.findById).toHaveBeenCalledWith(
-        mockSleep._id.toHexString(),
-      );
-      expect(result).toEqual({
-        id: mockSleep._id.toString(),
-        userId: mockSleep.userId,
-        rate: mockSleep.rate,
-        notes: mockSleep.notes,
-        startedAt: mockSleep.startedAt,
-        datetimeAt: mockSleep.datetimeAt,
+      it('should throw NotFoundException if user missing sleep', async () => {
+        await expect(
+          service.findOneSleep('nonExistentId', symmetricKey, userId),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch on findOne', async () => {
+        await expect(
+          service.findOneSleep(
+            mockSleep._id.toHexString(),
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
       });
     });
 
-    it('should throw NotFoundException if sleep log not found', async () => {
-      mockSleepModel.findById = jest.fn().mockReturnValue({ exec: () => null });
-      await expect(service.findOneSleep('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
+    describe('Sleep logs - findAll', () => {
+      it('should return an array of sleep logs filtered by userId', async () => {
+        const result = await service.findAllSleeps(symmetricKey, userId);
+        expect(mockSleepModel.find).toHaveBeenCalledWith({ userId });
+        expect(result).toHaveLength(1);
+        expect(result[0].rate).toBe(sleepRateValue);
+      });
 
-    it('should update and return the updated sleep log', async () => {
-      const updateDto: UpdateSleepDto = {
-        rate: 7,
-        notes: 'Moderate sleep',
-        startedAt: new Date('2023-01-01T15:00:00Z'),
-        datetimeAt: new Date('2023-01-01T08:00:00Z'),
-      };
-      const updatedMockSleep = { ...mockSleep, notes: 'Updated notes' };
-      mockSleepModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => updatedMockSleep });
-      const result = await service.updateSleep(
-        mockSleep._id.toHexString(),
-        updateDto,
-      );
-
-      expect(mockSleepModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockSleep._id.toHexString(),
-        updateDto,
-        { new: true },
-      );
-      expect(result).toEqual({
-        id: updatedMockSleep._id.toString(),
-        userId: updatedMockSleep.userId,
-        rate: updatedMockSleep.rate,
-        notes: updatedMockSleep.notes,
-        startedAt: updatedMockSleep.startedAt,
-        datetimeAt: updatedMockSleep.datetimeAt,
+      it('should return empty array for unknown user', async () => {
+        const result = await service.findAllSleeps(symmetricKey, otherUserId);
+        expect(mockSleepModel.find).toHaveBeenCalledWith({
+          userId: otherUserId,
+        });
+        expect(result).toHaveLength(0);
       });
     });
 
-    it('should throw NotFoundException if sleep log not found during update', async () => {
-      mockSleepModel.findByIdAndUpdate = jest
-        .fn()
-        .mockReturnValue({ exec: () => null });
-      await expect(
-        service.updateSleep('nonExistentId', {
-          rate: 7,
-          notes: 'Moderate sleep',
-          startedAt: new Date('2023-01-01T15:00:00Z'),
-          datetimeAt: new Date('2023-01-01T08:00:00Z'),
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
+    describe('Sleep logs - update', () => {
+      it('should update and return the updated sleep log (all fields)', async () => {
+        const updateDto: UpdateSleepDto = {
+          rate: updatedSleepRate,
+          notes: updatedNote,
+          startedAt: updatedStartedAt,
+          datetimeAt: updatedDateTime,
+        };
 
-    it('should remove a sleep log', async () => {
-      await service.removeSleep(mockSleep._id.toHexString());
-      expect(mockSleepModel.deleteOne).toHaveBeenCalledWith({
-        _id: mockSleep._id.toHexString(),
+        const result = await service.updateSleep(
+          mockSleep._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          userId,
+        );
+
+        expect(mockSleepModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          mockSleep._id.toHexString(),
+          expect.objectContaining({
+            rate: `enc(${updateDto.rate})`,
+            notes: `enc(${updateDto.notes})`,
+            startedAt: `enc(${new Date(updateDto.startedAt!).toISOString()})`,
+            datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
+          }),
+          { new: true },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            rate: updatedSleepRate,
+            notes: updatedNote,
+            startedAt: new Date(updatedStartedAt),
+            datetimeAt: new Date(updatedDateTime),
+          }),
+        );
+      });
+
+      it('should throw NotFoundException if sleep log not found during update', async () => {
+        mockSleepModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateSleep(
+            'nonExistentId',
+            { rate: 10 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw NotFoundException if sleep log not found after update', async () => {
+        mockSleepModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockSleep });
+
+        mockSleepModel.findByIdAndUpdate = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+
+        await expect(
+          service.updateSleep(
+            mockSleep._id.toHexString(),
+            { rate: 10 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch during update sleep log', async () => {
+        mockSleepModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockSleep });
+        await expect(
+          service.updateSleep(
+            mockWeight._id.toHexString(),
+            { rate: 10 },
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
       });
     });
 
-    it('should throw NotFoundException if sleep log not found during remove', async () => {
-      mockSleepModel.deleteOne = jest
-        .fn()
-        .mockReturnValue({ exec: () => Promise.resolve({ deletedCount: 0 }) });
-      await expect(service.removeSleep('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
+    describe('Sleep logs - delete', () => {
+      it('should remove a sleep log', async () => {
+        await service.removeSleep(mockSleep._id.toHexString(), userId);
+        expect(mockSleepModel.deleteOne).toHaveBeenCalledWith({
+          _id: mockSleep._id.toHexString(),
+          userId,
+        });
+      });
+
+      it('should throw NotFoundException if sleep pressure log not found during remove', async () => {
+        mockSleepModel.deleteOne = jest.fn().mockReturnValue({
+          exec: () => ({
+            deletedCount: 0,
+          }),
+        });
+        await expect(
+          service.removeSleep(mockSleep._id.toHexString(), userId),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
   });
 });

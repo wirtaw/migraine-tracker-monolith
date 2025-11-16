@@ -130,7 +130,7 @@ describe('CustomJwtService', () => {
         role: Role.GUEST,
       };
 
-      const expiredToken = jwt.sign(payload, normalizedKey, { expiresIn: -10 }); // already expired
+      const expiredToken = jwt.sign(payload, normalizedKey, { expiresIn: -10 });
 
       await expect(jwtService.verifyToken(expiredToken)).rejects.toThrow(
         jwt.TokenExpiredError,

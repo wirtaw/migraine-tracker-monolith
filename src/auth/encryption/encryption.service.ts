@@ -96,7 +96,6 @@ export class EncryptionService {
 
     const authTag = cipher.getAuthTag();
 
-    // Format: iv:encryptedKey:authTag
     return `${iv.toString('hex')}:${encryptedKey.toString('hex')}:${authTag.toString('hex')}`;
   }
 

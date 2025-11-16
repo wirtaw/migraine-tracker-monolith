@@ -44,7 +44,6 @@ describe('Auth E2E', () => {
   const workerKey = 'secure_worker_key';
   const jwtSecret = 'secure_jwt_secret';
 
-  // Mock SupabaseService
   const mockSupabaseService = {
     client: {
       auth: {

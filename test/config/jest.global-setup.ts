@@ -7,7 +7,6 @@ import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
 
 declare global {
-  // store mongod reference for teardown
   var __MONGOD__: MongoMemoryServer;
 }
 
@@ -33,10 +32,8 @@ module.exports = async function (
         await execAsync('docker-compose -f docker-compose.test.yml up -d');
       }
 
-      // Wait for the MongoDB container to be ready
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log('MongoDB container started.');
-      // Set reference to mongod in order to close the server during teardown.
     } catch (error) {
       console.error('Failed to start MongoDB container:', error);
       process.exit(1);

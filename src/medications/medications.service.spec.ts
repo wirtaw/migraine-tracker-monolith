@@ -111,7 +111,6 @@ describe('MedicationsService', () => {
       return mockDocumentInstance;
     }) as unknown as jest.Mocked<Model<MedicationDocument>>;
 
-    // Refactored find to support filtering by userId
     mockMedicationModel.find = jest.fn().mockImplementation((query = {}) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const userId = query['userId'] as string;
@@ -262,7 +261,7 @@ describe('MedicationsService', () => {
       expect(mockMedicationModel.find).toHaveBeenCalledWith({
         userId: mockMedications[0].userId!,
       });
-      expect(result).toHaveLength(1); // Only 1 belongs to user123
+      expect(result).toHaveLength(1);
       expect(result[0].title).toBe(titleValue);
       expect(result[0].notes).toBe(noteValue);
       expect(result[0].datetimeAt).toEqual(new Date(medicationDateTime));
@@ -379,7 +378,7 @@ describe('MedicationsService', () => {
         exec: () => null,
       });
       mockMedicationModel.findById = jest.fn().mockReturnValue({
-        exec: () => mockMedication, // Found for initial check
+        exec: () => mockMedication,
       });
 
       await expect(
@@ -447,7 +446,6 @@ describe('MedicationsService', () => {
     });
 
     it("should throw NotFoundException if trying to remove another user's medication", async () => {
-      // Simulate deleteOne returning 0 deleted count because userId filter failed
       mockMedicationModel.deleteOne = jest.fn().mockReturnValue({
         exec: () => Promise.resolve({ deletedCount: 0 }),
       });

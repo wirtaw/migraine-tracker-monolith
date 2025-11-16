@@ -109,8 +109,6 @@ describe('MedicationsController', () => {
     });
 
     it('should encrypt fields in service call', async () => {
-      // This tests that the controller passes the correct key to the service,
-      // where encryption happens.
       const createDto: CreateMedicationDto = {
         userId: 'testUser',
         title: 'Test Medication',

@@ -53,7 +53,7 @@ export class User {
   salt!: string;
 
   @Prop({ required: true })
-  encryptedSymmetricKey!: string; // Renamed from key
+  encryptedSymmetricKey!: string;
 
   @Prop({ type: FetchDataErrorsSchema, required: false })
   fetchDataErrors?: FetchDataErrors;

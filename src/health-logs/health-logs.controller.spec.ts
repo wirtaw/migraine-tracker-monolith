@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthLogsController } from './health-logs.controller';
 import { HealthLogsService } from './health-logs.service';
@@ -19,6 +20,9 @@ import {
   IBloodPressure,
   ISleep,
 } from './interfaces/health-logs.interface';
+import { EncryptionService } from '../auth/encryption/encryption.service';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { NotFoundException } from '@nestjs/common';
 
 const mockIWeight: IWeight = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -80,9 +84,13 @@ const mockHealthLogsService = {
   removeSleep: jest.fn().mockResolvedValue(undefined),
 };
 
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
 describe('HealthLogsController', () => {
   let controller: HealthLogsController;
   let service: HealthLogsService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -92,11 +100,28 @@ describe('HealthLogsController', () => {
           provide: HealthLogsService,
           useValue: mockHealthLogsService,
         },
+        {
+          provide: EncryptionService,
+          useValue: {
+            encryptSensitiveData: jest.fn(),
+            decryptSensitiveData: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<HealthLogsController>(HealthLogsController);
     service = module.get<HealthLogsService>(HealthLogsService);
+
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
   });
 
   afterEach(() => {
@@ -107,247 +132,356 @@ describe('HealthLogsController', () => {
     expect(controller).toBeDefined();
   });
 
+  // --- Weight Tests ---
   describe('Weight logs', () => {
-    it('should create a weight log and return it', async () => {
+    it('should create a weight log', async () => {
       const createDto: CreateWeightDto = {
-        userId: 'testUser',
+        userId: 'user123',
         weight: 70,
-        notes: 'Test note',
-        datetimeAt: new Date(),
+        notes: 'Test',
+        datetimeAt: new Date().toISOString(),
       };
-      const createSpy = jest.spyOn(service, 'createWeight');
-
-      const result = await controller.createWeight(createDto);
-
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result = await controller.createWeight(createDto, mockRequest);
+      expect(service.createWeight).toHaveBeenCalledWith(
+        createDto,
+        symmetricKey,
+      );
       expect(result).toEqual(mockIWeight);
     });
 
-    it('should return an array of weight logs', async () => {
-      const findAllSpy = jest.spyOn(service, 'findAllWeights');
-      const result = await controller.findAllWeights();
-
-      expect(findAllSpy).toHaveBeenCalled();
+    it('should find all weight logs', async () => {
+      const result = await controller.findAllWeights(mockRequest);
+      expect(service.findAllWeights).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual([mockIWeight]);
     });
 
-    it('should return a single weight log', async () => {
+    it('should find one weight log', async () => {
       const id = mockIWeight.id;
-      const findOneSpy = jest.spyOn(service, 'findOneWeight');
-
-      const result = await controller.findOneWeight(id);
-
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      const result = await controller.findOneWeight(id, mockRequest);
+      expect(service.findOneWeight).toHaveBeenCalledWith(
+        id,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIWeight);
     });
 
-    it('should update and return the updated weight log', async () => {
+    it('should throw NotFoundException if weight log not found', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'findOneWeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.findOneWeight(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should update a weight log', async () => {
       const id = mockIWeight.id;
-      const updateDto: UpdateWeightDto = {
-        weight: 71,
-        notes: 'Next weight log',
-        datetimeAt: new Date('2023-01-01T10:00:00Z'),
-      };
-      const updateSpy = jest.spyOn(service, 'updateWeight');
-
-      const result = await controller.updateWeight(id, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      const updateDto: UpdateWeightDto = { weight: 72 };
+      const result = await controller.updateWeight(id, updateDto, mockRequest);
+      expect(service.updateWeight).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIWeight);
+    });
+
+    it('should throw NotFoundException if weight log not found during update', async () => {
+      const id = 'nonExistentId';
+      const updateDto: UpdateWeightDto = { weight: 72 };
+      jest
+        .spyOn(service, 'updateWeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.updateWeight(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should remove a weight log', async () => {
       const id = mockIWeight.id;
-      const removeSpy = jest.spyOn(service, 'removeWeight');
-
-      const result = await controller.removeWeight(id);
-
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      const result = await controller.removeWeight(id, mockRequest);
+      expect(service.removeWeight).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
+    });
+
+    it('should throw NotFoundException if weight log not found during remove', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'removeWeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.removeWeight(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
+  // --- Height Tests ---
   describe('Height logs', () => {
-    it('should create a height log and return it', async () => {
+    it('should create a height log', async () => {
       const createDto: CreateHeightDto = {
-        userId: 'testUser',
-        height: 175,
-        notes: 'Test note',
-        datetimeAt: new Date(),
+        userId: 'user123',
+        height: 180,
+        notes: 'Test',
+        datetimeAt: new Date().toISOString(),
       };
-      const createSpy = jest.spyOn(service, 'createHeight');
-
-      const result = await controller.createHeight(createDto);
-
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result = await controller.createHeight(createDto, mockRequest);
+      expect(service.createHeight).toHaveBeenCalledWith(
+        createDto,
+        symmetricKey,
+      );
       expect(result).toEqual(mockIHeight);
     });
 
-    it('should return an array of height logs', async () => {
-      const findAllSpy = jest.spyOn(service, 'findAllHeights');
-      const result = await controller.findAllHeights();
-
-      expect(findAllSpy).toHaveBeenCalled();
+    it('should find all height logs', async () => {
+      const result = await controller.findAllHeights(mockRequest);
+      expect(service.findAllHeights).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual([mockIHeight]);
     });
 
-    it('should return a single height log', async () => {
+    it('should find one height log', async () => {
       const id = mockIHeight.id;
-      const findOneSpy = jest.spyOn(service, 'findOneHeight');
-
-      const result = await controller.findOneHeight(id);
-
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      const result = await controller.findOneHeight(id, mockRequest);
+      expect(service.findOneHeight).toHaveBeenCalledWith(
+        id,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIHeight);
     });
 
-    it('should update and return the updated height log', async () => {
+    it('should throw NotFoundException if height log not found', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'findOneHeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.findOneHeight(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should update a height log', async () => {
       const id = mockIHeight.id;
-      const updateDto: UpdateHeightDto = {
-        height: 176,
-        notes: 'Initial height',
-        datetimeAt: new Date('2023-01-01T10:00:00Z'),
-      };
-      const updateSpy = jest.spyOn(service, 'updateHeight');
-
-      const result = await controller.updateHeight(id, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      const updateDto: UpdateHeightDto = { height: 181 };
+      const result = await controller.updateHeight(id, updateDto, mockRequest);
+      expect(service.updateHeight).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIHeight);
+    });
+
+    it('should throw NotFoundException if height log not found during update', async () => {
+      const id = 'nonExistentId';
+      const updateDto: UpdateHeightDto = { height: 181 };
+      jest
+        .spyOn(service, 'updateHeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.updateHeight(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should remove a height log', async () => {
       const id = mockIHeight.id;
-      const removeSpy = jest.spyOn(service, 'removeHeight');
-
-      const result = await controller.removeHeight(id);
-
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      const result = await controller.removeHeight(id, mockRequest);
+      expect(service.removeHeight).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
+    });
+
+    it('should throw NotFoundException if height log not found during remove', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'removeHeight')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.removeHeight(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
+  // --- Blood Pressure Tests ---
   describe('Blood Pressure logs', () => {
-    it('should create a blood pressure log and return it', async () => {
+    it('should create a blood pressure log', async () => {
       const createDto: CreateBloodPressureDto = {
-        userId: 'testUser',
-        systolic: 125,
-        diastolic: 85,
-        notes: 'Test note',
-        datetimeAt: new Date(),
+        userId: 'user123',
+        systolic: 120,
+        diastolic: 80,
+        notes: 'Test',
+        datetimeAt: new Date().toISOString(),
       };
-      const createSpy = jest.spyOn(service, 'createBloodPressure');
-
-      const result = await controller.createBloodPressure(createDto);
-
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result = await controller.createBloodPressure(
+        createDto,
+        mockRequest,
+      );
+      expect(service.createBloodPressure).toHaveBeenCalledWith(
+        createDto,
+        symmetricKey,
+      );
       expect(result).toEqual(mockIBloodPressure);
     });
 
-    it('should return an array of blood pressure logs', async () => {
-      const findAllSpy = jest.spyOn(service, 'findAllBloodPressures');
-      const result = await controller.findAllBloodPressures();
-
-      expect(findAllSpy).toHaveBeenCalled();
+    it('should find all blood pressure logs', async () => {
+      const result = await controller.findAllBloodPressures(mockRequest);
+      expect(service.findAllBloodPressures).toHaveBeenCalledWith(
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual([mockIBloodPressure]);
     });
 
-    it('should return a single blood pressure log', async () => {
+    it('should find one blood pressure log', async () => {
       const id = mockIBloodPressure.id;
-      const findOneSpy = jest.spyOn(service, 'findOneBloodPressure');
-
-      const result = await controller.findOneBloodPressure(id);
-
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      const result = await controller.findOneBloodPressure(id, mockRequest);
+      expect(service.findOneBloodPressure).toHaveBeenCalledWith(
+        id,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIBloodPressure);
     });
 
-    it('should update and return the updated blood pressure log', async () => {
+    it('should throw NotFoundException if blood pressure log not found', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'findOneBloodPressure')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.findOneBloodPressure(id, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should update a blood pressure log', async () => {
       const id = mockIBloodPressure.id;
-      const updateDto: UpdateBloodPressureDto = {
-        systolic: 130,
-        diastolic: 80,
-        notes: 'Update morning reading',
-        datetimeAt: new Date('2023-01-01T12:00:00Z'),
-      };
-      const updateSpy = jest.spyOn(service, 'updateBloodPressure');
-
-      const result = await controller.updateBloodPressure(id, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      const updateDto: UpdateBloodPressureDto = { systolic: 125 };
+      const result = await controller.updateBloodPressure(
+        id,
+        updateDto,
+        mockRequest,
+      );
+      expect(service.updateBloodPressure).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockIBloodPressure);
+    });
+
+    it('should throw NotFoundException if blood pressure log not found during update', async () => {
+      const id = 'nonExistentId';
+      const updateDto: UpdateBloodPressureDto = { systolic: 125 };
+      jest
+        .spyOn(service, 'updateBloodPressure')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.updateBloodPressure(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should remove a blood pressure log', async () => {
       const id = mockIBloodPressure.id;
-      const removeSpy = jest.spyOn(service, 'removeBloodPressure');
-
-      const result = await controller.removeBloodPressure(id);
-
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      const result = await controller.removeBloodPressure(id, mockRequest);
+      expect(service.removeBloodPressure).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
+    });
+
+    it('should throw NotFoundException if blood pressure log not found during remove', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'removeBloodPressure')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.removeBloodPressure(id, mockRequest),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
+  // --- Sleep Tests ---
   describe('Sleep logs', () => {
-    it('should create a sleep log and return it', async () => {
+    it('should create a sleep log', async () => {
       const createDto: CreateSleepDto = {
-        userId: 'testUser',
+        userId: 'user123',
         rate: 8,
-        notes: 'Test note',
-        startedAt: new Date(),
-        datetimeAt: new Date(),
+        notes: 'Test',
+        startedAt: new Date().toISOString(),
+        datetimeAt: new Date().toISOString(),
       };
-      const createSpy = jest.spyOn(service, 'createSleep');
-
-      const result = await controller.createSleep(createDto);
-
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result = await controller.createSleep(createDto, mockRequest);
+      expect(service.createSleep).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockISleep);
     });
 
-    it('should return an array of sleep logs', async () => {
-      const findAllSpy = jest.spyOn(service, 'findAllSleeps');
-      const result = await controller.findAllSleeps();
-
-      expect(findAllSpy).toHaveBeenCalled();
+    it('should find all sleep logs', async () => {
+      const result = await controller.findAllSleeps(mockRequest);
+      expect(service.findAllSleeps).toHaveBeenCalledWith(symmetricKey, userId);
       expect(result).toEqual([mockISleep]);
     });
 
-    it('should return a single sleep log', async () => {
+    it('should find one sleep log', async () => {
       const id = mockISleep.id;
-      const findOneSpy = jest.spyOn(service, 'findOneSleep');
-
-      const result = await controller.findOneSleep(id);
-
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      const result = await controller.findOneSleep(id, mockRequest);
+      expect(service.findOneSleep).toHaveBeenCalledWith(
+        id,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockISleep);
     });
 
-    it('should update and return the updated sleep log', async () => {
+    it('should throw NotFoundException if sleep log not found', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'findOneSleep')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.findOneSleep(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should update a sleep log', async () => {
       const id = mockISleep.id;
-      const updateDto: UpdateSleepDto = {
-        rate: 7,
-        notes: 'Moderate sleep',
-        startedAt: new Date('2023-01-01T15:00:00Z'),
-        datetimeAt: new Date('2023-01-01T08:00:00Z'),
-      };
-      const updateSpy = jest.spyOn(service, 'updateSleep');
-
-      const result = await controller.updateSleep(id, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      const updateDto: UpdateSleepDto = { rate: 9 };
+      const result = await controller.updateSleep(id, updateDto, mockRequest);
+      expect(service.updateSleep).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockISleep);
+    });
+
+    it('should throw NotFoundException if sleep log not found during update', async () => {
+      const id = 'nonExistentId';
+      const updateDto: UpdateSleepDto = { rate: 9 };
+      jest
+        .spyOn(service, 'updateSleep')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(
+        controller.updateSleep(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should remove a sleep log', async () => {
       const id = mockISleep.id;
-      const removeSpy = jest.spyOn(service, 'removeSleep');
-
-      const result = await controller.removeSleep(id);
-
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      const result = await controller.removeSleep(id, mockRequest);
+      expect(service.removeSleep).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
+    });
+
+    it('should throw NotFoundException if sleep log not found during remove', async () => {
+      const id = 'nonExistentId';
+      jest
+        .spyOn(service, 'removeSleep')
+        .mockRejectedValueOnce(new NotFoundException());
+      await expect(controller.removeSleep(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
