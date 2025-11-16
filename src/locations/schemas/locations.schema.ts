@@ -73,10 +73,10 @@ export class Location {
   userId!: string;
 
   @Prop({ required: true })
-  latitude!: number;
+  latitude!: string;
 
   @Prop({ required: true })
-  longitude!: number;
+  longitude!: string;
 
   @Prop({ type: [ForecastSchema] })
   forecast?: Forecast[];
@@ -91,7 +91,7 @@ export class Location {
   createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt!: Date;
+  datetimeAt!: string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Incident', default: null })
   incidentId?: string;

@@ -12,7 +12,7 @@ import { IncidentsModule } from './incidents/incidents.module';
 import { TriggersModule } from './triggers/triggers.module';
 import { SymptomsModule } from './symptoms/symptoms.module';
 import { MedicationsModule } from './medications/medications.module';
-import { LocationModule } from './locations/locations.module';
+import { LocationsModule } from './locations/locations.module';
 import { HealthLogsModule } from './health-logs/health-logs.module';
 
 @Module({
@@ -32,7 +32,7 @@ import { HealthLogsModule } from './health-logs/health-logs.module';
     TriggersModule,
     SymptomsModule,
     MedicationsModule,
-    LocationModule,
+    LocationsModule,
     HealthLogsModule,
   ],
   controllers: [AppController, TestController],

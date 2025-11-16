@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/unbound-method */
+import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocationService } from './locations.service';
+import { LocationsService } from './locations.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
@@ -9,77 +12,99 @@ import {
 } from './schemas/locations.schema';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
-import { NotFoundException, Logger } from '@nestjs/common';
-import {
-  IForecast,
-  ISolar,
-  ISolarRadiation,
-} from './interfaces/locations.interface';
+import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { EncryptionService } from '../auth/encryption/encryption.service';
 
-/* eslint-disable @typescript-eslint/unbound-method */
-
-const mockForecast: IForecast = {
-  description: 'clear sky',
-  temperature: 20,
-  pressure: 1012,
-  humidity: 50,
-  windSpeed: 5.5,
-  clouds: 10,
-  uvi: 5,
-  datetime: '2023-01-01T10:00:00Z',
-};
-const mockSolar: ISolar = {
-  kIndex: 3,
-  aIndex: 5,
-  flareProbability: 0.1,
-  datetime: '2023-01-01T10:00:00Z',
-};
-const mockSolarRadiation: ISolarRadiation = {
-  uviIndex: 5,
-  ozone: 300,
-  solarFlux: 100,
-  sunsPotNumber: 50,
-  date: '2023-01-01',
-};
+const userId = 'user123';
+const latitudeValue = 40.7128;
+const latitudeUpdatedValue = 41.0;
+const longitudeValue = -74.006;
+const longitudeUpdatedValue = -75.001;
+const locationDateTime = '2023-01-01T12:00:00.000Z';
+const locationUpdatedDateTime = '2023-01-03T12:00:00.000Z';
 
 const mockLocation: HydratedDocument<Location> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
-  userId: 'user123',
-  latitude: 40.7128,
-  longitude: -74.006,
-  forecast: [mockForecast],
-  solar: [mockSolar],
-  solarRadiation: [mockSolarRadiation],
+  userId,
+  latitude: `enc(${latitudeValue})`,
+  longitude: `enc(${longitudeValue})`,
+  forecast: [],
+  solar: [],
+  solarRadiation: [],
   createdAt: new Date('2023-01-01T10:00:00Z'),
-  datetimeAt: new Date('2023-01-01T12:00:00Z'),
-  incidentId: 'incident123',
+  datetimeAt: `enc(${locationDateTime})`,
+  toObject: function () {
+    return this;
+  },
 } as never;
 
-const mockLocations: HydratedDocument<Location>[] = [
-  mockLocation,
+const mockUpdatedLocation: HydratedDocument<Location> = {
+  _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
+  userId,
+  latitude: `enc(${latitudeUpdatedValue})`,
+  longitude: `enc(${longitudeUpdatedValue})`,
+  forecast: [],
+  solar: [],
+  solarRadiation: [],
+  createdAt: new Date('2023-01-01T10:00:00Z'),
+  datetimeAt: `enc(${locationUpdatedDateTime})`,
+  incidentId: '1',
+  toObject: function () {
+    return this;
+  },
+} as never;
+
+type MockLocation = Partial<Location> & { id?: string; _id?: Types.ObjectId };
+
+const mockLocations: MockLocation[] = [
+  {
+    _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
+    userId,
+    latitude: `enc(${latitudeValue})`,
+    longitude: `enc(${longitudeValue})`,
+    forecast: [],
+    createdAt: new Date('2023-01-01T10:00:00Z'),
+    datetimeAt: `enc(${locationDateTime})`,
+    incidentId: '1',
+  },
   {
     _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
     userId: 'user456',
-    latitude: 34.0522,
-    longitude: -118.2437,
+    latitude: `enc(51.5074)`,
+    longitude: `enc(-0.1278)`,
     forecast: [],
-    solar: [],
-    solarRadiation: [],
     createdAt: new Date('2023-01-02T10:00:00Z'),
-    datetimeAt: new Date('2023-01-02T12:00:00Z'),
-    incidentId: null,
+    datetimeAt: `enc(2023-01-02T12:00:00.000Z)`,
+    incidentId: '2',
   },
-] as never;
+];
 
-describe('LocationService', () => {
-  let service: LocationService;
-  let model: Model<LocationDocument>;
+describe('LocationsService', () => {
+  let service: LocationsService;
   let mockLocationModel: jest.Mocked<Model<LocationDocument>>;
-  let mockDocumentInstance: LocationDocument;
+  let encryptionService: EncryptionService;
   let module: TestingModule;
+  let model: Model<LocationDocument>;
+
+  const symmetricKey = crypto.randomBytes(32).toString('hex');
+  const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
+
+  const mockEncryptionService = {
+    encryptSensitiveData: jest.fn(
+      (value: string, _key: string) => `enc(${value})`,
+    ),
+    decryptSensitiveData: jest.fn((value: string, _key: string) => {
+      if (typeof value === 'string') {
+        return value.replace(/^enc\((.*)\)$/, '$1');
+      }
+      throw new Error(
+        `decryptSensitiveData: expected string, got ${typeof value}`,
+      );
+    }),
+  };
 
   beforeEach(async () => {
-    mockDocumentInstance = {
+    const mockDocumentInstance = {
       ...mockLocation,
       save: jest.fn().mockResolvedValue(mockLocation),
     } as unknown as LocationDocument;
@@ -88,17 +113,28 @@ describe('LocationService', () => {
       return mockDocumentInstance;
     }) as unknown as jest.Mocked<Model<LocationDocument>>;
 
-    mockLocationModel.find = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockLocations),
+    mockLocationModel.find = jest.fn().mockImplementation((query = {}) => {
+      const uId = query['userId'] as string;
+      const matched = uId
+        ? mockLocations.filter((l) => l.userId === uId)
+        : mockLocations;
+      return {
+        exec: jest.fn().mockResolvedValue(matched),
+      };
     });
-    mockLocationModel.findById = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockLocation),
+
+    mockLocationModel.findById = jest.fn().mockImplementation((id: string) => {
+      const found =
+        mockLocations.find((l) => l.id === id || l._id!.toHexString() === id) ||
+        null;
+      return { exec: jest.fn().mockResolvedValue(found) };
     });
+
     mockLocationModel.create = jest
       .fn()
       .mockResolvedValue(mockDocumentInstance);
     mockLocationModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockDocumentInstance),
+      exec: jest.fn().mockResolvedValue(mockUpdatedLocation),
     });
     mockLocationModel.deleteOne = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
@@ -127,16 +163,21 @@ describe('LocationService', () => {
         ]),
       ],
       providers: [
-        LocationService,
+        LocationsService,
         {
-          provide: getModelToken('Location'),
+          provide: getModelToken(Location.name),
           useValue: mockLocationModel,
+        },
+        {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
         },
       ],
     }).compile();
 
-    service = module.get<LocationService>(LocationService);
+    service = module.get<LocationsService>(LocationsService);
     model = module.get<Model<LocationDocument>>(getModelToken(Location.name));
+    encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
   afterEach(async () => {
@@ -153,252 +194,224 @@ describe('LocationService', () => {
   });
 
   describe('create', () => {
-    it('should create and return a location entry', async () => {
+    it('should create and return a location', async () => {
       const createDto: CreateLocationDto = {
         userId: 'testUser',
-        latitude: 1,
-        longitude: 1,
-        forecast: [mockForecast],
-        solar: [mockSolar],
-        solarRadiation: [mockSolarRadiation],
-        datetimeAt: new Date(),
-        incidentId: null,
+        latitude: 40.7128,
+        longitude: -74.006,
+        datetimeAt: new Date().toISOString(),
+        forecast: [],
       };
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, symmetricKey);
 
-      expect(mockLocationModel).toHaveBeenCalledWith(createDto);
-      expect(mockDocumentInstance.save).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const calledWithPayload = (mockLocationModel as unknown as jest.Mock).mock
+        .calls[0][0];
 
-      expect(result).toEqual({
-        id: mockLocation._id.toString(),
-        userId: mockLocation.userId,
-        latitude: mockLocation.latitude,
-        longitude: mockLocation.longitude,
-        forecast: mockLocation.forecast,
-        solar: mockLocation.solar,
-        solarRadiation: mockLocation.solarRadiation,
-        datetimeAt: mockLocation.datetimeAt,
-        incidentId: mockLocation.incidentId,
-      });
-    });
+      expect(calledWithPayload).toEqual(
+        expect.objectContaining({
+          latitude: `enc(${createDto.latitude})`,
+          longitude: `enc(${createDto.longitude})`,
+          datetimeAt: `enc(${createDto.datetimeAt})`,
+        }),
+      );
 
-    it('should create and return a location entry with empty forecast, solar and solarRadiation', async () => {
-      const createDto: CreateLocationDto = {
-        userId: 'testUser',
-        latitude: 1,
-        longitude: 1,
-        forecast: undefined,
-        solar: undefined,
-        solarRadiation: undefined,
-        datetimeAt: new Date(),
-        incidentId: null,
-      };
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.latitude.toString(),
+        bufferKey,
+      );
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.longitude.toString(),
+        bufferKey,
+      );
 
-      const result = await service.create(createDto);
-
-      expect(mockLocationModel).toHaveBeenCalledWith(createDto);
-      expect(mockDocumentInstance.save).toHaveBeenCalled();
-
-      expect(result).toEqual({
-        id: mockLocation._id.toString(),
-        userId: mockLocation.userId,
-        latitude: mockLocation.latitude,
-        longitude: mockLocation.longitude,
-        forecast: mockLocation.forecast,
-        solar: mockLocation.solar,
-        solarRadiation: mockLocation.solarRadiation,
-        datetimeAt: mockLocation.datetimeAt,
-        incidentId: mockLocation.incidentId,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockLocation._id.toString(),
+          userId: mockLocation.userId,
+          latitude: createDto.latitude,
+          longitude: createDto.longitude,
+        }),
+      );
     });
   });
 
   describe('findAll', () => {
-    it('should return an array of location entries', async () => {
-      const result = await service.findAll();
+    it('should return an array of decrypted locations for user', async () => {
+      const result = await service.findAll(symmetricKey, userId);
 
-      expect(mockLocationModel.find).toHaveBeenCalled();
-      expect(result).toEqual(
-        mockLocations.map((t) => ({
-          id: t._id.toString(),
-          userId: t.userId,
-          latitude: t.latitude,
-          longitude: t.longitude,
-          forecast: t.forecast,
-          solar: t.solar,
-          solarRadiation: t.solarRadiation,
-          datetimeAt: t.datetimeAt,
-          incidentId: t.incidentId,
-        })),
-      );
+      expect(mockLocationModel.find).toHaveBeenCalledWith({ userId });
+      expect(result).toHaveLength(1);
+      expect(result[0].latitude).toBe(latitudeValue);
+      expect(result[0].longitude).toBe(longitudeValue);
+      expect(result[0].datetimeAt).toEqual(new Date(locationDateTime));
+    });
+
+    it('should return empty array for unknown user', async () => {
+      const result = await service.findAll(symmetricKey, 'unknownUser');
+      expect(mockLocationModel.find).toHaveBeenCalledWith({
+        userId: 'unknownUser',
+      });
+      expect(result).toHaveLength(0);
     });
   });
 
   describe('findOne', () => {
-    it('should return a single location entry', async () => {
-      const result = await service.findOne(mockLocation._id.toHexString());
+    it('should return a single decrypted location', async () => {
+      const result = await service.findOne(
+        mockLocation._id.toHexString(),
+        symmetricKey,
+        userId,
+      );
 
       expect(mockLocationModel.findById).toHaveBeenCalledWith(
         mockLocation._id.toHexString(),
       );
-      expect(result).toEqual({
-        id: mockLocation._id.toString(),
-        userId: mockLocation.userId,
-        latitude: mockLocation.latitude,
-        longitude: mockLocation.longitude,
-        forecast: mockLocation.forecast,
-        solar: mockLocation.solar,
-        solarRadiation: mockLocation.solarRadiation,
-        datetimeAt: mockLocation.datetimeAt,
-        incidentId: mockLocation.incidentId,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockLocation._id.toString(),
+          userId,
+          latitude: latitudeValue,
+          longitude: longitudeValue,
+        }),
+      );
     });
 
-    it('should throw NotFoundException if location entry not found', async () => {
+    it('should throw NotFoundException if location not found', async () => {
       mockLocationModel.findById = jest.fn().mockReturnValue({
         exec: () => null,
       });
-      await expect(service.findOne('nonExistentId')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.findOne('nonExistentId', symmetricKey, userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if userId does not match', async () => {
+      await expect(
+        service.findOne(
+          mockLocation._id.toHexString(),
+          symmetricKey,
+          'otherUser',
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('update', () => {
-    it('should update and return the updated location entry', async () => {
+    it('should update and return the updated location', async () => {
       const updateDto: UpdateLocationDto = {
-        latitude: 2,
-        longitude: 2,
-        forecast: [
-          {
-            description: 'clear sky',
-            temperature: 20,
-            pressure: 1012,
-            humidity: 50,
-            windSpeed: 5.5,
-            clouds: 10,
-            uvi: 5,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solar: [
-          {
-            kIndex: 3,
-            aIndex: 5,
-            flareProbability: 0.1,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solarRadiation: [
-          {
-            uviIndex: 5,
-            ozone: 300,
-            solarFlux: 100,
-            sunsPotNumber: 50,
-            date: '2023-01-01',
-          },
-        ],
+        latitude: latitudeUpdatedValue,
+        longitude: longitudeUpdatedValue,
+        datetimeAt: locationUpdatedDateTime,
       };
-      const updatedMockLocation = {
-        ...mockLocation,
-        latitude: 2,
-        longitude: 2,
-      };
-      mockLocationModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-        exec: () => updatedMockLocation,
-      });
 
       const result = await service.update(
         mockLocation._id.toHexString(),
         updateDto,
+        symmetricKey,
+        userId,
       );
 
       expect(mockLocationModel.findByIdAndUpdate).toHaveBeenCalledWith(
         mockLocation._id.toHexString(),
-        updateDto,
+        expect.objectContaining({
+          latitude: `enc(${updateDto.latitude})`,
+          longitude: `enc(${updateDto.longitude})`,
+          datetimeAt: `enc(${updateDto.datetimeAt})`,
+        }),
         { new: true },
       );
-      expect(result).toEqual({
-        id: updatedMockLocation._id.toString(),
-        userId: updatedMockLocation.userId,
-        latitude: updatedMockLocation.latitude,
-        longitude: updatedMockLocation.longitude,
-        forecast: updatedMockLocation.forecast,
-        solar: updatedMockLocation.solar,
-        solarRadiation: updatedMockLocation.solarRadiation,
-        datetimeAt: updatedMockLocation.datetimeAt,
-        incidentId: updatedMockLocation.incidentId,
-      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockUpdatedLocation._id.toHexString(),
+          userId: userId,
+          longitude: longitudeUpdatedValue,
+          latitude: latitudeUpdatedValue,
+          solar: [],
+          solarRadiation: [],
+          forecast: [],
+          createdAt: new Date('2023-01-01T10:00:00Z'),
+          datetimeAt: new Date(locationUpdatedDateTime),
+          incidentId: '1',
+        }),
+      );
     });
 
-    it('should throw NotFoundException if location entry not found during update', async () => {
+    it('should throw NotFoundException if location not found during update', async () => {
       mockLocationModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+        exec: () => null,
+      });
+      mockLocationModel.findById = jest.fn().mockReturnValue({
+        exec: () => mockLocation,
+      });
+
+      await expect(
+        service.update(
+          mockLocation._id.toHexString(),
+          { latitude: 10 },
+          symmetricKey,
+          userId,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if location not found', async () => {
+      mockLocationModel.findById = jest.fn().mockReturnValue({
         exec: () => null,
       });
 
       await expect(
-        service.update('nonExistentId', {
-          latitude: 2,
-          longitude: 2,
-          forecast: [
-            {
-              description: 'clear sky',
-              temperature: 20,
-              pressure: 1012,
-              humidity: 50,
-              windSpeed: 5.5,
-              clouds: 10,
-              uvi: 5,
-              datetime: '2023-01-01T10:00:00Z',
-            },
-          ],
-          solar: [
-            {
-              kIndex: 3,
-              aIndex: 5,
-              flareProbability: 0.1,
-              datetime: '2023-01-01T10:00:00Z',
-            },
-          ],
-          solarRadiation: [
-            {
-              uviIndex: 5,
-              ozone: 300,
-              solarFlux: 100,
-              sunsPotNumber: 50,
-              date: '2023-01-01',
-            },
-          ],
-        }),
+        service.update(
+          mockLocation._id.toHexString(),
+          { latitude: 10 },
+          symmetricKey,
+          userId,
+        ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if userId mismatch during update', async () => {
+      await expect(
+        service.update(
+          mockLocation._id.toHexString(),
+          { latitude: 10 },
+          symmetricKey,
+          'otherUser',
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('remove', () => {
-    it('should remove a location entry', async () => {
-      mockLocationModel.deleteOne = jest.fn().mockReturnValue({
-        exec: () => Promise.resolve({ deletedCount: 1 }),
-      });
-
-      await service.remove(mockLocation._id.toHexString());
+    it('should remove a location', async () => {
+      await service.remove(mockLocation._id.toHexString(), userId);
 
       expect(mockLocationModel.deleteOne).toHaveBeenCalledWith({
         _id: mockLocation._id.toHexString(),
+        userId,
       });
     });
 
-    it('should throw NotFoundException if location entry not found during remove', async () => {
+    it('should throw NotFoundException if location not found during remove', async () => {
       mockLocationModel.deleteOne = jest.fn().mockReturnValue({
         exec: () => Promise.resolve({ deletedCount: 0 }),
       });
 
-      await expect(service.remove('nonExistentId')).rejects.toThrow(
+      await expect(service.remove('nonExistentId', userId)).rejects.toThrow(
         NotFoundException,
       );
-      expect(mockLocationModel.deleteOne).toHaveBeenCalledWith({
-        _id: 'nonExistentId',
+    });
+
+    it('should throw NotFoundException if removing another users location', async () => {
+      mockLocationModel.deleteOne = jest.fn().mockReturnValue({
+        exec: () => Promise.resolve({ deletedCount: 0 }),
       });
+
+      await expect(
+        service.remove(mockLocation._id.toHexString(), 'otherUser'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

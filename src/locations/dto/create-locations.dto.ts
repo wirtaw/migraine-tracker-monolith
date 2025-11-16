@@ -1,82 +1,82 @@
 import {
+  IsArray,
   IsDateString,
   IsNotEmpty,
   IsNumber,
-  IsString,
-  IsArray,
-  ValidateNested,
   IsOptional,
+  IsString,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CreateSolarDto {
-  @IsOptional()
-  @IsNumber()
-  kIndex?: number | null;
-
-  @IsOptional()
-  @IsNumber()
-  aIndex?: number | null;
-
-  @IsOptional()
-  @IsNumber()
-  flareProbability?: number | null;
-
-  @IsNotEmpty()
-  @IsString()
-  datetime!: string;
-}
-
-export class CreateForecastDto {
+class ForecastDto {
   @IsOptional()
   @IsString()
   description?: string;
 
   @IsOptional()
   @IsNumber()
-  temperature?: number | null;
+  temperature?: number;
 
   @IsOptional()
   @IsNumber()
-  pressure?: number | null;
+  pressure?: number;
 
   @IsOptional()
   @IsNumber()
-  humidity?: number | null;
+  humidity?: number;
 
   @IsOptional()
   @IsNumber()
-  windSpeed?: number | null;
+  windSpeed?: number;
 
   @IsOptional()
   @IsNumber()
-  clouds?: number | null;
+  clouds?: number;
 
   @IsOptional()
   @IsNumber()
-  uvi?: number | null;
+  uvi?: number;
 
   @IsNotEmpty()
   @IsString()
   datetime!: string;
 }
 
-export class CreateSolarRadiationDto {
+class SolarDto {
   @IsOptional()
   @IsNumber()
-  uviIndex?: number | null;
+  kIndex?: number;
 
   @IsOptional()
   @IsNumber()
-  ozone?: number | null;
+  aIndex?: number;
 
   @IsOptional()
   @IsNumber()
-  solarFlux?: number | null;
+  flareProbability?: number;
+
+  @IsNotEmpty()
+  @IsString()
+  datetime!: string;
+}
+
+class SolarRadiationDto {
+  @IsOptional()
+  @IsNumber()
+  uviIndex?: number;
 
   @IsOptional()
   @IsNumber()
-  sunsPotNumber?: number | null;
+  ozone?: number;
+
+  @IsOptional()
+  @IsNumber()
+  solarFlux?: number;
+
+  @IsOptional()
+  @IsNumber()
+  sunsPotNumber?: number;
 
   @IsNotEmpty()
   @IsString()
@@ -99,26 +99,26 @@ export class CreateLocationDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateForecastDto)
-  forecast?: CreateForecastDto[] | [];
+  @Type(() => ForecastDto)
+  forecast?: ForecastDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateSolarDto)
-  solar?: CreateSolarDto[] | [];
+  @Type(() => SolarDto)
+  solar?: SolarDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateSolarRadiationDto)
-  solarRadiation?: CreateSolarRadiationDto[] | [];
+  @Type(() => SolarRadiationDto)
+  solarRadiation?: SolarRadiationDto[];
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 
   @IsOptional()
   @IsString()
-  incidentId?: string | null;
+  incidentId?: string;
 }

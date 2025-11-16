@@ -24,7 +24,7 @@ export interface ISolarRadiation {
   date: string;
 }
 
-export interface ILocationData {
+export interface ILocation {
   id: string;
   userId: string;
   latitude: number;
@@ -32,6 +32,7 @@ export interface ILocationData {
   forecast: IForecast[] | undefined;
   solar: ISolar[] | undefined;
   solarRadiation: ISolarRadiation[] | undefined;
+  createdAt: Date;
   datetimeAt: Date;
   incidentId: string | undefined;
 }
