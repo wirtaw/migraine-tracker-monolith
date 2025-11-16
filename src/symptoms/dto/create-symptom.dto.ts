@@ -25,5 +25,5 @@ export class CreateSymptomDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }

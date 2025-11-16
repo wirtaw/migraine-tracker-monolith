@@ -5,6 +5,7 @@ import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { ISymptom } from './interfaces/symptom.interface';
 import { NotFoundException } from '@nestjs/common';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 const mockISymptom: ISymptom = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -37,9 +38,13 @@ const mockSymptomsService = {
   remove: jest.fn().mockResolvedValue(undefined),
 };
 
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
 describe('SymptomsController', () => {
   let controller: SymptomsController;
   let service: SymptomsService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -54,6 +59,16 @@ describe('SymptomsController', () => {
 
     controller = module.get<SymptomsController>(SymptomsController);
     service = module.get<SymptomsService>(SymptomsService);
+
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
   });
 
   afterEach(() => {
@@ -71,13 +86,13 @@ describe('SymptomsController', () => {
         type: 'TestType',
         severity: 3,
         note: 'Test notes',
-        datetimeAt: new Date(),
+        datetimeAt: new Date().toISOString(),
       };
       const createSpy = jest.spyOn(service, 'create');
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockRequest);
 
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      expect(createSpy).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockISymptom);
     });
   });
@@ -85,7 +100,7 @@ describe('SymptomsController', () => {
   describe('findAll', () => {
     it('should return an array of symptoms', async () => {
       const findAllSpy = jest.spyOn(service, 'findAll');
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockRequest);
 
       expect(findAllSpy).toHaveBeenCalled();
       expect(result).toEqual(mockISymptoms);
@@ -97,9 +112,9 @@ describe('SymptomsController', () => {
       const id = mockISymptom.id;
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      const result = await controller.findOne(id);
+      const result = await controller.findOne(id, mockRequest);
 
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
       expect(result).toEqual(mockISymptom);
     });
 
@@ -110,8 +125,10 @@ describe('SymptomsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const findOneSpy = jest.spyOn(service, 'findOne');
 
-      await expect(controller.findOne(id)).rejects.toThrow(NotFoundException);
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+      await expect(controller.findOne(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(findOneSpy).toHaveBeenCalledWith(id, symmetricKey, userId);
     });
   });
 
@@ -126,9 +143,14 @@ describe('SymptomsController', () => {
       };
       const updateSpy = jest.spyOn(service, 'update');
 
-      const result = await controller.update(id, updateDto);
+      const result = await controller.update(id, updateDto, mockRequest);
 
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockISymptom);
     });
 
@@ -145,10 +167,15 @@ describe('SymptomsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const updateSpy = jest.spyOn(service, 'update');
 
-      await expect(controller.update(id, updateDto)).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        controller.update(id, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+      expect(updateSpy).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
       );
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
     });
   });
 
@@ -157,9 +184,9 @@ describe('SymptomsController', () => {
       const id = mockISymptom.id;
       const removeSpy = jest.spyOn(service, 'remove');
 
-      const result = await controller.remove(id);
+      const result = await controller.remove(id, mockRequest);
 
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
       expect(result).toBeUndefined();
     });
 
@@ -170,8 +197,10 @@ describe('SymptomsController', () => {
         .mockRejectedValueOnce(new NotFoundException());
       const removeSpy = jest.spyOn(service, 'remove');
 
-      await expect(controller.remove(id)).rejects.toThrow(NotFoundException);
-      expect(removeSpy).toHaveBeenCalledWith(id);
+      await expect(controller.remove(id, mockRequest)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(removeSpy).toHaveBeenCalledWith(id, userId);
     });
   });
 });
