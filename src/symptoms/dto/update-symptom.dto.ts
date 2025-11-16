@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsDateString,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateSymptomDto } from './create-symptom.dto';
 
@@ -18,4 +24,8 @@ export class UpdateSymptomDto extends PartialType(CreateSymptomDto) {
   @IsNotEmpty()
   @IsNumber()
   severity?: number;
+
+  @IsOptional()
+  @IsDateString()
+  datetimeAt?: string;
 }

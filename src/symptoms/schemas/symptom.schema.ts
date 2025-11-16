@@ -12,7 +12,7 @@ export class Symptom {
   type!: string;
 
   @Prop({ required: true })
-  severity!: number;
+  severity!: string;
 
   @Prop()
   note?: string;
@@ -21,7 +21,7 @@ export class Symptom {
   createdAt!: Date;
 
   @Prop({ required: true })
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
 
 export const SymptomSchema = SchemaFactory.createForClass(Symptom);

@@ -8,6 +8,9 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +25,7 @@ import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { ISymptom } from './interfaces/symptom.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('symptoms')
 @ApiBearerAuth('JWT-auth')
@@ -44,10 +48,13 @@ export class SymptomsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async create(
     @Body() createSymptomDto: CreateSymptomDto,
+    @Req() req: RequestWithUser,
   ): Promise<ISymptom | null> {
-    return this.symptomsService.create(createSymptomDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.symptomsService.create(createSymptomDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -57,8 +64,10 @@ export class SymptomsController {
     status: HttpStatus.OK,
     description: 'The symptoms list',
   })
-  async findAll(): Promise<ISymptom[]> {
-    return this.symptomsService.findAll();
+  async findAll(@Req() req: RequestWithUser): Promise<ISymptom[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.symptomsService.findAll(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -72,8 +81,13 @@ export class SymptomsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The symptom not found.',
   })
-  async findOne(@Param('id') id: string): Promise<ISymptom | null> {
-    return this.symptomsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<ISymptom | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.symptomsService.findOne(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -98,8 +112,16 @@ export class SymptomsController {
   async update(
     @Param('id') id: string,
     @Body() updateSymptomDto: UpdateSymptomDto,
+    @Req() req: RequestWithUser,
   ): Promise<ISymptom | null> {
-    return this.symptomsService.update(id, updateSymptomDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.symptomsService.update(
+      id,
+      updateSymptomDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -114,7 +136,8 @@ export class SymptomsController {
     description: 'The symptom not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.symptomsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.symptomsService.remove(id, userId);
   }
 }
