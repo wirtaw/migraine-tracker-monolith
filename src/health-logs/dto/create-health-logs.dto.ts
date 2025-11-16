@@ -21,7 +21,7 @@ export class CreateWeightDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
 
 export class CreateHeightDto {
@@ -39,7 +39,7 @@ export class CreateHeightDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
 
 export class CreateBloodPressureDto {
@@ -61,7 +61,7 @@ export class CreateBloodPressureDto {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }
 
 export class CreateSleepDto {
@@ -79,9 +79,9 @@ export class CreateSleepDto {
 
   @IsNotEmpty()
   @IsDateString()
-  startedAt!: Date;
+  startedAt!: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt!: string;
 }

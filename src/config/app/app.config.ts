@@ -20,11 +20,9 @@ export const currentEnvironment = (): Environment => {
     return Environment.Workspace;
   }
 
-  // Get the keys of the Environment enum as an array of strings
   const environmentKeys = Object.values(Environment) as string[];
 
   if (environmentKeys.includes(process.env.NODE_ENV)) {
-    // Assert that process.env.NODE_ENV is a valid key of Environment
     return Environment[process.env.NODE_ENV as keyof typeof Environment];
   }
 

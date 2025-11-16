@@ -8,7 +8,6 @@ import { NotFoundException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
-// Mock data conforming to ITrigger interface
 const mockITrigger: ITrigger = {
   id: '60c72b2f9b1d8e001c8e4d3a',
   userId: 'user123',

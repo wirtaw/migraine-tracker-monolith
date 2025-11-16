@@ -16,7 +16,7 @@ import {
 export class UpdateWeightDto extends PartialType(CreateWeightDto) {
   @IsNotEmpty()
   @IsNumber()
-  weight!: number;
+  weight?: number;
 
   @IsOptional()
   @IsString()
@@ -24,13 +24,13 @@ export class UpdateWeightDto extends PartialType(CreateWeightDto) {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt?: string;
 }
 
 export class UpdateHeightDto extends PartialType(CreateHeightDto) {
   @IsNotEmpty()
   @IsNumber()
-  height!: number;
+  height?: number;
 
   @IsOptional()
   @IsString()
@@ -38,7 +38,7 @@ export class UpdateHeightDto extends PartialType(CreateHeightDto) {
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt?: string;
 }
 
 export class UpdateBloodPressureDto extends PartialType(
@@ -46,11 +46,11 @@ export class UpdateBloodPressureDto extends PartialType(
 ) {
   @IsNotEmpty()
   @IsNumber()
-  systolic!: number;
+  systolic?: number;
 
   @IsNotEmpty()
   @IsNumber()
-  diastolic!: number;
+  diastolic?: number;
 
   @IsOptional()
   @IsString()
@@ -58,13 +58,13 @@ export class UpdateBloodPressureDto extends PartialType(
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt?: string;
 }
 
 export class UpdateSleepDto extends PartialType(CreateSleepDto) {
   @IsNotEmpty()
   @IsNumber()
-  rate!: number;
+  rate?: number;
 
   @IsOptional()
   @IsString()
@@ -72,9 +72,9 @@ export class UpdateSleepDto extends PartialType(CreateSleepDto) {
 
   @IsNotEmpty()
   @IsDateString()
-  startedAt!: Date;
+  startedAt?: string;
 
   @IsNotEmpty()
   @IsDateString()
-  datetimeAt!: Date;
+  datetimeAt?: string;
 }

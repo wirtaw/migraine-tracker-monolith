@@ -12,6 +12,7 @@ import {
   Sleep,
   SleepSchema,
 } from './schemas/health-logs.schema';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import {
       { name: BloodPressure.name, schema: BloodPressureSchema },
       { name: Sleep.name, schema: SleepSchema },
     ]),
+    AuthModule,
   ],
   controllers: [HealthLogsController],
   providers: [HealthLogsService],

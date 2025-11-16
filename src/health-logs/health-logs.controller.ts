@@ -8,6 +8,9 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -37,6 +40,7 @@ import {
 } from './interfaces/health-logs.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('health-logs')
 @ApiBearerAuth('JWT-auth')
@@ -60,10 +64,13 @@ export class HealthLogsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async createWeight(
     @Body() createWeightDto: CreateWeightDto,
+    @Req() req: RequestWithUser,
   ): Promise<IWeight | null> {
-    return this.healthLogsService.createWeight(createWeightDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.healthLogsService.createWeight(createWeightDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -73,8 +80,10 @@ export class HealthLogsController {
     status: HttpStatus.OK,
     description: 'The weight logs list',
   })
-  async findAllWeights(): Promise<IWeight[]> {
-    return this.healthLogsService.findAllWeights();
+  async findAllWeights(@Req() req: RequestWithUser): Promise<IWeight[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findAllWeights(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -88,8 +97,13 @@ export class HealthLogsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The weight log not found.',
   })
-  async findOneWeight(@Param('id') id: string): Promise<IWeight | null> {
-    return this.healthLogsService.findOneWeight(id);
+  async findOneWeight(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<IWeight | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findOneWeight(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -114,8 +128,16 @@ export class HealthLogsController {
   async updateWeight(
     @Param('id') id: string,
     @Body() updateWeightDto: UpdateWeightDto,
+    @Req() req: RequestWithUser,
   ): Promise<IWeight | null> {
-    return this.healthLogsService.updateWeight(id, updateWeightDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.updateWeight(
+      id,
+      updateWeightDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -130,8 +152,12 @@ export class HealthLogsController {
     description: 'The weight log not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeWeight(@Param('id') id: string): Promise<void> {
-    return this.healthLogsService.removeWeight(id);
+  removeWeight(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.removeWeight(id, userId);
   }
 
   // Height
@@ -150,10 +176,13 @@ export class HealthLogsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async createHeight(
     @Body() createHeightDto: CreateHeightDto,
+    @Req() req: RequestWithUser,
   ): Promise<IHeight | null> {
-    return this.healthLogsService.createHeight(createHeightDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.healthLogsService.createHeight(createHeightDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -163,8 +192,10 @@ export class HealthLogsController {
     status: HttpStatus.OK,
     description: 'The height logs list',
   })
-  async findAllHeights(): Promise<IHeight[]> {
-    return this.healthLogsService.findAllHeights();
+  async findAllHeights(@Req() req: RequestWithUser): Promise<IHeight[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findAllHeights(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -178,8 +209,13 @@ export class HealthLogsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The height log not found.',
   })
-  async findOneHeight(@Param('id') id: string): Promise<IHeight | null> {
-    return this.healthLogsService.findOneHeight(id);
+  async findOneHeight(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<IHeight | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findOneHeight(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -204,8 +240,16 @@ export class HealthLogsController {
   async updateHeight(
     @Param('id') id: string,
     @Body() updateHeightDto: UpdateHeightDto,
+    @Req() req: RequestWithUser,
   ): Promise<IHeight | null> {
-    return this.healthLogsService.updateHeight(id, updateHeightDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.updateHeight(
+      id,
+      updateHeightDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -220,8 +264,12 @@ export class HealthLogsController {
     description: 'The height log not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeHeight(@Param('id') id: string): Promise<void> {
-    return this.healthLogsService.removeHeight(id);
+  removeHeight(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.removeHeight(id, userId);
   }
 
   // Blood Pressure
@@ -240,10 +288,16 @@ export class HealthLogsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async createBloodPressure(
     @Body() createBloodPressureDto: CreateBloodPressureDto,
+    @Req() req: RequestWithUser,
   ): Promise<IBloodPressure | null> {
-    return this.healthLogsService.createBloodPressure(createBloodPressureDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.healthLogsService.createBloodPressure(
+      createBloodPressureDto,
+      encryptionKey,
+    );
   }
 
   @Roles(Role.USER)
@@ -253,8 +307,12 @@ export class HealthLogsController {
     status: HttpStatus.OK,
     description: 'The blood pressure logs list',
   })
-  async findAllBloodPressures(): Promise<IBloodPressure[]> {
-    return this.healthLogsService.findAllBloodPressures();
+  async findAllBloodPressures(
+    @Req() req: RequestWithUser,
+  ): Promise<IBloodPressure[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findAllBloodPressures(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -270,8 +328,15 @@ export class HealthLogsController {
   })
   async findOneBloodPressure(
     @Param('id') id: string,
+    @Req() req: RequestWithUser,
   ): Promise<IBloodPressure | null> {
-    return this.healthLogsService.findOneBloodPressure(id);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findOneBloodPressure(
+      id,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -296,10 +361,15 @@ export class HealthLogsController {
   async updateBloodPressure(
     @Param('id') id: string,
     @Body() updateBloodPressureDto: UpdateBloodPressureDto,
+    @Req() req: RequestWithUser,
   ): Promise<IBloodPressure | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
     return this.healthLogsService.updateBloodPressure(
       id,
       updateBloodPressureDto,
+      encryptionKey,
+      userId,
     );
   }
 
@@ -315,8 +385,12 @@ export class HealthLogsController {
     description: 'The blood pressure log not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeBloodPressure(@Param('id') id: string): Promise<void> {
-    return this.healthLogsService.removeBloodPressure(id);
+  removeBloodPressure(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.removeBloodPressure(id, userId);
   }
 
   // Sleep
@@ -335,10 +409,13 @@ export class HealthLogsController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
+  @UsePipes(new ValidationPipe({ transform: true }))
   async createSleep(
     @Body() createSleepDto: CreateSleepDto,
+    @Req() req: RequestWithUser,
   ): Promise<ISleep | null> {
-    return this.healthLogsService.createSleep(createSleepDto);
+    const encryptionKey = req?.session?.key || '';
+    return this.healthLogsService.createSleep(createSleepDto, encryptionKey);
   }
 
   @Roles(Role.USER)
@@ -348,8 +425,10 @@ export class HealthLogsController {
     status: HttpStatus.OK,
     description: 'The sleep logs list',
   })
-  async findAllSleeps(): Promise<ISleep[]> {
-    return this.healthLogsService.findAllSleeps();
+  async findAllSleeps(@Req() req: RequestWithUser): Promise<ISleep[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findAllSleeps(encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -363,8 +442,13 @@ export class HealthLogsController {
     status: HttpStatus.NOT_FOUND,
     description: 'The sleep log not found.',
   })
-  async findOneSleep(@Param('id') id: string): Promise<ISleep | null> {
-    return this.healthLogsService.findOneSleep(id);
+  async findOneSleep(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<ISleep | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findOneSleep(id, encryptionKey, userId);
   }
 
   @Roles(Role.USER)
@@ -389,8 +473,16 @@ export class HealthLogsController {
   async updateSleep(
     @Param('id') id: string,
     @Body() updateSleepDto: UpdateSleepDto,
+    @Req() req: RequestWithUser,
   ): Promise<ISleep | null> {
-    return this.healthLogsService.updateSleep(id, updateSleepDto);
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.updateSleep(
+      id,
+      updateSleepDto,
+      encryptionKey,
+      userId,
+    );
   }
 
   @Roles(Role.USER)
@@ -405,7 +497,11 @@ export class HealthLogsController {
     description: 'The sleep log not found.',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeSleep(@Param('id') id: string): Promise<void> {
-    return this.healthLogsService.removeSleep(id);
+  removeSleep(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.removeSleep(id, userId);
   }
 }
