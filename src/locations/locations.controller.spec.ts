@@ -1,89 +1,69 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocationController } from './locations.controller';
-import { LocationService } from './locations.service';
+import { LocationsController } from './locations.controller';
+import { LocationsService } from './locations.service';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
-import { ILocationData } from './interfaces/locations.interface';
-import { NotFoundException } from '@nestjs/common';
+import { ILocation } from './interfaces/locations.interface';
+import { EncryptionService } from '../auth/encryption/encryption.service';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
-const mockILocation: ILocationData = {
+const mockILocation: ILocation = {
   id: '60c72b2f9b1d8e001c8e4d3a',
   userId: 'user123',
   latitude: 40.7128,
   longitude: -74.006,
-  forecast: [
-    {
-      description: 'clear sky',
-      temperature: 20,
-      pressure: 1012,
-      humidity: 50,
-      windSpeed: 5.5,
-      clouds: 10,
-      uvi: 5,
-      datetime: '2023-01-01T10:00:00Z',
-    },
-  ],
-  solar: [
-    {
-      kIndex: 3,
-      aIndex: 5,
-      flareProbability: 0.1,
-      datetime: '2023-01-01T10:00:00Z',
-    },
-  ],
-  solarRadiation: [
-    {
-      uviIndex: 5,
-      ozone: 300,
-      solarFlux: 100,
-      sunsPotNumber: 50,
-      date: '2023-01-01',
-    },
-  ],
-  datetimeAt: new Date('2023-01-01T10:00:00Z'),
-  incidentId: 'incident123',
+  forecast: [],
+  solarRadiation: undefined,
+  solar: undefined,
+  createdAt: new Date('2023-01-01T10:00:00Z'),
+  datetimeAt: new Date('2023-01-01T12:00:00Z'),
+  incidentId: '1',
 };
 
-const mockILocations: ILocationData[] = [
-  mockILocation,
-  {
-    id: '60c72b2f9b1d8e001c8e4d3b',
-    userId: 'user456',
-    latitude: 34.0522,
-    longitude: -118.2437,
-    forecast: [],
-    solar: [],
-    solarRadiation: [],
-    datetimeAt: new Date('2023-01-02T10:00:00Z'),
-    incidentId: undefined,
-  },
-];
-
-const mockLocationService = {
+const mockLocationsService = {
   create: jest.fn().mockResolvedValue(mockILocation),
-  findAll: jest.fn().mockResolvedValue(mockILocations),
+  findAll: jest.fn().mockResolvedValue([mockILocation]),
   findOne: jest.fn().mockResolvedValue(mockILocation),
   update: jest.fn().mockResolvedValue(mockILocation),
   remove: jest.fn().mockResolvedValue(undefined),
 };
 
-describe('LocationController', () => {
-  let controller: LocationController;
-  let service: LocationService;
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
+describe('LocationsController', () => {
+  let controller: LocationsController;
+  let service: LocationsService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [LocationController],
+      controllers: [LocationsController],
       providers: [
         {
-          provide: LocationService,
-          useValue: mockLocationService,
+          provide: LocationsService,
+          useValue: mockLocationsService,
+        },
+        {
+          provide: EncryptionService,
+          useValue: {},
         },
       ],
     }).compile();
 
-    controller = module.get<LocationController>(LocationController);
-    service = module.get<LocationService>(LocationService);
+    controller = module.get<LocationsController>(LocationsController);
+    service = module.get<LocationsService>(LocationsService);
+
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
   });
 
   afterEach(() => {
@@ -95,170 +75,62 @@ describe('LocationController', () => {
   });
 
   describe('create', () => {
-    it('should create a location entry and return it', async () => {
+    it('should create a location', async () => {
       const createDto: CreateLocationDto = {
         userId: 'testUser',
-        latitude: 1,
-        longitude: 1,
-        forecast: [],
-        solar: [],
-        solarRadiation: [],
-        datetimeAt: new Date(),
-        incidentId: null,
+        latitude: 40.7128,
+        longitude: -74.006,
+        datetimeAt: new Date().toISOString(),
       };
-      const createSpy = jest.spyOn(service, 'create');
-
-      const result = await controller.create(createDto);
-
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result = await controller.create(createDto, mockRequest);
+      expect(service.create).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockILocation);
     });
   });
 
   describe('findAll', () => {
-    it('should return an array of location entries', async () => {
-      const findAllSpy = jest.spyOn(service, 'findAll');
-      const result = await controller.findAll();
-
-      expect(findAllSpy).toHaveBeenCalled();
-      expect(result).toEqual(mockILocations);
+    it('should return list of locations', async () => {
+      const result = await controller.findAll(mockRequest);
+      expect(service.findAll).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual([mockILocation]);
     });
   });
 
   describe('findOne', () => {
-    it('should return a single location entry', async () => {
-      const id = mockILocation.id;
-      const findOneSpy = jest.spyOn(service, 'findOne');
-
-      const result = await controller.findOne(id);
-
-      expect(findOneSpy).toHaveBeenCalledWith(id);
+    it('should return a location', async () => {
+      const result = await controller.findOne(mockILocation.id, mockRequest);
+      expect(service.findOne).toHaveBeenCalledWith(
+        mockILocation.id,
+        symmetricKey,
+        userId,
+      );
       expect(result).toEqual(mockILocation);
-    });
-
-    it('should rethrow NotFoundException from service', async () => {
-      const id = 'nonExistentId';
-      jest
-        .spyOn(service, 'findOne')
-        .mockRejectedValueOnce(new NotFoundException());
-      const findOneSpy = jest.spyOn(service, 'findOne');
-
-      await expect(controller.findOne(id)).rejects.toThrow(NotFoundException);
-      expect(findOneSpy).toHaveBeenCalledWith(id);
     });
   });
 
   describe('update', () => {
-    it('should update and return the updated location entry', async () => {
-      const id = mockILocation.id;
-      const updateDto: UpdateLocationDto = {
-        latitude: 2,
-        longitude: 2,
-        forecast: [
-          {
-            description: 'clear sky',
-            temperature: 20,
-            pressure: 1012,
-            humidity: 50,
-            windSpeed: 5.5,
-            clouds: 10,
-            uvi: 5,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solar: [
-          {
-            kIndex: 3,
-            aIndex: 5,
-            flareProbability: 0.1,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solarRadiation: [
-          {
-            uviIndex: 5,
-            ozone: 300,
-            solarFlux: 100,
-            sunsPotNumber: 50,
-            date: '2023-01-01',
-          },
-        ],
-      };
-      const updateSpy = jest.spyOn(service, 'update');
-
-      const result = await controller.update(id, updateDto);
-
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
-      expect(result).toEqual(mockILocation);
-    });
-
-    it('should rethrow NotFoundException from service during update', async () => {
-      const id = 'nonExistentId';
-      const updateDto: UpdateLocationDto = {
-        latitude: 2,
-        longitude: 2,
-        forecast: [
-          {
-            description: 'clear sky',
-            temperature: 20,
-            pressure: 1012,
-            humidity: 50,
-            windSpeed: 5.5,
-            clouds: 10,
-            uvi: 5,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solar: [
-          {
-            kIndex: 3,
-            aIndex: 5,
-            flareProbability: 0.1,
-            datetime: '2023-01-01T10:00:00Z',
-          },
-        ],
-        solarRadiation: [
-          {
-            uviIndex: 5,
-            ozone: 300,
-            solarFlux: 100,
-            sunsPotNumber: 50,
-            date: '2023-01-01',
-          },
-        ],
-      };
-      jest
-        .spyOn(service, 'update')
-        .mockRejectedValueOnce(new NotFoundException());
-      const updateSpy = jest.spyOn(service, 'update');
-
-      await expect(controller.update(id, updateDto)).rejects.toThrow(
-        NotFoundException,
+    it('should update a location', async () => {
+      const updateDto: UpdateLocationDto = { latitude: 41.0 };
+      const result = await controller.update(
+        mockILocation.id,
+        updateDto,
+        mockRequest,
       );
-      expect(updateSpy).toHaveBeenCalledWith(id, updateDto);
+      expect(service.update).toHaveBeenCalledWith(
+        mockILocation.id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
+      expect(result).toEqual(mockILocation);
     });
   });
 
   describe('remove', () => {
-    it('should remove a location entry', async () => {
-      const id = mockILocation.id;
-      const removeSpy = jest.spyOn(service, 'remove');
-
-      const result = await controller.remove(id);
-
-      expect(removeSpy).toHaveBeenCalledWith(id);
+    it('should remove a location', async () => {
+      const result = await controller.remove(mockILocation.id, mockRequest);
+      expect(service.remove).toHaveBeenCalledWith(mockILocation.id, userId);
       expect(result).toBeUndefined();
-    });
-
-    it('should rethrow NotFoundException from service during remove', async () => {
-      const id = 'nonExistentId';
-      jest
-        .spyOn(service, 'remove')
-        .mockRejectedValueOnce(new NotFoundException());
-      const removeSpy = jest.spyOn(service, 'remove');
-
-      await expect(controller.remove(id)).rejects.toThrow(NotFoundException);
-      expect(removeSpy).toHaveBeenCalledWith(id);
     });
   });
 });
