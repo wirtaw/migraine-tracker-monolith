@@ -8,6 +8,7 @@ import { IUser } from './interfaces/user.interface';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../auth/supabase/supabase.service';
 import { type User as SupaBaseUser } from '@supabase/supabase-js';
+import { Role } from '../auth/enums/roles.enum';
 
 const mockIUser: IUser = {
   userId: 'user123',
@@ -29,6 +30,7 @@ const mockIUser: IUser = {
   },
   fetchMagneticWeather: true,
   fetchWeather: true,
+  role: Role.GUEST,
 };
 
 const mockIUsers: IUser[] = [mockIUser];
@@ -152,6 +154,7 @@ describe('UserController', () => {
       personalHealthData: false,
       securitySetup: false,
       profileFilled: false,
+      role: Role.COACH,
     };
 
     it('should update and return the updated user entry', async () => {

@@ -18,6 +18,7 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { createUserModelMock } from './mocks/createUserModelMock';
 import { Role } from './enums/roles.enum';
+import { RoleDto } from './dto/role.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -30,6 +31,7 @@ interface UserInRequest {
   latitude: string;
   salt: string;
   encryptedSymmetricKey: string;
+  role: Role;
 }
 
 const mockUser: HydratedDocument<User> = {
@@ -147,6 +149,7 @@ describe('AuthService', () => {
         latitude: createDto.latitude,
         salt: expect.any(String),
         encryptedSymmetricKey,
+        role: Role.GUEST,
       };
 
       mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
@@ -463,6 +466,104 @@ describe('AuthService', () => {
       await expect(serviceWithFailedSaveMock.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+  });
+
+  describe('grandRole()', () => {
+    let roleDto: RoleDto;
+    let userId: string;
+    let serviceWithSaveMock: AuthService;
+
+    beforeEach(async () => {
+      roleDto = {
+        role: Role.USER,
+      };
+      userId = 'user-123';
+      const { userModelMock: userModelMockUpdateRole } = createUserModelMock(
+        mockUser,
+        {},
+      );
+      userModelConstructorSpy = userModelMockUpdateRole;
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: userModelMockUpdateRole,
+          },
+        ],
+      }).compile();
+
+      serviceWithSaveMock = module.get<AuthService>(AuthService);
+    });
+
+    it('change user role', async () => {
+      const result = await serviceWithSaveMock.grandRole(roleDto, userId);
+
+      expect(result).toStrictEqual({
+        message: 'Done',
+      });
+    });
+
+    it('throw BadRequestException then failed change role to admin', async () => {
+      await expect(
+        serviceWithSaveMock.grandRole(
+          {
+            role: Role.ADMIN,
+          },
+          userId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throw NotFoundException then failed to update', async () => {
+      const { userModelMock: userModelMockUpdateRole } = createUserModelMock(
+        mockUser,
+        {
+          findByIdResult: null,
+        },
+      );
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: userModelMockUpdateRole,
+          },
+        ],
+      }).compile();
+
+      serviceWithSaveMock = module.get<AuthService>(AuthService);
+
+      await expect(
+        serviceWithSaveMock.grandRole(roleDto, userId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

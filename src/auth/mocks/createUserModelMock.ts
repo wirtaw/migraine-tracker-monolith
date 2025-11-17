@@ -57,6 +57,14 @@ export function createUserModelMock(
       : Promise.resolve(null);
   });
 
+  userModelMock.findOneAndUpdate = jest.fn().mockImplementation(() => {
+    const found = findByIdResult
+      ? Promise.resolve(findByIdResult)
+      : Promise.resolve(null);
+
+    return { exec: jest.fn().mockResolvedValue(found) };
+  });
+
   userModelMock.create = jest.fn().mockImplementation(() => {
     if (createSuccess) {
       return Promise.resolve(mockDocumentInstance);

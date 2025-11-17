@@ -65,6 +65,7 @@ export class UserService {
       fetchDataErrors: userDoc?.fetchDataErrors || undefined,
       fetchMagneticWeather: !!userDoc?.fetchMagneticWeather,
       fetchWeather: !!userDoc?.fetchWeather,
+      role: userDoc.role,
     };
   }
 }

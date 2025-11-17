@@ -1,3 +1,5 @@
+import { Role } from '../../auth/enums/roles.enum';
+
 interface IFetchDataErrors {
   forecast: string;
   magneticWeather: string;
@@ -20,4 +22,5 @@ export interface IUser {
   fetchDataErrors: IFetchDataErrors | undefined;
   fetchMagneticWeather: boolean;
   fetchWeather: boolean;
+  role: Role;
 }

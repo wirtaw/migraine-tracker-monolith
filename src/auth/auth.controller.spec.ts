@@ -5,6 +5,8 @@ import { RbacGuard } from './guard/rbac.guard';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from './interfaces/auth.user.interface';
+import { RoleDto } from './dto/role.dto';
+import { Role } from './enums/roles.enum';
 
 const mockIUser = {
   email: 'user123@example.com',
@@ -32,6 +34,9 @@ describe('AuthController', () => {
   const mockAuthService = {
     register: jest.fn().mockResolvedValue(mockRegisterResult),
     login: jest.fn(),
+    grandRole: jest.fn().mockResolvedValue({
+      message: 'Done',
+    }),
   };
 
   const mockRbacGuard = {
@@ -110,6 +115,27 @@ describe('AuthController', () => {
         request as unknown as RequestWithUser,
       );
       expect(result).toEqual(request.user);
+    });
+  });
+
+  describe('grantRole', () => {
+    let roleDto: RoleDto;
+    let userId: string;
+
+    beforeEach(() => {
+      roleDto = {
+        role: Role.USER,
+      };
+      userId = 'user-123';
+    });
+    it('should return the success message on change role', async () => {
+      const grantRoleSpy = jest.spyOn(service, 'grandRole');
+      const result = await controller.grantRole(userId, roleDto);
+
+      expect(result).toStrictEqual({
+        message: 'Done',
+      });
+      expect(grantRoleSpy).toHaveBeenCalledWith(roleDto, userId);
     });
   });
 });

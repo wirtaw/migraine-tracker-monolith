@@ -40,3 +40,7 @@ export interface DecodedUserPayload extends JwtPayload {
   email: string;
   key: string;
 }
+
+export interface ChangeRoleResponse {
+  message: string;
+}

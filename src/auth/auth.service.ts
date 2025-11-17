@@ -16,11 +16,13 @@ import { LoginDto } from './dto/login.dto';
 import { ErrorExceptionLogging } from '../utils/error.exception';
 import type {
   AuthResponse,
+  ChangeRoleResponse,
   UserPayload,
 } from './interfaces/auth.user.interface';
 import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
+import { RoleDto } from './dto/role.dto';
 
 @Injectable()
 export class AuthService {
@@ -66,6 +68,7 @@ export class AuthService {
         supabaseId: supabaseUser.id,
         salt,
         encryptedSymmetricKey,
+        role: Role.GUEST,
       });
 
       await newUser.save();
@@ -139,6 +142,29 @@ export class AuthService {
       message: 'Successfully logged in.',
       user: payload,
       token,
+    };
+  }
+
+  async grandRole(
+    roleDto: RoleDto,
+    userId: string,
+  ): Promise<ChangeRoleResponse> {
+    const { role } = roleDto;
+
+    if (role === Role.ADMIN) {
+      throw new BadRequestException(`Cant change role to the Admin`);
+    }
+
+    const updatedUser = await this.userModel
+      .findOneAndUpdate({ userId }, { role }, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID "${userId}" not found`);
+    }
+
+    return {
+      message: 'Done',
     };
   }
 }
