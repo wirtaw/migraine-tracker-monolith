@@ -23,6 +23,7 @@ import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
 import { RoleDto } from './dto/role.dto';
+import { OAuthLoginDto } from './dto/oauth-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -165,6 +166,82 @@ export class AuthService {
 
     return {
       message: 'Done',
+    };
+  }
+
+  async loginWithOAuth(oauthLoginDto: OAuthLoginDto): Promise<AuthResponse> {
+    const { accessToken } = oauthLoginDto;
+
+    const {
+      data: { user: supabaseUser },
+      error,
+    } = await this.supabaseService.getUser(accessToken);
+
+    if (error || !supabaseUser) {
+      ErrorExceptionLogging(
+        error || new Error('User not found'),
+        AuthService.name,
+      );
+      throw new UnauthorizedException('Invalid OAuth token.');
+    }
+
+    const email = supabaseUser.email;
+    if (!email) {
+      throw new BadRequestException(
+        'OAuth provider did not return an email address.',
+      );
+    }
+
+    let userInDb = await this.userModel.findOne({
+      supabaseId: supabaseUser.id,
+    });
+
+    if (!userInDb) {
+      const generatedSecret = crypto.randomBytes(32).toString('hex');
+      const salt: string = crypto.randomBytes(16).toString('base64');
+
+      const symmetricKey: Buffer =
+        await this.encryptionService.deriveSymmetricKey(generatedSecret, salt);
+
+      const encryptedSymmetricKey =
+        await this.encryptionService.encryptSymmetricKey(symmetricKey);
+
+      const newUser = new this.userModel({
+        userId: crypto.randomUUID().toString(),
+        supabaseId: supabaseUser.id,
+        email,
+        longitude: '0',
+        latitude: '0',
+        birthDate: new Date().toISOString(),
+        salt,
+        encryptedSymmetricKey,
+        fetchDataErrors: { forecast: '', magneticWeather: '' },
+      });
+
+      userInDb = await newUser.save();
+    }
+
+    if (!userInDb.encryptedSymmetricKey) {
+      throw new UnauthorizedException('User encryption setup is incomplete.');
+    }
+
+    const role = (supabaseUser.user_metadata?.role as Role) || Role.USER;
+
+    const payload: UserPayload = {
+      userId: supabaseUser.id,
+      email: email,
+      role,
+    };
+
+    const token = await this.jwtService.signPayload(
+      { ...payload, key: userInDb.encryptedSymmetricKey },
+      '1 h',
+    );
+
+    return {
+      message: 'Successfully logged in via OAuth.',
+      user: payload,
+      token,
     };
   }
 }

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -7,6 +8,7 @@ import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 import { RoleDto } from './dto/role.dto';
 import { Role } from './enums/roles.enum';
+import { OAuthLoginDto, OAuthProvider } from './dto/oauth-login.dto';
 
 const mockIUser = {
   email: 'user123@example.com',
@@ -37,6 +39,7 @@ describe('AuthController', () => {
     grandRole: jest.fn().mockResolvedValue({
       message: 'Done',
     }),
+    loginWithOAuth: jest.fn(),
   };
 
   const mockRbacGuard = {
@@ -91,6 +94,22 @@ describe('AuthController', () => {
 
       await controller.login(loginDto);
       expect(loginSpy).toHaveBeenCalledWith(loginDto);
+    });
+  });
+
+  describe('oauth', () => {
+    let authLogin: OAuthLoginDto;
+
+    it('should call authService.loginWithOAuth with the provided DTO', async () => {
+      authLogin = {
+        provider: OAuthProvider.GITHUB,
+        accessToken: crypto.randomBytes(32).toString('hex'),
+      };
+
+      const loginSpy = jest.spyOn(service, 'loginWithOAuth');
+
+      await controller.loginWithOAuth(authLogin);
+      expect(loginSpy).toHaveBeenCalledWith(authLogin);
     });
   });
 
