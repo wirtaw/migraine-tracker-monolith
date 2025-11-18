@@ -7,6 +7,7 @@ import {
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
+import { Role } from '../../auth/enums/roles.enum';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
@@ -42,4 +43,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsBoolean()
   profileFilled!: boolean;
+
+  @IsNotEmpty()
+  @IsString()
+  role!: Role;
 }

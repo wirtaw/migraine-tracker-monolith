@@ -6,6 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { type User } from '@supabase/supabase-js';
@@ -16,11 +18,13 @@ import { LoginDto } from './dto/login.dto';
 import {
   type AuthResponse,
   RequestWithUser,
+  type ChangeRoleResponse,
 } from './interfaces/auth.user.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Permission } from '../auth/enums/permissions.enum';
+import { RoleDto } from './dto/role.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -81,5 +85,28 @@ export class AuthController {
   getProfile(req: RequestWithUser): User {
     // The SupabaseAuthGuard will attach the user to the request
     return req.user;
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id/role')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change user role by admin' })
+  @ApiBody({
+    type: RoleDto,
+    description: 'Role type',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User role successfully updated',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid credentials.',
+  })
+  async grantRole(
+    @Param('id') userId: string,
+    @Body() roleDto: RoleDto,
+  ): Promise<ChangeRoleResponse> {
+    return this.authService.grandRole(roleDto, userId);
   }
 }

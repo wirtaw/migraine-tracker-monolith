@@ -83,7 +83,7 @@ export class UserController {
     description: 'Data for updating a user data entry',
   })
   @ApiResponse({
-    status: HttpStatus.CREATED,
+    status: HttpStatus.OK,
     description: 'The user data has been successfully updated.',
   })
   @ApiResponse({

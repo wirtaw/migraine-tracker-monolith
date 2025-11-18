@@ -6,6 +6,7 @@ import { User, UserDocument, UserSchema } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotFoundException, Logger } from '@nestjs/common';
+import { Role } from '../auth/enums/roles.enum';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -29,6 +30,7 @@ const mockUser: HydratedDocument<User> = {
   },
   fetchMagneticWeather: true,
   fetchWeather: true,
+  role: Role.USER,
 } as never;
 
 const mockUsers: HydratedDocument<User>[] = [
@@ -52,6 +54,7 @@ const mockUsers: HydratedDocument<User>[] = [
     },
     fetchMagneticWeather: true,
     fetchWeather: true,
+    role: Role.USER,
   },
 ] as never;
 
@@ -160,6 +163,7 @@ describe('UserService', () => {
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
+        role: Role.USER,
       });
     });
   });
@@ -187,6 +191,7 @@ describe('UserService', () => {
           fetchDataErrors: t.fetchDataErrors,
           fetchMagneticWeather: t.fetchMagneticWeather,
           fetchWeather: t.fetchWeather,
+          role: Role.USER,
         })),
       );
     });
@@ -216,6 +221,7 @@ describe('UserService', () => {
         fetchDataErrors: mockUser.fetchDataErrors,
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
+        role: Role.USER,
       });
     });
 
@@ -240,6 +246,7 @@ describe('UserService', () => {
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
+        role: Role.USER,
       };
       const updatedMockUser = { ...mockUser, emailNotifications: false };
       mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
@@ -270,6 +277,7 @@ describe('UserService', () => {
         fetchDataErrors: updatedMockUser.fetchDataErrors,
         fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
         fetchWeather: updatedMockUser.fetchWeather,
+        role: Role.USER,
       });
     });
 
@@ -288,6 +296,7 @@ describe('UserService', () => {
           personalHealthData: false,
           securitySetup: false,
           profileFilled: false,
+          role: Role.USER,
         }),
       ).rejects.toThrow(NotFoundException);
     });
