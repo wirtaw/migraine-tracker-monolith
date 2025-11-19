@@ -5,7 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import {
+  createClient,
+  SupabaseClient,
+  type UserResponse,
+} from '@supabase/supabase-js';
 import { AuthConfig } from '../../config/auth/auth.config';
 
 @Injectable()
@@ -34,17 +38,11 @@ export class SupabaseService {
     return this.supabaseClient;
   }
 
-  async getUser(token: string): Promise<User> {
-    if (!token) {
+  async getUser(accessToken: string): Promise<UserResponse> {
+    if (!accessToken) {
       throw new UnauthorizedException('Missing authentication token.');
     }
 
-    const { data, error } = await this.client.auth.getUser(token);
-
-    if (error || !data?.user) {
-      throw new UnauthorizedException('Invalid or expired token.');
-    }
-
-    return data.user;
+    return this.client.auth.getUser(accessToken);
   }
 }

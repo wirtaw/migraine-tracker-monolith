@@ -15,6 +15,7 @@ import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { OAuthLoginDto } from './dto/oauth-login.dto';
 import {
   type AuthResponse,
   RequestWithUser,
@@ -68,6 +69,28 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('oauth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login/Register with OAuth2 provider (e.g., Github)',
+  })
+  @ApiBody({
+    type: OAuthLoginDto,
+    description: 'OAuth access token and provider info',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User successfully logged in via OAuth.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid OAuth token.',
+  })
+  async loginWithOAuth(@Body() oauthDto: OAuthLoginDto): Promise<AuthResponse> {
+    return this.authService.loginWithOAuth(oauthDto);
   }
 
   @Roles(Role.ADMIN)

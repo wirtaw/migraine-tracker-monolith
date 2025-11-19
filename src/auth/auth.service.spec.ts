@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { createUserModelMock } from './mocks/createUserModelMock';
 import { Role } from './enums/roles.enum';
 import { RoleDto } from './dto/role.dto';
+import { OAuthProvider, type OAuthLoginDto } from './dto/oauth-login.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -69,6 +70,7 @@ describe('AuthService', () => {
         signUp: jest.fn(),
       },
     },
+    getUser: jest.fn(),
   };
 
   const mockJwtService = {
@@ -564,6 +566,176 @@ describe('AuthService', () => {
       await expect(
         serviceWithSaveMock.grandRole(roleDto, userId),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('loginWithOAuth()', () => {
+    let authLogin: OAuthLoginDto;
+    let email: string;
+    let token: string;
+
+    beforeEach(() => {
+      authLogin = {
+        provider: OAuthProvider.GITHUB,
+        accessToken: crypto.randomBytes(32).toString('hex'),
+      };
+      email = mockUser.email;
+    });
+
+    it('successfully auth exists user with Github provider', async () => {
+      token = 'token';
+
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email } },
+        error: null,
+      });
+
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      const result = await service.loginWithOAuth(authLogin);
+
+      expect(result).toStrictEqual({
+        message: 'Successfully logged in via OAuth.',
+        user: {
+          userId: mockUser.supabaseId,
+          email,
+          role: Role.USER,
+        },
+        token,
+      });
+    });
+
+    it('successfully auth create user with Github provider', async () => {
+      const { userModelMock: failedSaveMock } = createUserModelMock(mockUser, {
+        findOneResult: null,
+        findByIdResult: null,
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: failedSaveMock,
+          },
+        ],
+      }).compile();
+
+      const serviceWithFailedSaveMock = module.get<AuthService>(AuthService);
+
+      token = 'token';
+      const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
+
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email } },
+        error: null,
+      });
+      mockEncryptionService.encryptSymmetricKey.mockResolvedValueOnce(
+        encryptedSymmetricKey,
+      );
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      const result = await serviceWithFailedSaveMock.loginWithOAuth(authLogin);
+
+      expect(result).toStrictEqual({
+        message: 'Successfully logged in via OAuth.',
+        user: {
+          userId: mockUser.supabaseId,
+          email,
+          role: Role.USER,
+        },
+        token,
+      });
+
+      expect(mockEncryptionService.deriveSymmetricKey).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
+
+      expect(mockEncryptionService.encryptSymmetricKey).toHaveBeenCalledWith(
+        symmetricKeyBuffer,
+      );
+    });
+
+    it('throw UnauthorizedException error then auth user missing encryptedSymmetricKey', async () => {
+      const { userModelMock: failedSaveMock } = createUserModelMock(
+        {
+          ...mockUser,
+          encryptedSymmetricKey: '',
+        },
+        {},
+      );
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: failedSaveMock,
+          },
+        ],
+      }).compile();
+
+      const serviceWithFailedSaveMock = module.get<AuthService>(AuthService);
+
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email } },
+        error: null,
+      });
+
+      await expect(
+        serviceWithFailedSaveMock.loginWithOAuth(authLogin),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('throw UnauthorizedException auth got error', async () => {
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: null },
+        error: new Error('unexpected error in the OAuth2'),
+      });
+
+      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throw BadRequestException auth got user without email', async () => {
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email: null } },
+        error: null,
+      });
+
+      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });
