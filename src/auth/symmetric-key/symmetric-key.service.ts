@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import crypto from 'node:crypto';
@@ -14,19 +18,35 @@ interface IWorkerKeys {
 export class SymmetricKeyService {
   private cachedKey: IWorkerKeys | null = null;
   private lastFetched = 0;
-  private ttl = 5 * 60 * 1000;
+  private ttl = 1 * 60 * 1000;
 
   constructor(private readonly httpService: HttpService) {}
 
-  private generateHmacSignature(
+  private async generateHmacSignature(
     body: string,
     timestamp: string,
     headerKey: string,
-  ): string {
-    const message = `${timestamp}:${body}`;
-    const hmac = crypto.createHmac('sha256', Buffer.from(headerKey, 'hex'));
-    hmac.update(message);
-    return hmac.digest('hex');
+  ): Promise<string> {
+    const keyBuffer = Uint8Array.from(
+      headerKey.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+    );
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${timestamp}:${body}`);
+
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, data);
+
+    return Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   async getKey(
@@ -55,8 +75,12 @@ export class SymmetricKeyService {
     }
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const body = JSON.stringify({});
-    const signature = this.generateHmacSignature(body, timestamp, headerKey);
+    const body = '';
+    const signature = await this.generateHmacSignature(
+      body,
+      timestamp,
+      headerKey,
+    );
 
     try {
       const response = await firstValueFrom<AxiosResponse<IWorkerKeys>>(
@@ -65,6 +89,13 @@ export class SymmetricKeyService {
             'X-Timestamp': timestamp,
             'X-Signature': signature,
             'Content-Type': 'application/json',
+            'Strict-Transport-Security':
+              'max-age=63072000; includeSubDomains; preload',
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'Content-Security-Policy':
+              "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
           },
         }),
       );
@@ -81,11 +112,13 @@ export class SymmetricKeyService {
       this.lastFetched = now;
 
       if (keyName === 'JWT_SECRET') {
+        Logger.warn(`jwtSecret ${jwtSecret}`);
         return jwtSecret;
       }
 
       return jwtEncryptionKey;
     } catch (error) {
+      Logger.warn(`CLOUDFLARE_WORKER_URL ${process.env.CLOUDFLARE_WORKER_URL}`);
       ErrorExceptionLogging(error, SymmetricKeyService.name);
       throw error;
     }

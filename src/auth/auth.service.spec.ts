@@ -19,7 +19,6 @@ import { LoginDto } from './dto/login.dto';
 import { createUserModelMock } from './mocks/createUserModelMock';
 import { Role } from './enums/roles.enum';
 import { RoleDto } from './dto/role.dto';
-import { OAuthProvider, type OAuthLoginDto } from './dto/oauth-login.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -570,16 +569,12 @@ describe('AuthService', () => {
   });
 
   describe('loginWithOAuth()', () => {
-    let authLogin: OAuthLoginDto;
     let email: string;
     let token: string;
 
     beforeEach(() => {
-      authLogin = {
-        provider: OAuthProvider.GITHUB,
-        accessToken: crypto.randomBytes(32).toString('hex'),
-      };
       email = mockUser.email;
+      token = 'token';
     });
 
     it('successfully auth exists user with Github provider', async () => {
@@ -592,7 +587,7 @@ describe('AuthService', () => {
 
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
-      const result = await service.loginWithOAuth(authLogin);
+      const result = await service.loginWithOAuth(token);
 
       expect(result).toStrictEqual({
         message: 'Successfully logged in via OAuth.',
@@ -651,7 +646,7 @@ describe('AuthService', () => {
       );
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
-      const result = await serviceWithFailedSaveMock.loginWithOAuth(authLogin);
+      const result = await serviceWithFailedSaveMock.loginWithOAuth(token);
 
       expect(result).toStrictEqual({
         message: 'Successfully logged in via OAuth.',
@@ -712,7 +707,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        serviceWithFailedSaveMock.loginWithOAuth(authLogin),
+        serviceWithFailedSaveMock.loginWithOAuth(token),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -722,7 +717,7 @@ describe('AuthService', () => {
         error: new Error('unexpected error in the OAuth2'),
       });
 
-      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -733,7 +728,7 @@ describe('AuthService', () => {
         error: null,
       });
 
-      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
         BadRequestException,
       );
     });

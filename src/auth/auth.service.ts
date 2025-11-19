@@ -23,7 +23,6 @@ import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
 import { RoleDto } from './dto/role.dto';
-import { OAuthLoginDto } from './dto/oauth-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -169,9 +168,7 @@ export class AuthService {
     };
   }
 
-  async loginWithOAuth(oauthLoginDto: OAuthLoginDto): Promise<AuthResponse> {
-    const { accessToken } = oauthLoginDto;
-
+  async loginWithOAuth(accessToken: string): Promise<AuthResponse> {
     const {
       data: { user: supabaseUser },
       error,
@@ -215,7 +212,6 @@ export class AuthService {
         birthDate: new Date().toISOString(),
         salt,
         encryptedSymmetricKey,
-        fetchDataErrors: { forecast: '', magneticWeather: '' },
       });
 
       userInDb = await newUser.save();
