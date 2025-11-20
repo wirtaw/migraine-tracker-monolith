@@ -18,7 +18,6 @@ import {
   ApiBody,
   ApiHeader,
 } from '@nestjs/swagger';
-import { type User } from '@supabase/supabase-js';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -31,6 +30,7 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { RoleDto } from './dto/role.dto';
+import { IUser } from '../users/interfaces/user.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -122,9 +122,9 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized access.',
   })
-  getProfile(req: RequestWithUser): User {
-    // The SupabaseAuthGuard will attach the user to the request
-    return req.user;
+  async getProfile(req: RequestWithUser): Promise<IUser> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.authService.getProfile(userId);
   }
 
   @Roles(Role.ADMIN)

@@ -23,6 +23,7 @@ import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
 import { RoleDto } from './dto/role.dto';
+import { IUser } from '../users/interfaces/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -238,6 +239,38 @@ export class AuthService {
       message: 'Successfully logged in via OAuth.',
       user: payload,
       token,
+    };
+  }
+
+  async getProfile(userId: string): Promise<IUser> {
+    const user = await this.userModel.findOne({ userId }).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID "${userId}" not found`);
+    }
+
+    return this.mapToIUser(user);
+  }
+
+  private mapToIUser(userDoc: UserDocument): IUser {
+    return {
+      userId: userDoc.userId,
+      supabaseId: userDoc.supabaseId,
+      longitude: userDoc.longitude,
+      latitude: userDoc.latitude,
+      birthDate: userDoc.birthDate,
+      email: userDoc.email,
+      emailNotifications: !!userDoc?.emailNotifications,
+      dailySummary: !!userDoc?.dailySummary,
+      personalHealthData: !!userDoc?.personalHealthData,
+      securitySetup: !!userDoc?.securitySetup,
+      profileFilled: !!userDoc?.profileFilled,
+      salt: userDoc.salt,
+      encryptedSymmetricKey: userDoc.encryptedSymmetricKey,
+      fetchDataErrors: userDoc?.fetchDataErrors || undefined,
+      fetchMagneticWeather: !!userDoc?.fetchMagneticWeather,
+      fetchWeather: !!userDoc?.fetchWeather,
+      role: userDoc.role,
     };
   }
 }

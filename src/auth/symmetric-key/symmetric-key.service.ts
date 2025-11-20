@@ -23,7 +23,6 @@ export class SymmetricKeyService {
   constructor(private readonly httpService: HttpService) {}
 
   private async generateHmacSignature(
-    body: string,
     timestamp: string,
     headerKey: string,
   ): Promise<string> {
@@ -32,7 +31,7 @@ export class SymmetricKeyService {
     );
 
     const encoder = new TextEncoder();
-    const data = encoder.encode(`${timestamp}:${body}`);
+    const data = encoder.encode(`${timestamp}`);
 
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
@@ -75,12 +74,7 @@ export class SymmetricKeyService {
     }
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const body = '';
-    const signature = await this.generateHmacSignature(
-      body,
-      timestamp,
-      headerKey,
-    );
+    const signature = await this.generateHmacSignature(timestamp, headerKey);
 
     try {
       const response = await firstValueFrom<AxiosResponse<IWorkerKeys>>(

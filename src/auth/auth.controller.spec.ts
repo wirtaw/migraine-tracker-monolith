@@ -39,6 +39,7 @@ describe('AuthController', () => {
       message: 'Done',
     }),
     loginWithOAuth: jest.fn(),
+    getProfile: jest.fn().mockResolvedValue(mockIUser),
   };
 
   const mockRbacGuard = {
@@ -121,10 +122,11 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    it('should return the user object from the request', () => {
+    it('should return the user object from the request', async () => {
+      const userId = '123';
       const request = {
         user: {
-          userId: '123',
+          userId,
           username: 'testuser',
           id: '123',
           app_metadata: {
@@ -136,11 +138,13 @@ describe('AuthController', () => {
           aud: '123',
         },
       };
+      const getProfileSpy = jest.spyOn(service, 'getProfile');
 
-      const result = controller.getProfile(
+      const result = await controller.getProfile(
         request as unknown as RequestWithUser,
       );
-      expect(result).toEqual(request.user);
+      expect(result).toEqual(mockIUser);
+      expect(getProfileSpy).toHaveBeenCalledWith(userId);
     });
   });
 
