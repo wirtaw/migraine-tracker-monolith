@@ -60,6 +60,17 @@ describe('AuthService', () => {
   const mockEncryptionService = {
     deriveSymmetricKey: jest.fn(),
     encryptSymmetricKey: jest.fn(),
+    encryptSensitiveData: jest.fn(
+      (value: string, _key: string) => `enc(${value})`,
+    ),
+    decryptSensitiveData: jest.fn((value: string, _key: string) => {
+      if (typeof value === 'string') {
+        return value.replace('encrypted_', '');
+      }
+      throw new Error(
+        `decryptSensitiveData: expected string, got ${typeof value}`,
+      );
+    }),
   };
 
   const mockSupabaseService = {
@@ -146,8 +157,8 @@ describe('AuthService', () => {
         supabaseId: mockUser.userId,
         email: createDto.email,
         birthDate: createDto.birthDate,
-        longitude: createDto.longitude,
-        latitude: createDto.latitude,
+        longitude: `enc(${createDto.longitude})`,
+        latitude: `enc(${createDto.latitude})`,
         salt: expect.any(String),
         encryptedSymmetricKey,
         role: Role.GUEST,

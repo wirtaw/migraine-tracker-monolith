@@ -79,7 +79,7 @@ describe('SymmetricKeyService with HMAC', () => {
       headerKey.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
     );
     const encoder = new TextEncoder();
-    const data = encoder.encode(`${timestamp}`);
+    const data = encoder.encode(`${timestamp}:`);
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
       keyBuffer,
@@ -129,7 +129,7 @@ describe('SymmetricKeyService with HMAC', () => {
       throw new Error("Missing headers['X-Timestamp'] in Axios config");
     }
     const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}`;
+    const message = `${timestamp}:`;
     const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
     hmac.update(message);
     const expectedSignature = hmac.digest('hex');
@@ -165,7 +165,7 @@ describe('SymmetricKeyService with HMAC', () => {
       throw new Error("Missing headers['X-Timestamp'] in Axios config");
     }
     const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}`;
+    const message = `${timestamp}:`;
     const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
     hmac.update(message);
     const expectedSignature = hmac.digest('hex');

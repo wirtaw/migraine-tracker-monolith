@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, HydratedDocument } from 'mongoose';
-import { User, UserDocument, UserSchema } from './schemas/user.schema';
+import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { NotFoundException, Logger } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Role } from '../auth/enums/roles.enum';
+import { EncryptionService } from '../auth/encryption/encryption.service';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -23,7 +24,6 @@ const mockUser: HydratedDocument<User> = {
   profileFilled: true,
   salt: 'somesalt',
   encryptedSymmetricKey: 'somekey',
-  iv: 'someiv',
   fetchDataErrors: {
     forecast: 'none',
     magneticWeather: 'none',
@@ -33,7 +33,38 @@ const mockUser: HydratedDocument<User> = {
   role: Role.USER,
 } as never;
 
-const mockUsers: HydratedDocument<User>[] = [
+const mockDbUser: HydratedDocument<User> = {
+  ...mockUser,
+  longitude: 'encrypted_-74.006',
+  latitude: 'encrypted_40.7128',
+} as never;
+
+const mockDbUsers: HydratedDocument<User>[] = [
+  mockDbUser,
+  {
+    supabaseId: 'user456',
+    longitude: 'encrypted_-118.2437',
+    latitude: 'encrypted_34.0522',
+    birthDate: '1995-05-05',
+    email: 'test@mail.com',
+    emailNotifications: false,
+    dailySummary: false,
+    personalHealthData: false,
+    securitySetup: false,
+    profileFilled: false,
+    salt: 'anothersalt',
+    encryptedSymmetricKey: 'anotherkey',
+    fetchDataErrors: {
+      forecast: 'error',
+      magneticWeather: 'none',
+    },
+    fetchMagneticWeather: true,
+    fetchWeather: true,
+    role: Role.USER,
+  },
+] as never;
+
+const mockPlainUsers: HydratedDocument<User>[] = [
   mockUser,
   {
     supabaseId: 'user456',
@@ -60,15 +91,25 @@ const mockUsers: HydratedDocument<User>[] = [
 
 describe('UserService', () => {
   let service: UserService;
-  let model: Model<UserDocument>;
   let mockUserModel: jest.Mocked<Model<UserDocument>>;
   let mockDocumentInstance: UserDocument;
-  let module: TestingModule;
+
+  const mockEncryptionService = {
+    encryptSensitiveData: jest.fn((data) => `encrypted_${data}`),
+    decryptSensitiveData: jest.fn((value: string, _key: string) => {
+      if (typeof value === 'string') {
+        return value.replace('encrypted_', '');
+      }
+      throw new Error(
+        `decryptSensitiveData: expected string, got ${typeof value}`,
+      );
+    }),
+  };
 
   beforeEach(async () => {
     mockDocumentInstance = {
-      ...mockUser,
-      save: jest.fn().mockResolvedValue(mockUser),
+      ...mockDbUser,
+      save: jest.fn().mockResolvedValue(mockDbUser),
     } as unknown as UserDocument;
 
     mockUserModel = jest.fn().mockImplementation(() => {
@@ -76,10 +117,10 @@ describe('UserService', () => {
     }) as unknown as jest.Mocked<Model<UserDocument>>;
 
     mockUserModel.find = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockUsers),
+      exec: jest.fn().mockResolvedValue(mockDbUsers),
     });
     mockUserModel.findOne = jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue(mockUser),
+      exec: jest.fn().mockResolvedValue(mockDbUser),
     });
     mockUserModel.create = jest.fn().mockResolvedValue(mockDocumentInstance);
     mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
@@ -89,42 +130,21 @@ describe('UserService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
-    module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRoot(dbUri),
-        MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-      ],
+    const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
-          provide: getModelToken('User'),
+          provide: getModelToken(User.name),
           useValue: mockUserModel,
+        },
+        {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    model = module.get<Model<UserDocument>>(getModelToken(User.name));
-  });
-
-  afterEach(async () => {
-    await model.deleteMany({});
-    jest.clearAllMocks();
-  });
-
-  afterAll(async () => {
-    await module.close();
   });
 
   it('should be defined', () => {
@@ -141,7 +161,7 @@ describe('UserService', () => {
         email: 'test@mail.com',
       };
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, 'somekey');
 
       expect(mockUserModel).toHaveBeenCalled();
       expect(mockDocumentInstance.save).toHaveBeenCalled();
@@ -174,7 +194,7 @@ describe('UserService', () => {
 
       expect(mockUserModel.find).toHaveBeenCalled();
       expect(result).toEqual(
-        mockUsers.map((t) => ({
+        mockPlainUsers.map((t) => ({
           userId: t.userId,
           supabaseId: t.supabaseId,
           longitude: t.longitude,
@@ -248,23 +268,31 @@ describe('UserService', () => {
         profileFilled: false,
         role: Role.USER,
       };
-      const updatedMockUser = { ...mockUser, emailNotifications: false };
+      const updatedMockUser = { ...mockDbUser, emailNotifications: false };
       mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
         exec: () => updatedMockUser,
       });
 
-      const result = await service.update(mockUser.userId, updateDto);
+      const result = await service.update(
+        mockUser.userId,
+        updateDto,
+        'somekey',
+      );
 
       expect(mockUserModel.findOneAndUpdate).toHaveBeenCalledWith(
         { userId: mockUser.userId },
-        updateDto,
+        {
+          ...updateDto,
+          longitude: 'encrypted_-118.2437',
+          latitude: 'encrypted_34.0522',
+        },
         { new: true },
       );
       expect(result).toEqual({
         userId: updatedMockUser.userId,
         supabaseId: updatedMockUser.supabaseId,
-        longitude: updatedMockUser.longitude,
-        latitude: updatedMockUser.latitude,
+        longitude: mockUser.longitude,
+        latitude: mockUser.latitude,
         birthDate: updatedMockUser.birthDate,
         email: updatedMockUser.email,
         emailNotifications: updatedMockUser.emailNotifications,
@@ -287,17 +315,21 @@ describe('UserService', () => {
       });
 
       await expect(
-        service.update('nonExistentUser', {
-          emailNotifications: false,
-          longitude: '-118.2437',
-          latitude: '34.0522',
-          birthDate: '1995-05-05',
-          dailySummary: false,
-          personalHealthData: false,
-          securitySetup: false,
-          profileFilled: false,
-          role: Role.USER,
-        }),
+        service.update(
+          'nonExistentUser',
+          {
+            emailNotifications: false,
+            longitude: '-118.2437',
+            latitude: '34.0522',
+            birthDate: '1995-05-05',
+            dailySummary: false,
+            personalHealthData: false,
+            securitySetup: false,
+            profileFilled: false,
+            role: Role.USER,
+          },
+          'somekey',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

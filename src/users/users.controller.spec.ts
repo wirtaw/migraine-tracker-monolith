@@ -9,6 +9,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../auth/supabase/supabase.service';
 import { type User as SupaBaseUser } from '@supabase/supabase-js';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 const mockIUser: IUser = {
   userId: 'user123',
@@ -54,11 +55,24 @@ const mockSupabaseService = {
   getUser: jest.fn().mockResolvedValue(supaBaseUser),
 };
 
+const symmetricKey = 'test-secret-key-long';
+const userId = 'user123';
+
 describe('UserController', () => {
   let controller: UserController;
   let service: UserService;
+  let mockRequest: RequestWithUser;
 
   beforeEach(async () => {
+    mockRequest = {
+      session: {
+        userId,
+        key: symmetricKey,
+      },
+      user: {
+        id: userId,
+      },
+    } as unknown as RequestWithUser;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
@@ -96,8 +110,11 @@ describe('UserController', () => {
       };
       const createSpy = jest.spyOn(service, 'create');
 
-      const result: IUser | null = await controller.create(createDto);
-      expect(createSpy).toHaveBeenCalledWith(createDto);
+      const result: IUser | null = await controller.create(
+        createDto,
+        mockRequest,
+      );
+      expect(createSpy).toHaveBeenCalledWith(createDto, symmetricKey);
       expect(result).toEqual(mockIUser);
     });
 
@@ -107,7 +124,7 @@ describe('UserController', () => {
         throw new BadRequestException('Invalid input');
       });
 
-      await expect(controller.create(invalidDto)).rejects.toThrow(
+      await expect(controller.create(invalidDto, mockRequest)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -158,13 +175,20 @@ describe('UserController', () => {
     };
 
     it('should update and return the updated user entry', async () => {
+      jest
+        .spyOn(service, 'findOne')
+        .mockImplementationOnce(() => Promise.resolve(mockIUser));
       const updateSpy = jest.spyOn(service, 'update');
 
       const result: IUser | null = await controller.update(
         mockIUser.userId,
         updateDto,
       );
-      expect(updateSpy).toHaveBeenCalledWith(mockIUser.userId, updateDto);
+      expect(updateSpy).toHaveBeenCalledWith(
+        mockIUser.userId,
+        updateDto,
+        mockIUser.encryptedSymmetricKey,
+      );
       expect(result).toEqual(mockIUser);
     });
 

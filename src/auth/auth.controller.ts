@@ -10,6 +10,7 @@ import {
   Param,
   Headers,
   UnauthorizedException,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -122,7 +123,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized access.',
   })
-  async getProfile(req: RequestWithUser): Promise<IUser> {
+  async getProfile(@Req() req: RequestWithUser): Promise<Partial<IUser>> {
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.authService.getProfile(userId);
   }

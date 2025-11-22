@@ -31,7 +31,7 @@ export class SymmetricKeyService {
     );
 
     const encoder = new TextEncoder();
-    const data = encoder.encode(`${timestamp}`);
+    const data = encoder.encode(`${timestamp}:`);
 
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
@@ -106,13 +106,16 @@ export class SymmetricKeyService {
       this.lastFetched = now;
 
       if (keyName === 'JWT_SECRET') {
-        Logger.warn(`jwtSecret ${jwtSecret}`);
+        //Logger.warn(`jwtSecret ${jwtSecret}`);
         return jwtSecret;
       }
 
       return jwtEncryptionKey;
     } catch (error) {
       Logger.warn(`CLOUDFLARE_WORKER_URL ${process.env.CLOUDFLARE_WORKER_URL}`);
+      //Logger.warn(
+      //  `CLOUDFLARE_WORKER_HEADER_KEY "${process.env.CLOUDFLARE_WORKER_HEADER_KEY}"`,
+      //);
       ErrorExceptionLogging(error, SymmetricKeyService.name);
       throw error;
     }

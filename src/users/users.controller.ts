@@ -8,6 +8,8 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Req,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,10 +21,12 @@ import {
 import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { IUser } from './interfaces/user.interface';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
@@ -45,8 +49,40 @@ export class UserController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data.',
   })
-  async create(@Body() createUserDto: CreateUserDto): Promise<IUser | null> {
-    return this.userService.create(createUserDto);
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @Req() req: RequestWithUser,
+  ): Promise<IUser | null> {
+    const encryptionKey = req?.session?.key || '';
+    return this.userService.create(createUserDto, encryptionKey);
+  }
+
+  @Roles(Role.USER)
+  @Patch('/profile')
+  @ApiOperation({ summary: 'Update the user profile' })
+  @ApiBody({
+    type: UpdateUserProfileDto,
+    description: 'Data for updating a user data entry',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user data has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The user data not found.',
+  })
+  async updateProfile(
+    @Req() req: RequestWithUser,
+    @Body() updateUserDto: UpdateUserProfileDto,
+  ): Promise<IUser | null> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    const encryptionKey = req?.session?.key || '';
+    return this.userService.updateProfile(userId, updateUserDto, encryptionKey);
   }
 
   @Roles(Role.ADMIN)
@@ -98,7 +134,15 @@ export class UserController {
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<IUser | null> {
-    return this.userService.update(userId, updateUserDto);
+    const user = await this.userService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID "${userId}" not found`);
+    }
+    return this.userService.update(
+      userId,
+      updateUserDto,
+      user.encryptedSymmetricKey,
+    );
   }
 
   @Roles(Role.ADMIN)
