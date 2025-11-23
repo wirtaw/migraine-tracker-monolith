@@ -66,7 +66,7 @@ export class User {
   fetchWeather?: boolean;
 
   @Prop({ required: false, default: Role.GUEST })
-  role!: Role;
+  role!: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -70,17 +70,24 @@ export class AuthService {
       const newUser = new this.userModel({
         ...userData,
         userId: crypto.randomUUID().toString(),
-        email,
+        email: this.encryptionService.encryptSensitiveData(email, bufferKey),
         supabaseId: supabaseUser.id,
         salt,
         encryptedSymmetricKey,
-        role: Role.GUEST,
+        role: this.encryptionService.encryptSensitiveData(
+          Role.GUEST,
+          bufferKey,
+        ),
         latitude: this.encryptionService.encryptSensitiveData(
           userData.latitude.toString(),
           bufferKey,
         ),
         longitude: this.encryptionService.encryptSensitiveData(
           userData.longitude.toString(),
+          bufferKey,
+        ),
+        birthDate: this.encryptionService.encryptSensitiveData(
+          userData.birthDate,
           bufferKey,
         ),
       });
@@ -227,13 +234,16 @@ export class AuthService {
       const newUser = new this.userModel({
         userId: crypto.randomUUID().toString(),
         supabaseId: supabaseUser.id,
-        email,
+        email: this.encryptionService.encryptSensitiveData(email, bufferKey),
         longitude: this.encryptionService.encryptSensitiveData('0', bufferKey),
         latitude: this.encryptionService.encryptSensitiveData('0', bufferKey),
-        birthDate: new Date().toISOString(),
+        birthDate: this.encryptionService.encryptSensitiveData(
+          new Date().toISOString(),
+          bufferKey,
+        ),
         salt,
         encryptedSymmetricKey,
-        role: Role.USER,
+        role: this.encryptionService.encryptSensitiveData(Role.USER, bufferKey),
       });
 
       userInDb = await newUser.save();
@@ -288,8 +298,8 @@ export class AuthService {
       userId: userDoc.supabaseId,
       longitude: decrypt(userDoc.longitude, 'longitude'),
       latitude: decrypt(userDoc.latitude, 'latitude'),
-      birthDate: userDoc.birthDate,
-      email: userDoc.email,
+      birthDate: decrypt(userDoc.birthDate, 'birthDate'),
+      email: decrypt(userDoc.email, 'email'),
       emailNotifications: !!userDoc?.emailNotifications,
       dailySummary: !!userDoc?.dailySummary,
       personalHealthData: !!userDoc?.personalHealthData,
@@ -298,7 +308,7 @@ export class AuthService {
       fetchDataErrors: userDoc?.fetchDataErrors || undefined,
       fetchMagneticWeather: !!userDoc?.fetchMagneticWeather,
       fetchWeather: !!userDoc?.fetchWeather,
-      role: userDoc.role,
+      role: decrypt(userDoc.role, 'role') as Role,
     };
   }
 }

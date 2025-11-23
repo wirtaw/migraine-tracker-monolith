@@ -71,6 +71,27 @@ export class UserService {
       );
     }
 
+    if (updateUserDto.birthDate) {
+      encryptedUpdate.birthDate = this.encryptionService.encryptSensitiveData(
+        updateUserDto.birthDate.toString(),
+        bufferKey,
+      );
+    }
+
+    if (updateUserDto.email) {
+      encryptedUpdate.email = this.encryptionService.encryptSensitiveData(
+        updateUserDto.email,
+        bufferKey,
+      );
+    }
+
+    if (updateUserDto.role) {
+      encryptedUpdate.role = this.encryptionService.encryptSensitiveData(
+        updateUserDto.role,
+        bufferKey,
+      );
+    }
+
     const updatedUser = await this.userModel
       .findOneAndUpdate({ userId }, encryptedUpdate, { new: true })
       .exec();
@@ -109,6 +130,13 @@ export class UserService {
       );
     }
 
+    if (updateUserDto.birthDate) {
+      encryptedUpdate.birthDate = this.encryptionService.encryptSensitiveData(
+        updateUserDto.birthDate.toString(),
+        bufferKey,
+      );
+    }
+
     const updatedUser = await this.userModel
       .findOneAndUpdate({ supabaseId: userId }, encryptedUpdate, { new: true })
       .exec();
@@ -133,8 +161,8 @@ export class UserService {
       supabaseId: userDoc.supabaseId,
       longitude: decrypt(userDoc.longitude, 'longitude'),
       latitude: decrypt(userDoc.latitude, 'latitude'),
-      birthDate: userDoc.birthDate,
-      email: userDoc.email,
+      birthDate: decrypt(userDoc.birthDate, 'birthDate'),
+      email: decrypt(userDoc.email, 'email'),
       emailNotifications: !!userDoc?.emailNotifications,
       dailySummary: !!userDoc?.dailySummary,
       personalHealthData: !!userDoc?.personalHealthData,
@@ -145,7 +173,7 @@ export class UserService {
       fetchDataErrors: userDoc?.fetchDataErrors || undefined,
       fetchMagneticWeather: !!userDoc?.fetchMagneticWeather,
       fetchWeather: !!userDoc?.fetchWeather,
-      role: userDoc.role,
+      role: decrypt(userDoc.role, 'role'),
     };
   }
 }

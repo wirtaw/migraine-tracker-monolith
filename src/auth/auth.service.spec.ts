@@ -31,7 +31,7 @@ interface UserInRequest {
   latitude: string;
   salt: string;
   encryptedSymmetricKey: string;
-  role: Role;
+  role: string;
 }
 
 const mockUser: HydratedDocument<User> = {
@@ -155,13 +155,13 @@ describe('AuthService', () => {
       const expectedUserData: UserInRequest = {
         userId: expect.any(String),
         supabaseId: mockUser.userId,
-        email: createDto.email,
-        birthDate: createDto.birthDate,
+        email: `enc(${createDto.email})`,
+        birthDate: `enc(${createDto.birthDate})`,
         longitude: `enc(${createDto.longitude})`,
         latitude: `enc(${createDto.latitude})`,
         salt: expect.any(String),
         encryptedSymmetricKey,
-        role: Role.GUEST,
+        role: `enc(${Role.GUEST})`,
       };
 
       mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(

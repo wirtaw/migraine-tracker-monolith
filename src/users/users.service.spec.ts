@@ -285,6 +285,8 @@ describe('UserService', () => {
           ...updateDto,
           longitude: 'encrypted_-118.2437',
           latitude: 'encrypted_34.0522',
+          birthDate: `encrypted_${updateDto.birthDate}`,
+          role: 'encrypted_user',
         },
         { new: true },
       );
