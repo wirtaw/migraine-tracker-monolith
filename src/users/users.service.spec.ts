@@ -8,6 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { NotFoundException } from '@nestjs/common';
 import { Role } from '../auth/enums/roles.enum';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -257,18 +258,24 @@ describe('UserService', () => {
 
   describe('update', () => {
     it('should update and return the updated user entry', async () => {
+      const email = 'anotherEmail@mail.com';
       const updateDto: UpdateUserDto = {
         emailNotifications: false,
         longitude: '-118.2437',
         latitude: '34.0522',
         birthDate: '1995-05-05',
+        email,
         dailySummary: false,
         personalHealthData: false,
         securitySetup: false,
         profileFilled: false,
         role: Role.USER,
       };
-      const updatedMockUser = { ...mockDbUser, emailNotifications: false };
+      const updatedMockUser = {
+        ...mockDbUser,
+        emailNotifications: false,
+        email,
+      };
       mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
         exec: () => updatedMockUser,
       });
@@ -287,6 +294,7 @@ describe('UserService', () => {
           latitude: 'encrypted_34.0522',
           birthDate: `encrypted_${updateDto.birthDate}`,
           role: 'encrypted_user',
+          email: `encrypted_${updateDto.email}`,
         },
         { new: true },
       );
@@ -296,7 +304,7 @@ describe('UserService', () => {
         longitude: mockUser.longitude,
         latitude: mockUser.latitude,
         birthDate: updatedMockUser.birthDate,
-        email: updatedMockUser.email,
+        email,
         emailNotifications: updatedMockUser.emailNotifications,
         dailySummary: updatedMockUser.dailySummary,
         personalHealthData: updatedMockUser.personalHealthData,
@@ -360,6 +368,76 @@ describe('UserService', () => {
       expect(mockUserModel.deleteOne).toHaveBeenCalledWith({
         userId: 'nonExistentUser',
       });
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update and return the updated user entry', async () => {
+      const updateDto: UpdateUserProfileDto = {
+        emailNotifications: false,
+        longitude: '-118.2437',
+        latitude: '34.0522',
+        birthDate: '1995-05-05',
+      };
+      const updatedMockUser = { ...mockDbUser, emailNotifications: false };
+      mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
+        exec: () => updatedMockUser,
+      });
+
+      const result = await service.updateProfile(
+        mockUser.userId,
+        updateDto,
+        'somekey',
+      );
+
+      expect(mockUserModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { userId: mockUser.userId },
+        {
+          ...updateDto,
+          longitude: 'encrypted_-118.2437',
+          latitude: 'encrypted_34.0522',
+          birthDate: `encrypted_${updateDto.birthDate}`,
+        },
+        { new: true },
+      );
+      expect(result).toEqual({
+        userId: updatedMockUser.userId,
+        supabaseId: updatedMockUser.supabaseId,
+        longitude: mockUser.longitude,
+        latitude: mockUser.latitude,
+        birthDate: updatedMockUser.birthDate,
+        email: mockUser.email,
+        emailNotifications: updatedMockUser.emailNotifications,
+        dailySummary: updatedMockUser.dailySummary,
+        personalHealthData: updatedMockUser.personalHealthData,
+        securitySetup: updatedMockUser.securitySetup,
+        profileFilled: updatedMockUser.profileFilled,
+        salt: updatedMockUser.salt,
+        encryptedSymmetricKey: updatedMockUser.encryptedSymmetricKey,
+        fetchDataErrors: updatedMockUser.fetchDataErrors,
+        fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
+        fetchWeather: updatedMockUser.fetchWeather,
+        role: Role.USER,
+      });
+    });
+
+    it('should throw NotFoundException if user entry not found during update', async () => {
+      mockUserModel.findOneAndUpdate = jest.fn().mockReturnValue({
+        exec: () => null,
+      });
+
+      await expect(
+        service.updateProfile(
+          'nonExistentUser',
+          {
+            emailNotifications: false,
+            longitude: '-118.2437',
+            latitude: '34.0522',
+            birthDate: '1995-05-05',
+          },
+          'somekey',
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

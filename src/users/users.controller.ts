@@ -10,6 +10,7 @@ import {
   HttpCode,
   Req,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -81,7 +82,13 @@ export class UserController {
     @Body() updateUserDto: UpdateUserProfileDto,
   ): Promise<IUser | null> {
     const userId = req?.user?.id || req?.session?.userId || '';
+    if (!userId) {
+      throw new NotFoundException(`User session not found`);
+    }
     const encryptionKey = req?.session?.key || '';
+    if (!encryptionKey) {
+      throw new BadRequestException(`Invalid request`);
+    }
     return this.userService.updateProfile(userId, updateUserDto, encryptionKey);
   }
 
@@ -135,9 +142,7 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<IUser | null> {
     const user = await this.userService.findOne(userId);
-    if (!user) {
-      throw new NotFoundException(`User with ID "${userId}" not found`);
-    }
+
     return this.userService.update(
       userId,
       updateUserDto,

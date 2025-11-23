@@ -210,11 +210,17 @@ export class AuthService {
       );
     }
 
-    //Logger.log(`ID: ${supabaseUser.id}, email: ${email}`);
+    const supabaseId = supabaseUser.id;
+    if (!supabaseId) {
+      throw new BadRequestException(
+        'OAuth provider did not return an user Id.',
+      );
+    }
+
+    Logger.log(`ID: ${supabaseId}, email: ${email}`);
 
     let userInDb = await this.userModel.findOne({
-      supabaseId: supabaseUser.id,
-      email,
+      supabaseId,
     });
 
     if (!userInDb) {
@@ -252,13 +258,30 @@ export class AuthService {
     if (!userInDb.encryptedSymmetricKey) {
       throw new UnauthorizedException('User encryption setup is incomplete.');
     }
+    const bufferKey = createHash('sha256')
+      .update(userInDb.encryptedSymmetricKey)
+      .digest();
 
-    const role = userInDb.role || Role.USER;
+    const role =
+      (this.encryptionService.decryptSensitiveData(
+        userInDb.role,
+        bufferKey,
+      ) as Role) || Role.USER;
+    const userEmail = this.encryptionService.decryptSensitiveData(
+      userInDb.email,
+      bufferKey,
+    );
+
+    if (userEmail !== email) {
+      throw new UnauthorizedException(
+        'User encrypted email and provider are different.',
+      );
+    }
     Logger.log(`auth role: '${role}'`);
 
     const payload: UserPayload = {
       userId: supabaseUser.id,
-      email: email,
+      email: userEmail,
       role,
     };
 

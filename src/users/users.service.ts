@@ -28,6 +28,15 @@ export class UserService {
         createUserDto.longitude.toString(),
         bufferKey,
       ),
+      birthDate: this.encryptionService.encryptSensitiveData(
+        createUserDto.birthDate,
+        bufferKey,
+      ),
+      email: this.encryptionService.encryptSensitiveData(
+        createUserDto.email,
+        bufferKey,
+      ),
+      role: this.encryptionService.encryptSensitiveData('guest', bufferKey),
     });
 
     const savedUser = await createdUser.save();

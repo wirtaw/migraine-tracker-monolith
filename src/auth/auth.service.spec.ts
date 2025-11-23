@@ -12,7 +12,7 @@ import { EncryptionService } from './encryption/encryption.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Model } from 'mongoose';
 import { CustomJwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -48,6 +48,7 @@ const mockUser: HydratedDocument<User> = {
   profileFilled: true,
   salt: 'somesalt-16bytes',
   encryptedSymmetricKey: 'encryptedSymmetricKey',
+  role: 'user',
 } as never;
 
 describe('AuthService', () => {
@@ -596,6 +597,11 @@ describe('AuthService', () => {
         error: null,
       });
 
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
       const result = await service.loginWithOAuth(token);
@@ -609,10 +615,24 @@ describe('AuthService', () => {
         },
         token,
       });
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
+      );
     });
 
     it('successfully auth create user with Github provider', async () => {
-      const { userModelMock: failedSaveMock } = createUserModelMock(mockUser, {
+      const { userModelMock: userSaveMock } = createUserModelMock(mockUser, {
         findOneResult: null,
         findByIdResult: null,
       });
@@ -634,12 +654,12 @@ describe('AuthService', () => {
           },
           {
             provide: getModelToken('User'),
-            useValue: failedSaveMock,
+            useValue: userSaveMock,
           },
         ],
       }).compile();
 
-      const serviceWithFailedSaveMock = module.get<AuthService>(AuthService);
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
 
       token = 'token';
       const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
@@ -657,7 +677,7 @@ describe('AuthService', () => {
       );
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
-      const result = await serviceWithFailedSaveMock.loginWithOAuth(token);
+      const result = await serviceWithUserSaveMock.loginWithOAuth(token);
 
       expect(result).toStrictEqual({
         message: 'Successfully logged in via OAuth.',
@@ -676,6 +696,20 @@ describe('AuthService', () => {
 
       expect(mockEncryptionService.encryptSymmetricKey).toHaveBeenCalledWith(
         symmetricKeyBuffer,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
       );
     });
 
@@ -742,6 +776,151 @@ describe('AuthService', () => {
       await expect(service.loginWithOAuth(token)).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('throw BadRequestException auth got user without supasabe user id', async () => {
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: null, email: mockUser.email } },
+        error: null,
+      });
+
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throw UnauthorizedException auth got user email and supabase are different', async () => {
+      const authEmail = 'other-user-email@mail.com';
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email: authEmail } },
+        error: null,
+      });
+
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
+      );
+    });
+  });
+
+  describe('getProfile()', () => {
+    let mockUserModel: jest.Mocked<Model<UserDocument>>;
+    let mockDocumentInstance: UserDocument;
+
+    beforeEach(() => {
+      mockDocumentInstance = {
+        ...mockUser,
+        save: jest.fn().mockResolvedValue(mockUser),
+      } as unknown as UserDocument;
+
+      mockUserModel = jest.fn().mockImplementation(() => {
+        return mockDocumentInstance;
+      }) as unknown as jest.Mocked<Model<UserDocument>>;
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+    });
+
+    it('successfully get profile user', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: mockUserModel,
+          },
+        ],
+      }).compile();
+
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
+
+      const expectedUserResult = {
+        userId: mockUser.supabaseId,
+        longitude: mockUser.longitude,
+        latitude: mockUser.latitude,
+        birthDate: mockUser.birthDate,
+        email: mockUser.email,
+        emailNotifications: !!mockUser?.emailNotifications,
+        dailySummary: !!mockUser?.dailySummary,
+        personalHealthData: !!mockUser?.personalHealthData,
+        securitySetup: !!mockUser?.securitySetup,
+        profileFilled: !!mockUser?.profileFilled,
+        fetchDataErrors: mockUser?.fetchDataErrors || undefined,
+        fetchMagneticWeather: !!mockUser?.fetchMagneticWeather,
+        fetchWeather: !!mockUser?.fetchWeather,
+        role: mockUser.role,
+      };
+      const result = await serviceWithUserSaveMock.getProfile(
+        mockUser.supabaseId,
+      );
+
+      expect(result).toStrictEqual(expectedUserResult);
+    });
+
+    it('throw NotFoundException got user profile error', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: mockUserModel,
+          },
+        ],
+      }).compile();
+
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
+
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        serviceWithUserSaveMock.getProfile(mockUser.supabaseId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

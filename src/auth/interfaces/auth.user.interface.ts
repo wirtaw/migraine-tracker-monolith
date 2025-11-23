@@ -22,7 +22,7 @@ export interface RequestWithUser extends Request {
 export interface UserPayload {
   userId: string;
   email?: string;
-  role: string;
+  role: Role;
 }
 
 export interface UserPayloadWithKey extends UserPayload {
