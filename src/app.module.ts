@@ -14,6 +14,8 @@ import { SymptomsModule } from './symptoms/symptoms.module';
 import { MedicationsModule } from './medications/medications.module';
 import { LocationsModule } from './locations/locations.module';
 import { HealthLogsModule } from './health-logs/health-logs.module';
+import { WeatherModule } from './weather/weather.module';
+import { SolarWeatherModule } from './solar/solar-weather.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { HealthLogsModule } from './health-logs/health-logs.module';
     MedicationsModule,
     LocationsModule,
     HealthLogsModule,
+    WeatherModule,
+    SolarWeatherModule,
   ],
   controllers: [AppController, TestController],
   providers: [AppService],

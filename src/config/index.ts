@@ -1,9 +1,11 @@
 import appConfig, { AppConfig, currentEnvironment } from './app/app.config';
 import authConfig, { AuthConfig } from './auth/auth.config';
+import integrationConfig, { IntegrationConfig } from './integration.config';
 
 export interface Config {
   app: AppConfig;
   auth: AuthConfig;
+  integration: IntegrationConfig;
 }
 
 export const getEnvFilePaths = (): string[] => {
@@ -19,4 +21,5 @@ export const getEnvFilePaths = (): string[] => {
 export default (): Config => ({
   app: appConfig(),
   auth: authConfig(),
+  integration: integrationConfig(),
 });
