@@ -23,6 +23,19 @@ import { AllExceptionsFilter } from './all-exceptions.filter';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  /**
+   * @description CORS Setup
+   */
+  // Configure allowed origins. You can fetch this from config if needed.
+  app.enableCors({
+    origin: [
+      'http://localhost:5173', // Example: Frontend dev server
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+  // ---------------------------------------------------------------------------
+
   app.setGlobalPrefix(ControllerName.pathPrefix);
   /**
    * @description Versioning

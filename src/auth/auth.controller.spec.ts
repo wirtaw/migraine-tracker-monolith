@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -8,7 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from './interfaces/auth.user.interface';
 import { RoleDto } from './dto/role.dto';
 import { Role } from './enums/roles.enum';
-import { OAuthLoginDto, OAuthProvider } from './dto/oauth-login.dto';
+import { UnauthorizedException } from '@nestjs/common';
 
 const mockIUser = {
   email: 'user123@example.com',
@@ -40,6 +39,7 @@ describe('AuthController', () => {
       message: 'Done',
     }),
     loginWithOAuth: jest.fn(),
+    getProfile: jest.fn().mockResolvedValue(mockIUser),
   };
 
   const mockRbacGuard = {
@@ -97,27 +97,36 @@ describe('AuthController', () => {
     });
   });
 
-  describe('oauth', () => {
-    let authLogin: OAuthLoginDto;
-
+  describe('loginWithOAuth', () => {
     it('should call authService.loginWithOAuth with the provided DTO', async () => {
-      authLogin = {
-        provider: OAuthProvider.GITHUB,
-        accessToken: crypto.randomBytes(32).toString('hex'),
-      };
+      const token = 'supabase-access-token';
 
+      const authorizationHeader = `Bearer ${token}`;
       const loginSpy = jest.spyOn(service, 'loginWithOAuth');
 
-      await controller.loginWithOAuth(authLogin);
-      expect(loginSpy).toHaveBeenCalledWith(authLogin);
+      await controller.loginWithOAuth(authorizationHeader);
+      expect(loginSpy).toHaveBeenCalledWith(token);
+    });
+
+    it('throw UnauthorizedException error authService.loginWithOAuth missing header', async () => {
+      await expect(controller.loginWithOAuth()).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException if Bearer token format is invalid', async () => {
+      await expect(controller.loginWithOAuth('Bearer ')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
   describe('getProfile', () => {
-    it('should return the user object from the request', () => {
+    it('should return the user object from the request', async () => {
+      const userId = '123';
       const request = {
         user: {
-          userId: '123',
+          userId,
           username: 'testuser',
           id: '123',
           app_metadata: {
@@ -129,11 +138,13 @@ describe('AuthController', () => {
           aud: '123',
         },
       };
+      const getProfileSpy = jest.spyOn(service, 'getProfile');
 
-      const result = controller.getProfile(
+      const result = await controller.getProfile(
         request as unknown as RequestWithUser,
       );
-      expect(result).toEqual(request.user);
+      expect(result).toEqual(mockIUser);
+      expect(getProfileSpy).toHaveBeenCalledWith(userId);
     });
   });
 

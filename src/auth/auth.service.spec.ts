@@ -12,14 +12,13 @@ import { EncryptionService } from './encryption/encryption.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Model } from 'mongoose';
 import { CustomJwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { createUserModelMock } from './mocks/createUserModelMock';
 import { Role } from './enums/roles.enum';
 import { RoleDto } from './dto/role.dto';
-import { OAuthProvider, type OAuthLoginDto } from './dto/oauth-login.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
@@ -32,7 +31,7 @@ interface UserInRequest {
   latitude: string;
   salt: string;
   encryptedSymmetricKey: string;
-  role: Role;
+  role: string;
 }
 
 const mockUser: HydratedDocument<User> = {
@@ -49,6 +48,7 @@ const mockUser: HydratedDocument<User> = {
   profileFilled: true,
   salt: 'somesalt-16bytes',
   encryptedSymmetricKey: 'encryptedSymmetricKey',
+  role: 'user',
 } as never;
 
 describe('AuthService', () => {
@@ -61,6 +61,17 @@ describe('AuthService', () => {
   const mockEncryptionService = {
     deriveSymmetricKey: jest.fn(),
     encryptSymmetricKey: jest.fn(),
+    encryptSensitiveData: jest.fn(
+      (value: string, _key: string) => `enc(${value})`,
+    ),
+    decryptSensitiveData: jest.fn((value: string, _key: string) => {
+      if (typeof value === 'string') {
+        return value.replace('encrypted_', '');
+      }
+      throw new Error(
+        `decryptSensitiveData: expected string, got ${typeof value}`,
+      );
+    }),
   };
 
   const mockSupabaseService = {
@@ -145,13 +156,13 @@ describe('AuthService', () => {
       const expectedUserData: UserInRequest = {
         userId: expect.any(String),
         supabaseId: mockUser.userId,
-        email: createDto.email,
-        birthDate: createDto.birthDate,
-        longitude: createDto.longitude,
-        latitude: createDto.latitude,
+        email: `enc(${createDto.email})`,
+        birthDate: `enc(${createDto.birthDate})`,
+        longitude: `enc(${createDto.longitude})`,
+        latitude: `enc(${createDto.latitude})`,
         salt: expect.any(String),
         encryptedSymmetricKey,
-        role: Role.GUEST,
+        role: `enc(${Role.GUEST})`,
       };
 
       mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
@@ -570,16 +581,12 @@ describe('AuthService', () => {
   });
 
   describe('loginWithOAuth()', () => {
-    let authLogin: OAuthLoginDto;
     let email: string;
     let token: string;
 
     beforeEach(() => {
-      authLogin = {
-        provider: OAuthProvider.GITHUB,
-        accessToken: crypto.randomBytes(32).toString('hex'),
-      };
       email = mockUser.email;
+      token = 'token';
     });
 
     it('successfully auth exists user with Github provider', async () => {
@@ -590,9 +597,14 @@ describe('AuthService', () => {
         error: null,
       });
 
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
-      const result = await service.loginWithOAuth(authLogin);
+      const result = await service.loginWithOAuth(token);
 
       expect(result).toStrictEqual({
         message: 'Successfully logged in via OAuth.',
@@ -603,10 +615,24 @@ describe('AuthService', () => {
         },
         token,
       });
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
+      );
     });
 
     it('successfully auth create user with Github provider', async () => {
-      const { userModelMock: failedSaveMock } = createUserModelMock(mockUser, {
+      const { userModelMock: userSaveMock } = createUserModelMock(mockUser, {
         findOneResult: null,
         findByIdResult: null,
       });
@@ -628,12 +654,12 @@ describe('AuthService', () => {
           },
           {
             provide: getModelToken('User'),
-            useValue: failedSaveMock,
+            useValue: userSaveMock,
           },
         ],
       }).compile();
 
-      const serviceWithFailedSaveMock = module.get<AuthService>(AuthService);
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
 
       token = 'token';
       const encryptedSymmetricKey = 'ivhex:encryptedKeyHex:authTagHex';
@@ -651,7 +677,7 @@ describe('AuthService', () => {
       );
       mockJwtService.signPayload.mockReturnValueOnce(token);
 
-      const result = await serviceWithFailedSaveMock.loginWithOAuth(authLogin);
+      const result = await serviceWithUserSaveMock.loginWithOAuth(token);
 
       expect(result).toStrictEqual({
         message: 'Successfully logged in via OAuth.',
@@ -670,6 +696,20 @@ describe('AuthService', () => {
 
       expect(mockEncryptionService.encryptSymmetricKey).toHaveBeenCalledWith(
         symmetricKeyBuffer,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
       );
     });
 
@@ -712,7 +752,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        serviceWithFailedSaveMock.loginWithOAuth(authLogin),
+        serviceWithFailedSaveMock.loginWithOAuth(token),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -722,7 +762,7 @@ describe('AuthService', () => {
         error: new Error('unexpected error in the OAuth2'),
       });
 
-      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -733,9 +773,154 @@ describe('AuthService', () => {
         error: null,
       });
 
-      await expect(service.loginWithOAuth(authLogin)).rejects.toThrow(
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('throw BadRequestException auth got user without supasabe user id', async () => {
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: null, email: mockUser.email } },
+        error: null,
+      });
+
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throw UnauthorizedException auth got user email and supabase are different', async () => {
+      const authEmail = 'other-user-email@mail.com';
+      mockSupabaseService.getUser.mockResolvedValueOnce({
+        data: { user: { id: mockUser.supabaseId, email: authEmail } },
+        error: null,
+      });
+
+      const symmetricKeyBuffer = Buffer.from('mockSymmetricKey');
+      mockEncryptionService.deriveSymmetricKey.mockResolvedValueOnce(
+        symmetricKeyBuffer,
+      );
+
+      mockJwtService.signPayload.mockReturnValueOnce(token);
+
+      await expect(service.loginWithOAuth(token)).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledTimes(
+        2,
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        email,
+        expect.any(Buffer),
+      );
+
+      expect(mockEncryptionService.decryptSensitiveData).toHaveBeenCalledWith(
+        mockUser.role,
+        expect.any(Buffer),
+      );
+    });
+  });
+
+  describe('getProfile()', () => {
+    let mockUserModel: jest.Mocked<Model<UserDocument>>;
+    let mockDocumentInstance: UserDocument;
+
+    beforeEach(() => {
+      mockDocumentInstance = {
+        ...mockUser,
+        save: jest.fn().mockResolvedValue(mockUser),
+      } as unknown as UserDocument;
+
+      mockUserModel = jest.fn().mockImplementation(() => {
+        return mockDocumentInstance;
+      }) as unknown as jest.Mocked<Model<UserDocument>>;
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+    });
+
+    it('successfully get profile user', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: mockUserModel,
+          },
+        ],
+      }).compile();
+
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
+
+      const expectedUserResult = {
+        userId: mockUser.supabaseId,
+        longitude: mockUser.longitude,
+        latitude: mockUser.latitude,
+        birthDate: mockUser.birthDate,
+        email: mockUser.email,
+        emailNotifications: !!mockUser?.emailNotifications,
+        dailySummary: !!mockUser?.dailySummary,
+        personalHealthData: !!mockUser?.personalHealthData,
+        securitySetup: !!mockUser?.securitySetup,
+        profileFilled: !!mockUser?.profileFilled,
+        fetchDataErrors: mockUser?.fetchDataErrors || undefined,
+        fetchMagneticWeather: !!mockUser?.fetchMagneticWeather,
+        fetchWeather: !!mockUser?.fetchWeather,
+        role: mockUser.role,
+      };
+      const result = await serviceWithUserSaveMock.getProfile(
+        mockUser.supabaseId,
+      );
+
+      expect(result).toStrictEqual(expectedUserResult);
+    });
+
+    it('throw NotFoundException got user profile error', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          {
+            provide: EncryptionService,
+            useValue: mockEncryptionService,
+          },
+          {
+            provide: SupabaseService,
+            useValue: mockSupabaseService,
+          },
+          {
+            provide: CustomJwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: getModelToken('User'),
+            useValue: mockUserModel,
+          },
+        ],
+      }).compile();
+
+      const serviceWithUserSaveMock = module.get<AuthService>(AuthService);
+
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        serviceWithUserSaveMock.getProfile(mockUser.supabaseId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

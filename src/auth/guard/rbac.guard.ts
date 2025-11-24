@@ -5,6 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { type User } from '@supabase/supabase-js';
@@ -62,6 +63,7 @@ export class RbacGuard implements CanActivate {
         key: payload.key,
       };
       role = (payload?.role as Role) || Role.USER;
+      Logger.log(`RBAC role: '${role}'`);
     } catch (exception) {
       if (
         exception instanceof UnauthorizedException ||
@@ -100,6 +102,9 @@ export class RbacGuard implements CanActivate {
       context.getClass(),
     ]);
     if (requiredRoles && !requiredRoles.includes(role)) {
+      Logger.log(
+        `requiredRoles: '${JSON.stringify(requiredRoles)}'. RBAC role: '${role}'`,
+      );
       throw new ForbiddenException('Insufficient role');
     }
 

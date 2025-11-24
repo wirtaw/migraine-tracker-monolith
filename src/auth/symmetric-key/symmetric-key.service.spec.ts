@@ -45,7 +45,6 @@ describe('SymmetricKeyService with HMAC', () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
     const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
-    const expectedBody = JSON.stringify({});
 
     mockHttpService.get.mockReturnValueOnce(
       of({
@@ -76,10 +75,22 @@ describe('SymmetricKeyService with HMAC', () => {
       throw new Error("Missing headers['X-Timestamp'] in Axios config");
     }
     const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}:${expectedBody}`;
-    const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
-    hmac.update(message);
-    const expectedSignature = hmac.digest('hex');
+    const keyBuffer = Uint8Array.from(
+      headerKey.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+    );
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${timestamp}:`);
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, data);
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
 
     expect(config?.headers['X-Signature']).toBe(expectedSignature);
   });
@@ -88,7 +99,6 @@ describe('SymmetricKeyService with HMAC', () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
     const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
-    const expectedBody = JSON.stringify({});
 
     mockHttpService.get.mockReturnValueOnce(
       of({
@@ -119,7 +129,7 @@ describe('SymmetricKeyService with HMAC', () => {
       throw new Error("Missing headers['X-Timestamp'] in Axios config");
     }
     const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}:${expectedBody}`;
+    const message = `${timestamp}:`;
     const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
     hmac.update(message);
     const expectedSignature = hmac.digest('hex');
@@ -129,7 +139,6 @@ describe('SymmetricKeyService with HMAC', () => {
 
   it('should throw error if body return unknown body value', async () => {
     const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
-    const expectedBody = JSON.stringify({});
 
     mockHttpService.get.mockReturnValueOnce(
       of({ data: { OTHER_DATA: 'test' } }),
@@ -156,7 +165,7 @@ describe('SymmetricKeyService with HMAC', () => {
       throw new Error("Missing headers['X-Timestamp'] in Axios config");
     }
     const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}:${expectedBody}`;
+    const message = `${timestamp}:`;
     const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
     hmac.update(message);
     const expectedSignature = hmac.digest('hex');

@@ -8,14 +8,21 @@ import {
   Get,
   Patch,
   Param,
+  Headers,
+  UnauthorizedException,
+  Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { type User } from '@supabase/supabase-js';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { OAuthLoginDto } from './dto/oauth-login.dto';
 import {
   type AuthResponse,
   RequestWithUser,
@@ -23,9 +30,8 @@ import {
 } from './interfaces/auth.user.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Permission } from '../auth/enums/permissions.enum';
 import { RoleDto } from './dto/role.dto';
+import { IUser } from '../users/interfaces/user.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -77,9 +83,10 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login/Register with OAuth2 provider (e.g., Github)',
   })
-  @ApiBody({
-    type: OAuthLoginDto,
-    description: 'OAuth access token and provider info',
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Supabase Access Token (Bearer <token>)',
+    required: true,
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -87,14 +94,25 @@ export class AuthController {
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
-    description: 'Invalid OAuth token.',
+    description: 'Invalid OAuth token or missing header.',
   })
-  async loginWithOAuth(@Body() oauthDto: OAuthLoginDto): Promise<AuthResponse> {
-    return this.authService.loginWithOAuth(oauthDto);
+  async loginWithOAuth(
+    @Headers('authorization') authorization?: string,
+  ): Promise<AuthResponse> {
+    if (!authorization) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    const accessToken = authorization.replace(/^Bearer\s+/i, '');
+
+    if (!accessToken) {
+      throw new UnauthorizedException('Invalid Bearer token format');
+    }
+
+    return this.authService.loginWithOAuth(accessToken);
   }
 
-  @Roles(Role.ADMIN)
-  @Permissions(Permission.MANAGE_USERS)
+  @Roles(Role.USER)
   @Get('profile')
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({
@@ -105,9 +123,9 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized access.',
   })
-  getProfile(req: RequestWithUser): User {
-    // The SupabaseAuthGuard will attach the user to the request
-    return req.user;
+  async getProfile(@Req() req: RequestWithUser): Promise<Partial<IUser>> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.authService.getProfile(userId);
   }
 
   @Roles(Role.ADMIN)

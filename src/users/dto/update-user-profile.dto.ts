@@ -8,7 +8,7 @@ import {
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
+export class UpdateUserProfileDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsString()
   @IsLongitude()
@@ -26,24 +26,4 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsBoolean()
   emailNotifications!: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  dailySummary!: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  personalHealthData!: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  securitySetup!: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  profileFilled!: boolean;
-
-  @IsNotEmpty()
-  @IsString()
-  role!: string;
 }

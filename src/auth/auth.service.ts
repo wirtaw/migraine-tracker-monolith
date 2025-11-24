@@ -4,10 +4,11 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import crypto from 'node:crypto';
+import crypto, { createHash } from 'node:crypto';
 import { SupabaseService } from './supabase/supabase.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { User, UserDocument } from '../users/schemas/user.schema';
@@ -23,7 +24,7 @@ import { CustomJwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
 import { RoleDto } from './dto/role.dto';
-import { OAuthLoginDto } from './dto/oauth-login.dto';
+import { IUser } from '../users/interfaces/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -62,14 +63,33 @@ export class AuthService {
       const encryptedSymmetricKey =
         await this.encryptionService.encryptSymmetricKey(symmetricKey);
 
+      const bufferKey = createHash('sha256')
+        .update(encryptedSymmetricKey)
+        .digest();
+
       const newUser = new this.userModel({
         ...userData,
         userId: crypto.randomUUID().toString(),
-        email,
+        email: this.encryptionService.encryptSensitiveData(email, bufferKey),
         supabaseId: supabaseUser.id,
         salt,
         encryptedSymmetricKey,
-        role: Role.GUEST,
+        role: this.encryptionService.encryptSensitiveData(
+          Role.GUEST,
+          bufferKey,
+        ),
+        latitude: this.encryptionService.encryptSensitiveData(
+          userData.latitude.toString(),
+          bufferKey,
+        ),
+        longitude: this.encryptionService.encryptSensitiveData(
+          userData.longitude.toString(),
+          bufferKey,
+        ),
+        birthDate: this.encryptionService.encryptSensitiveData(
+          userData.birthDate,
+          bufferKey,
+        ),
       });
 
       await newUser.save();
@@ -169,9 +189,7 @@ export class AuthService {
     };
   }
 
-  async loginWithOAuth(oauthLoginDto: OAuthLoginDto): Promise<AuthResponse> {
-    const { accessToken } = oauthLoginDto;
-
+  async loginWithOAuth(accessToken: string): Promise<AuthResponse> {
     const {
       data: { user: supabaseUser },
       error,
@@ -192,8 +210,17 @@ export class AuthService {
       );
     }
 
+    const supabaseId = supabaseUser.id;
+    if (!supabaseId) {
+      throw new BadRequestException(
+        'OAuth provider did not return an user Id.',
+      );
+    }
+
+    Logger.log(`ID: ${supabaseId}, email: ${email}`);
+
     let userInDb = await this.userModel.findOne({
-      supabaseId: supabaseUser.id,
+      supabaseId,
     });
 
     if (!userInDb) {
@@ -206,16 +233,23 @@ export class AuthService {
       const encryptedSymmetricKey =
         await this.encryptionService.encryptSymmetricKey(symmetricKey);
 
+      const bufferKey = createHash('sha256')
+        .update(encryptedSymmetricKey)
+        .digest();
+
       const newUser = new this.userModel({
         userId: crypto.randomUUID().toString(),
         supabaseId: supabaseUser.id,
-        email,
-        longitude: '0',
-        latitude: '0',
-        birthDate: new Date().toISOString(),
+        email: this.encryptionService.encryptSensitiveData(email, bufferKey),
+        longitude: this.encryptionService.encryptSensitiveData('0', bufferKey),
+        latitude: this.encryptionService.encryptSensitiveData('0', bufferKey),
+        birthDate: this.encryptionService.encryptSensitiveData(
+          new Date().toISOString(),
+          bufferKey,
+        ),
         salt,
         encryptedSymmetricKey,
-        fetchDataErrors: { forecast: '', magneticWeather: '' },
+        role: this.encryptionService.encryptSensitiveData(Role.USER, bufferKey),
       });
 
       userInDb = await newUser.save();
@@ -224,12 +258,30 @@ export class AuthService {
     if (!userInDb.encryptedSymmetricKey) {
       throw new UnauthorizedException('User encryption setup is incomplete.');
     }
+    const bufferKey = createHash('sha256')
+      .update(userInDb.encryptedSymmetricKey)
+      .digest();
 
-    const role = (supabaseUser.user_metadata?.role as Role) || Role.USER;
+    const role =
+      (this.encryptionService.decryptSensitiveData(
+        userInDb.role,
+        bufferKey,
+      ) as Role) || Role.USER;
+    const userEmail = this.encryptionService.decryptSensitiveData(
+      userInDb.email,
+      bufferKey,
+    );
+
+    if (userEmail !== email) {
+      throw new UnauthorizedException(
+        'User encrypted email and provider are different.',
+      );
+    }
+    Logger.log(`auth role: '${role}'`);
 
     const payload: UserPayload = {
       userId: supabaseUser.id,
-      email: email,
+      email: userEmail,
       role,
     };
 
@@ -242,6 +294,44 @@ export class AuthService {
       message: 'Successfully logged in via OAuth.',
       user: payload,
       token,
+    };
+  }
+
+  async getProfile(userId: string): Promise<Partial<IUser>> {
+    const user = await this.userModel.findOne({ supabaseId: userId }).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID "${userId}" not found`);
+    }
+
+    return this.mapToIUser(user, user.encryptedSymmetricKey);
+  }
+
+  private mapToIUser(userDoc: UserDocument, key: string): Partial<IUser> {
+    const bufferKey = createHash('sha256').update(key).digest();
+
+    const decrypt = (value: unknown, type: string): string => {
+      if (typeof value === 'string') {
+        return this.encryptionService.decryptSensitiveData(value, bufferKey);
+      }
+      throw new Error(`Expected string got ${typeof value} for ${type}`);
+    };
+
+    return {
+      userId: userDoc.supabaseId,
+      longitude: decrypt(userDoc.longitude, 'longitude'),
+      latitude: decrypt(userDoc.latitude, 'latitude'),
+      birthDate: decrypt(userDoc.birthDate, 'birthDate'),
+      email: decrypt(userDoc.email, 'email'),
+      emailNotifications: !!userDoc?.emailNotifications,
+      dailySummary: !!userDoc?.dailySummary,
+      personalHealthData: !!userDoc?.personalHealthData,
+      securitySetup: !!userDoc?.securitySetup,
+      profileFilled: !!userDoc?.profileFilled,
+      fetchDataErrors: userDoc?.fetchDataErrors || undefined,
+      fetchMagneticWeather: !!userDoc?.fetchMagneticWeather,
+      fetchWeather: !!userDoc?.fetchWeather,
+      role: decrypt(userDoc.role, 'role') as Role,
     };
   }
 }
