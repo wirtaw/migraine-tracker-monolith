@@ -1,10 +1,15 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { TemisClient } from './temis.client';
 import { NoaaClient } from './noaa.client';
 import { GfzClient } from './gfz.client';
-import { IRadiationTodayData } from './interfaces/radiation.interface';
+import {
+  IRadiationTodayData,
+  IRadiationData,
+  IPlanetaryKindexDataItem,
+  IKPIData,
+} from './interfaces/radiation.interface';
 
 @Injectable()
 export class SolarWeatherService {
@@ -15,45 +20,61 @@ export class SolarWeatherService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async getRadiation(lat: number, lon: number): Promise<IRadiationTodayData[]> {
-    const cacheKey = `solar_radiation_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+  async getRadiation(
+    latitude: number,
+    longitude: number,
+  ): Promise<IRadiationTodayData[]> {
+    const cacheKey = `solar_radiation_${latitude.toFixed(2)}_${longitude.toFixed(2)}`;
     const cached = await this.cacheManager.get<IRadiationTodayData[]>(cacheKey);
     if (cached) {
+      Logger.log('Cached', { ...cached });
       return cached;
     }
 
     // Parallel fetching for performance
     const [uvData, solarData, kpData] = await Promise.all([
-      this.temis.getUVData(lat, lon),
+      this.temis.getUVData(latitude, longitude),
       this.noaa.getSolarRadiation(),
       this.gfz.getKpIndex(),
     ]);
 
-    // Merge logic
     const result: IRadiationTodayData[] = this.mergeData(
       uvData,
       solarData,
       kpData,
     );
 
+    Logger.log('getRadiation result ', { ...result });
+
     // 1 hour TTL (3600000 ms)
     await this.cacheManager.set(cacheKey, result, 3600000);
     return result;
   }
 
-  private mergeData(uv: any, solar: any, kp: any): IRadiationTodayData[] {
-    // Logic to map date, UVIndex, ozone, etc.
-    // Since we don't have the exact response structure, we'll create a dummy response
-    // based on the inputs if they exist.
-
+  private mergeData(
+    uv: IRadiationData | undefined,
+    solar: IPlanetaryKindexDataItem[] | undefined,
+    kp: IKPIData | undefined,
+  ): IRadiationTodayData[] {
     const today = new Date().toISOString().split('T')[0];
 
     return [
       {
         date: today,
-        UVIndex: uv?.uv_index || 0, // Placeholder mapping
-        ozone: uv?.ozone || 0, // Placeholder mapping
-        kpIndex: kp?.kp_index || 0, // Placeholder mapping
+        UVIndex: uv?.cloud_Free_Erythemal_UV_index || 0,
+        ozone: uv?.ozone || 0,
+        kpIndex: solar?.[0].Kp || 0,
+        aRunning: solar?.[0].aRunning || 0,
+        ap1: kp?.ap1 || 0,
+        ap2: kp?.ap2 || 0,
+        ap3: kp?.ap3 || 0,
+        ap4: kp?.ap4 || 0,
+        ap5: kp?.ap5 || 0,
+        ap6: kp?.ap6 || 0,
+        ap7: kp?.ap7 || 0,
+        ap8: kp?.ap8 || 0,
+        solarFlux: kp?.solarFlux || 0,
+        sunsPotNumber: kp?.sunsPotNumber || 0,
       },
     ];
   }

@@ -1,5 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -36,7 +37,13 @@ export class TemisClient {
       this.http.get(`${baseUrl}/UVarchive/stations_uv.php`),
     );
 
-    const $ = cheerio.load(response.data);
+    const data = response.data as string | undefined;
+
+    if (!data) {
+      return [];
+    }
+
+    const $ = cheerio.load(data);
     const stations: IStation[] = [];
 
     $('table tr').each((index, element) => {
@@ -74,10 +81,13 @@ export class TemisClient {
   }
 
   async transform(
-    data: string,
+    data: string | undefined,
     date: string,
     url: string,
-  ): Promise<IRadiationData | null> {
+  ): Promise<IRadiationData | undefined> {
+    if (!data) {
+      return undefined;
+    }
     const cacheKey = `${url}-${date}`;
     const cached = await this.cacheManager.get<IRadiationData>(cacheKey);
     if (cached) {
@@ -90,7 +100,7 @@ export class TemisClient {
         const values = line.split(/\s+/).filter((val: string) => val !== '');
         if (values.length >= 9) {
           const radiationData: IRadiationData = {
-            CMF: Number.parseValue(values[15]),
+            CMF: parseValue(values[15]),
             cloud_Free_DNA_damage_UV_dose: parseValue(values[11]),
             cloud_Free_DNA_damage_UV_dose_error: parseValue(values[12]),
             cloud_Free_Erythemal_UV_dose: parseValue(values[3]),
@@ -113,10 +123,13 @@ export class TemisClient {
         }
       }
     }
-    return null;
+    return undefined;
   }
 
-  async getUVData(lat: number, lon: number): Promise<IRadiationData | null> {
+  async getUVData(
+    lat: number,
+    lon: number,
+  ): Promise<IRadiationData | undefined> {
     const closestStation: IStation | null = await this.getClosestStation(
       lat,
       lon,
@@ -127,18 +140,17 @@ export class TemisClient {
         `no closest station for coordinates lat:${lat} lon:${lon}`,
       );
     }
+    Logger.log('closestStation.url ', { url: closestStation.url });
 
     try {
       const response = await firstValueFrom(this.http.get(closestStation.url));
       const dt = DateTime.now();
-      return this.transform(
-        response.data,
-        dt.toFormat('yyyyMMdd'),
-        closestStation.url,
-      );
+      const data = response.data as string | undefined;
+      Logger.log('UVData ', { data });
+      return this.transform(data, dt.toFormat('yyyyMMdd'), closestStation.url);
     } catch (error) {
       Logger.error('Error fetching TEMIS data', error);
-      return null;
+      return undefined;
     }
   }
 }

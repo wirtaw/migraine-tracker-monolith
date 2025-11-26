@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GfzClient } from './gfz.client';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
-import { AxiosResponse } from 'axios';
+import { AxiosResponse, AxiosHeaders } from 'axios';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('GfzClient', () => {
   let client: GfzClient;
@@ -17,12 +19,18 @@ describe('GfzClient', () => {
     get: jest.fn().mockReturnValue('https://api.gfz-potsdam.de'),
   };
 
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GfzClient,
         { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: CACHE_MANAGER, useValue: mockCacheManager },
       ],
     }).compile();
 
@@ -42,7 +50,7 @@ describe('GfzClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: { headers: {} as any },
+        config: { headers: {} as unknown as AxiosHeaders },
       };
 
       mockHttpService.get.mockReturnValue(of(mockResponse));

@@ -63,16 +63,38 @@ describe('SolarWeatherService', () => {
     const cacheKey = `solar_radiation_${lat.toFixed(2)}_${lon.toFixed(2)}`;
     const today = new Date().toISOString().split('T')[0];
 
-    const mockUvData = { uv_index: 5, ozone: 300 };
-    const mockSolarData = { some_solar_data: 'value' };
-    const mockKpData = { kp_index: 3 };
+    const mockUvData = { cloud_Free_Erythemal_UV_index: 5, ozone: 300 };
+    const mockSolarData = [{ Kp: '1.5', aRunning: '3.6' }];
+    const mockKpData = {
+      solarFlux: 3,
+      sunsPotNumber: 25,
+      ap1: 1,
+      ap2: 1,
+      ap3: 1,
+      ap4: 1,
+      ap5: 1,
+      ap6: 1,
+      ap7: 1,
+      ap8: 1,
+    };
 
     const expectedResult = [
       {
         date: today,
         UVIndex: 5,
         ozone: 300,
-        kpIndex: 3,
+        kpIndex: '1.5',
+        aRunning: '3.6',
+        ap1: 1,
+        ap2: 1,
+        ap3: 1,
+        ap4: 1,
+        ap5: 1,
+        ap6: 1,
+        ap7: 1,
+        ap8: 1,
+        solarFlux: 3,
+        sunsPotNumber: 25,
       },
     ];
 
@@ -87,7 +109,7 @@ describe('SolarWeatherService', () => {
     });
 
     it('should fetch data from clients if not cached', async () => {
-      mockCacheManager.get.mockResolvedValue(null);
+      mockCacheManager.get.mockResolvedValue(undefined);
       mockTemisClient.getUVData.mockResolvedValue(mockUvData);
       mockNoaaClient.getSolarRadiation.mockResolvedValue(mockSolarData);
       mockGfzClient.getKpIndex.mockResolvedValue(mockKpData);

@@ -1,25 +1,83 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { DateTime } from 'luxon';
+import { IKPIData } from './interfaces/radiation.interface';
 
 @Injectable()
 export class GfzClient {
+  private REGEX =
+    /^(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d+)\s+(\d+\.\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d)\s+(\d+\.\d)\s+(\d+)$/;
+
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async getKpIndex() {
+  processKPI(data: string | undefined, dt: DateTime): IKPIData | undefined {
+    if (!data) {
+      return undefined;
+    }
+
+    const lines = data.split('\n');
+
+    for (const line of lines) {
+      const match = line.match(this.REGEX);
+      if (line.startsWith(dt.toFormat('yyyy MM dd')) && match) {
+        return {
+          AP: parseInt(match[23], 10),
+          D: parseInt(match[28], 10),
+          Kp1: parseFloat(match[8]),
+          Kp2: parseFloat(match[9]),
+          Kp3: parseFloat(match[10]),
+          Kp4: parseFloat(match[11]),
+          Kp5: parseFloat(match[12]),
+          Kp6: parseFloat(match[13]),
+          Kp7: parseFloat(match[14]),
+          Kp8: parseFloat(match[15]),
+          ap1: parseInt(match[16], 10),
+          ap2: parseInt(match[17], 10),
+          ap3: parseInt(match[18], 10),
+          ap4: parseInt(match[19], 10),
+          ap5: parseInt(match[20], 10),
+          ap6: parseInt(match[21], 10),
+          ap7: parseInt(match[22], 10),
+          ap8: parseInt(match[23], 10),
+          date: dt.toFormat('yyyy MM dd'),
+          solarFlux: parseFloat(match[26]),
+          sunsPotNumber: parseInt(match[25], 10),
+        };
+      }
+    }
+
+    return undefined;
+  }
+
+  async getKpIndex(): Promise<IKPIData | undefined> {
+    const cacheKey = `kp_index_gfz`;
+    const cached = await this.cacheManager.get<IKPIData | undefined>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     const baseUrl = this.config.get<string>('integration.apis.gfz');
-    const url = `${baseUrl}/kp-index/qp_nowcast.json`; // Example endpoint
+    const url = `${baseUrl}/kp_index/Kp_ap_Ap_SN_F107_nowcast.txt`;
 
     try {
       const response = await firstValueFrom(this.http.get(url));
-      return response.data;
+      const data = response.data as string | undefined;
+      const dt = DateTime.now();
+      const processedData = this.processKPI(data, dt);
+      if (processedData) {
+        await this.cacheManager.set(cacheKey, processedData, 3600000);
+      }
+      return processedData;
     } catch (error) {
       Logger.error('Error fetching GFZ data', error);
-      return null;
+      return undefined;
     }
   }
 }
