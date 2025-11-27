@@ -23,35 +23,38 @@ export class GfzClient {
       return undefined;
     }
 
-    const lines = data.split('\n');
+    const matches = data
+      .split('\n')
+      .find(
+        (line) =>
+          line.match(this.REGEX) && line.startsWith(dt.toFormat('yyyy MM dd')),
+      );
 
-    for (const line of lines) {
-      const match = line.match(this.REGEX);
-      if (line.startsWith(dt.toFormat('yyyy MM dd')) && match) {
-        return {
-          AP: parseInt(match[23], 10),
-          D: parseInt(match[28], 10),
-          Kp1: parseFloat(match[8]),
-          Kp2: parseFloat(match[9]),
-          Kp3: parseFloat(match[10]),
-          Kp4: parseFloat(match[11]),
-          Kp5: parseFloat(match[12]),
-          Kp6: parseFloat(match[13]),
-          Kp7: parseFloat(match[14]),
-          Kp8: parseFloat(match[15]),
-          ap1: parseInt(match[16], 10),
-          ap2: parseInt(match[17], 10),
-          ap3: parseInt(match[18], 10),
-          ap4: parseInt(match[19], 10),
-          ap5: parseInt(match[20], 10),
-          ap6: parseInt(match[21], 10),
-          ap7: parseInt(match[22], 10),
-          ap8: parseInt(match[23], 10),
-          date: dt.toFormat('yyyy MM dd'),
-          solarFlux: parseFloat(match[26]),
-          sunsPotNumber: parseInt(match[25], 10),
-        };
-      }
+    if (matches) {
+      const match = matches.match(this.REGEX) as string[];
+      return {
+        AP: parseInt(match[23], 10),
+        D: parseInt(match[28], 10),
+        Kp1: parseFloat(match[8]),
+        Kp2: parseFloat(match[9]),
+        Kp3: parseFloat(match[10]),
+        Kp4: parseFloat(match[11]),
+        Kp5: parseFloat(match[12]),
+        Kp6: parseFloat(match[13]),
+        Kp7: parseFloat(match[14]),
+        Kp8: parseFloat(match[15]),
+        ap1: parseInt(match[16], 10),
+        ap2: parseInt(match[17], 10),
+        ap3: parseInt(match[18], 10),
+        ap4: parseInt(match[19], 10),
+        ap5: parseInt(match[20], 10),
+        ap6: parseInt(match[21], 10),
+        ap7: parseInt(match[22], 10),
+        ap8: parseInt(match[23], 10),
+        date: dt.toFormat('yyyy MM dd'),
+        solarFlux: parseFloat(match[26]),
+        sunsPotNumber: parseInt(match[25], 10),
+      };
     }
 
     return undefined;
