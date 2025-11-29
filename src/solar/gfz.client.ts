@@ -7,11 +7,11 @@ import { Cache } from 'cache-manager';
 import { DateTime } from 'luxon';
 import { IKPIData } from './interfaces/radiation.interface';
 
+const GFZ_LINE_REGEX =
+  /^(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d+)\s+(\d+\.\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d)\s+(\d+\.\d)\s+(\d+)$/;
+
 @Injectable()
 export class GfzClient {
-  private REGEX =
-    /^(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d+)\s+(\d+\.\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d)\s+(\d+\.\d)\s+(\d+)$/;
-
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
@@ -23,17 +23,19 @@ export class GfzClient {
       return undefined;
     }
 
-    const matches = data
-      .split('\n')
-      .find(
-        (line) =>
-          line.match(this.REGEX) && line.startsWith(dt.toFormat('yyyy MM dd')),
-      );
+    const dateStr = dt.toFormat('yyyy MM dd');
+    Logger.log(`date ${dateStr}`);
 
-    if (matches) {
-      const match = matches.match(this.REGEX) as string[];
+    const lines = data.split('\n');
+    const line = lines.find(
+      (l) => l.startsWith(dateStr) && GFZ_LINE_REGEX.test(l),
+    );
+
+    if (line) {
+      Logger.log(`matches`, { line });
+      const match = line.match(GFZ_LINE_REGEX) as string[];
       return {
-        AP: parseInt(match[23], 10),
+        AP: parseInt(match[24], 10), // Corrected index for Ap
         D: parseInt(match[28], 10),
         Kp1: parseFloat(match[8]),
         Kp2: parseFloat(match[9]),
@@ -51,7 +53,7 @@ export class GfzClient {
         ap6: parseInt(match[21], 10),
         ap7: parseInt(match[22], 10),
         ap8: parseInt(match[23], 10),
-        date: dt.toFormat('yyyy MM dd'),
+        date: dateStr,
         solarFlux: parseFloat(match[26]),
         sunsPotNumber: parseInt(match[25], 10),
       };
@@ -72,6 +74,7 @@ export class GfzClient {
     try {
       const response = await firstValueFrom(this.http.get(url));
       const data = response.data as string | undefined;
+      Logger.log(`getKpIndex ${data}`);
       const dt = DateTime.now();
       const processedData = this.processKPI(data, dt);
       if (processedData) {

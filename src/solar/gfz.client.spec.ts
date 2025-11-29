@@ -345,4 +345,57 @@ ${generateMockSolarFlux(currentDate)}`;
       expect(result).toBeUndefined();
     });
   });
+
+  describe('processKPI', () => {
+    it('should parse valid KPI data correctly', () => {
+      const dt = DateTime.fromObject({ year: 2023, month: 10, day: 26 });
+      const validLine =
+        '2023 10 26 33536 33536.500000 2621  1  1.000  2.000  3.000  4.000  5.000  6.000  7.000  8.000    3    7   15   27   48   80  132  207   65  50  150.0  145.0 0';
+      // Note: The regex expects specific decimal places for Kp values (3 decimals) and specific format.
+      // Let's match the regex requirements:
+      // Kp values: \d+\.\d{3}
+      // ap values: \d+
+      // Ap: \d+
+      // SN: \d+
+      // F10.7: \d+\.\d
+      // D: \d+
+
+      const result = client.processKPI(validLine, dt);
+
+      expect(result).toBeDefined();
+      expect(result?.AP).toBe(65); // match[24]
+      expect(result?.D).toBe(0); // match[28]
+      expect(result?.Kp1).toBe(1.0);
+      expect(result?.Kp8).toBe(8.0);
+      expect(result?.ap1).toBe(3);
+      expect(result?.ap8).toBe(207);
+      expect(result?.sunsPotNumber).toBe(50);
+      expect(result?.solarFlux).toBe(150.0);
+    });
+
+    it('should return undefined for mismatched date', () => {
+      const dt = DateTime.fromObject({ year: 2023, month: 10, day: 27 }); // Different date
+      const validLine =
+        '2023 10 26 33536 33536.500000 2621  1  1.000  2.000  3.000  4.000  5.000  6.000  7.000  8.000    3    7   15   27   48   80  132  207   65  50  150.0  145.0 0';
+
+      const result = client.processKPI(validLine, dt);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for malformed data', () => {
+      const dt = DateTime.fromObject({ year: 2023, month: 10, day: 26 });
+      const invalidLine = '2023 10 26 invalid data structure';
+
+      const result = client.processKPI(invalidLine, dt);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if data is undefined', () => {
+      const dt = DateTime.now();
+      const result = client.processKPI(undefined, dt);
+      expect(result).toBeUndefined();
+    });
+  });
 });

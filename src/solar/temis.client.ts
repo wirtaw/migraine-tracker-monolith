@@ -135,7 +135,7 @@ export class TemisClient {
       lon,
     );
 
-    if (!closestStation) {
+    if (!closestStation || !closestStation.url) {
       throw new Error(
         `no closest station for coordinates lat:${lat} lon:${lon}`,
       );
@@ -146,7 +146,6 @@ export class TemisClient {
       const response = await firstValueFrom(this.http.get(closestStation.url));
       const dt = DateTime.now();
       const data = response.data as string | undefined;
-      Logger.log('UVData ', { data });
       return this.transform(data, dt.toFormat('yyyyMMdd'), closestStation.url);
     } catch (error) {
       Logger.error('Error fetching TEMIS data', error);

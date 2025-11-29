@@ -317,7 +317,7 @@ export class AuthService {
       throw new Error(`Expected string got ${typeof value} for ${type}`);
     };
 
-    return {
+    const userData = {
       userId: userDoc.supabaseId,
       longitude: decrypt(userDoc.longitude, 'longitude'),
       latitude: decrypt(userDoc.latitude, 'latitude'),
@@ -333,5 +333,9 @@ export class AuthService {
       fetchWeather: !!userDoc?.fetchWeather,
       role: decrypt(userDoc.role, 'role') as Role,
     };
+
+    Logger.log(`user data `, { userData });
+
+    return userData;
   }
 }
