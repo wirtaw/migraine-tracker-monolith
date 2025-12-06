@@ -16,14 +16,24 @@ dotenv.config({ path: '.env.test.local' });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
-module.exports = async function (
+export default async function (
   globalConfig: Config.GlobalConfig,
   projectConfig: Config.ProjectConfig,
 ) {
-  if (process.env.CI !== 'true') {
-    console.log(globalConfig.testPathPatterns);
-    console.log(projectConfig.cache);
+  const useDocker = process.env.USE_DOCKER === 'true';
 
+  // Cleanup any existing containers to ensure clean state
+  try {
+    console.log('Cleaning up any existing mongodb_test containers...');
+    // We use execAsync directly here to ensure it finishes before we proceed
+    // Ignoring errors because the container might not exist
+    await execAsync('podman rm -f mongodb_test').catch(() => {});
+    console.log('Cleanup complete.');
+  } catch (e) {
+    // Ignore cleanup errors
+  }
+
+  if (useDocker) {
     console.log('Starting MongoDB Docker container locally...');
     try {
       if (isPodman) {
@@ -39,10 +49,23 @@ module.exports = async function (
       process.exit(1);
     }
   } else {
-    console.log('Running in CI environment, skipping local Docker setup.');
-    const mongod = await MongoMemoryServer.create();
-    console.log(`getUri ${mongod.getUri()}`);
-    // process.env.MONGO_URI = mongod.getUri();
-    // global.__MONGOD__ = mongod;
+    console.log('Starting MongoMemoryServer...');
+    const mongod = await MongoMemoryServer.create({
+      binary: {
+        version: '7.0.0',
+      },
+    });
+    const uri = mongod.getUri();
+    console.log(`MongoMemoryServer started at ${uri}`);
+    
+    // Store the instance in global for teardown
+    global.__MONGOD__ = mongod;
+
+    // Write the URI to a temporary file so test suites can read it
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    fs.writeFileSync(configPath, JSON.stringify({ mongoUri: uri }));
   }
 };
