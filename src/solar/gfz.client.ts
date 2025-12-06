@@ -7,8 +7,7 @@ import { Cache } from 'cache-manager';
 import { DateTime } from 'luxon';
 import { IKPIData } from './interfaces/radiation.interface';
 
-const GFZ_LINE_REGEX =
-  /^(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d+)\s+(\d+\.\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+\.\d{3})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+\.\d)\s+(\d+\.\d)\s+(\d+)$/;
+import { GFZ_LINE_REGEX } from '../weather/weather.constants';
 
 @Injectable()
 export class GfzClient {
@@ -35,7 +34,7 @@ export class GfzClient {
       Logger.log(`matches`, { line });
       const match = line.match(GFZ_LINE_REGEX) as string[];
       return {
-        AP: parseInt(match[24], 10), // Corrected index for Ap
+        AP: parseInt(match[24], 10),
         D: parseInt(match[28], 10),
         Kp1: parseFloat(match[8]),
         Kp2: parseFloat(match[9]),

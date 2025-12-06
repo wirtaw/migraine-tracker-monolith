@@ -8,6 +8,7 @@ import { AxiosResponse, AxiosHeaders } from 'axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DateTime } from 'luxon';
 import { IKPIData } from './interfaces/radiation.interface';
+import { GFZ_LINE_REGEX } from '../weather/weather.constants';
 
 const KP_TO_AP_MAP: Record<number, number> = {
   0: 0,
@@ -53,6 +54,7 @@ function generateMockSolarFlux(
 
   const rows: string[] = [header];
   const today = DateTime.now().endOf('day');
+  const now = DateTime.now();
 
   let daysCounter = startDays;
   let bsrCounter = startBsr;
@@ -61,19 +63,36 @@ function generateMockSolarFlux(
   while (currentDate <= today) {
     const kps: number[] = [];
     const aps: number[] = [];
+    const isToday = currentDate.hasSame(now, 'day');
+    const currentInterval = Math.floor(now.hour / 3);
 
     for (let i = 0; i < 8; i++) {
-      const rawStep = Math.floor(randomRange(0, 20));
-      const kpVal = rawStep / 3;
-      kps.push(kpVal);
-      aps.push(calculateAp(kpVal));
+      if (isToday && i > currentInterval) {
+        kps.push(-1.0);
+        aps.push(-1);
+      } else {
+        const rawStep = Math.floor(randomRange(0, 20));
+        const kpVal = rawStep / 3;
+        kps.push(kpVal);
+        aps.push(calculateAp(kpVal));
+      }
     }
 
-    const dailyAp = Math.round(aps.reduce((a, b) => a + b, 0) / aps.length);
+    const validAps = aps.filter((ap) => ap !== -1);
+    const dailyAp =
+      validAps.length > 0
+        ? Math.round(validAps.reduce((a, b) => a + b, 0) / validAps.length)
+        : -1;
 
-    const f10_obs = randomRange(100, 180);
-    const f10_adj = f10_obs * 0.98;
-    const sn = Math.round((f10_obs - 60) * 1.5);
+    let f10_obs = -1.0;
+    let f10_adj = -1.0;
+    let sn = -1;
+
+    if (!isToday) {
+      f10_obs = randomRange(100, 180);
+      f10_adj = f10_obs * 0.98;
+      sn = Math.round((f10_obs - 60) * 1.5);
+    }
 
     const yyy = currentDate.year;
     const mm = pad(currentDate.month, 2, 0).replace(' ', '0');
@@ -396,6 +415,58 @@ ${generateMockSolarFlux(currentDate)}`;
       const dt = DateTime.now();
       const result = client.processKPI(undefined, dt);
       expect(result).toBeUndefined();
+    });
+
+    it('should handle future intervals with -1 values for today', () => {
+      const dt = DateTime.now();
+      const currentInterval = Math.floor(dt.hour / 3);
+      const mockData = mockGfzData(dt);
+      const lines = mockData.split('\n');
+      const todayLine = lines.find(
+        (l) =>
+          l.startsWith(dt.toFormat('yyyy MM dd')) && GFZ_LINE_REGEX.test(l),
+      );
+
+      expect(todayLine).toBeDefined();
+
+      const result = client.processKPI(mockData, dt);
+      expect(result).toBeDefined();
+
+      if (result) {
+        // Check Kp values
+        const kpValues = [
+          result.Kp1,
+          result.Kp2,
+          result.Kp3,
+          result.Kp4,
+          result.Kp5,
+          result.Kp6,
+          result.Kp7,
+          result.Kp8,
+        ];
+
+        // Check ap values
+        const apValues = [
+          result.ap1,
+          result.ap2,
+          result.ap3,
+          result.ap4,
+          result.ap5,
+          result.ap6,
+          result.ap7,
+          result.ap8,
+        ];
+
+        for (let i = 0; i < 8; i++) {
+          if (i > currentInterval) {
+            expect(kpValues[i]).toBe(-1.0);
+            expect(apValues[i]).toBe(-1);
+          } else {
+            expect(kpValues[i]).not.toBe(-1.0);
+            expect(apValues[i]).not.toBe(-1);
+          }
+        }
+      }
     });
   });
 });
