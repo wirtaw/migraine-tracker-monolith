@@ -7,8 +7,8 @@ import { GfzClient } from './gfz.client';
 import {
   IRadiationTodayData,
   IRadiationData,
-  IPlanetaryKindexDataItem,
   IKPIData,
+  IGeophysicalWeatherData,
 } from './interfaces/radiation.interface';
 
 @Injectable()
@@ -27,7 +27,6 @@ export class SolarWeatherService {
     const cacheKey = `solar_radiation_${latitude.toFixed(2)}_${longitude.toFixed(2)}`;
     const cached = await this.cacheManager.get<IRadiationTodayData[]>(cacheKey);
     if (cached) {
-      Logger.log('Cached', { ...cached });
       return cached;
     }
 
@@ -51,9 +50,18 @@ export class SolarWeatherService {
     return result;
   }
 
+  async getGeophysicalWeatherData(
+    date: string,
+  ): Promise<IGeophysicalWeatherData> {
+    const result: IGeophysicalWeatherData =
+      await this.noaa.getSolarRadiationByDate(date);
+
+    return result;
+  }
+
   private mergeData(
     uv: IRadiationData | undefined,
-    solar: IPlanetaryKindexDataItem[] | undefined,
+    solar: IGeophysicalWeatherData | undefined,
     kp: IKPIData | undefined,
   ): IRadiationTodayData[] {
     const today = new Date().toISOString().split('T')[0];
@@ -63,8 +71,8 @@ export class SolarWeatherService {
         date: today,
         UVIndex: uv?.cloud_Free_Erythemal_UV_index || 0,
         ozone: uv?.ozone || 0,
-        kpIndex: solar?.[0].Kp || 0,
-        aRunning: solar?.[0].aRunning || 0,
+        kpIndex: solar?.kIndex || 0,
+        aRunning: solar?.aIndex || 0,
         Kp1: kp?.Kp1 || -1.0,
         Kp2: kp?.Kp2 || -1.0,
         Kp3: kp?.Kp3 || -1.0,

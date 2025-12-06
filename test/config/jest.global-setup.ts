@@ -57,15 +57,15 @@ export default async function (
     });
     const uri = mongod.getUri();
     console.log(`MongoMemoryServer started at ${uri}`);
-    
+
     // Store the instance in global for teardown
     global.__MONGOD__ = mongod;
 
     // Write the URI to a temporary file so test suites can read it
     const fs = await import('fs');
     const path = await import('path');
-    
+
     const configPath = path.join(__dirname, '../../.jest-test-env.json');
     fs.writeFileSync(configPath, JSON.stringify({ mongoUri: uri }));
   }
-};
+}

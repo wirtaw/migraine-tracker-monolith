@@ -8,7 +8,10 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { IRadiationTodayData } from './interfaces/radiation.interface';
+import {
+  IRadiationTodayData,
+  IGeophysicalWeatherData,
+} from './interfaces/radiation.interface';
 
 @ApiTags('solar')
 @ApiBearerAuth('JWT-auth')
@@ -29,5 +32,19 @@ export class SolarWeatherController {
     @Query('longitude') longitude: number,
   ): Promise<IRadiationTodayData[]> {
     return this.solarService.getRadiation(Number(latitude), Number(longitude));
+  }
+
+  @Get('geophysical/historical')
+  @Roles(Role.USER)
+  @ApiOperation({ summary: 'Get Geophysical Weather Data (Historical)' })
+  @ApiResponse({ status: 200, description: 'Geophysical Weather' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  async getGeophysicalWeatherData(
+    @Query('date') date: string,
+  ): Promise<IGeophysicalWeatherData> {
+    return this.solarService.getGeophysicalWeatherData(date);
   }
 }

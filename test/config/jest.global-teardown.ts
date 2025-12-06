@@ -36,7 +36,7 @@ export default async function (
     if (global.__MONGOD__) {
       await global.__MONGOD__.stop();
     }
-    
+
     // Clean up the temporary file
     const fs = await import('fs');
     const path = await import('path');
@@ -46,4 +46,4 @@ export default async function (
       fs.unlinkSync(configPath);
     }
   }
-};
+}

@@ -5,6 +5,7 @@ import { TemisClient } from './temis.client';
 import { NoaaClient } from './noaa.client';
 import { GfzClient } from './gfz.client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DateTime } from 'luxon';
 
 describe('SolarWeatherService', () => {
   let service: SolarWeatherService;
@@ -18,6 +19,7 @@ describe('SolarWeatherService', () => {
 
   const mockNoaaClient = {
     getSolarRadiation: jest.fn(),
+    getSolarRadiationByDate: jest.fn(),
   };
 
   const mockGfzClient = {
@@ -64,7 +66,7 @@ describe('SolarWeatherService', () => {
     const today = new Date().toISOString().split('T')[0];
 
     const mockUvData = { cloud_Free_Erythemal_UV_index: 5, ozone: 300 };
-    const mockSolarData = [{ Kp: '1.5', aRunning: '3.6' }];
+    const mockSolarData = { kIndex: 1, aIndex: 3.6 };
     const mockKpData = {
       solarFlux: 3,
       sunsPotNumber: 25,
@@ -91,8 +93,8 @@ describe('SolarWeatherService', () => {
         date: today,
         UVIndex: 5,
         ozone: 300,
-        kpIndex: '1.5',
-        aRunning: '3.6',
+        kpIndex: 1,
+        aRunning: 3.6,
         Kp1: 1,
         Kp2: 1,
         Kp3: 1,
@@ -142,6 +144,25 @@ describe('SolarWeatherService', () => {
         expectedResult,
         3600000,
       );
+    });
+  });
+
+  describe('getGeophysicalWeatherData', () => {
+    const mockSolarData = {
+      kIndex: 2.67,
+      aIndex: 12,
+      solarFlux: 0,
+      pastWeather: { level: '' },
+      nextWeather: { level: '' },
+    };
+    it('should fetch data from clients', async () => {
+      const dt = DateTime.now().minus({ days: 6 });
+      mockNoaaClient.getSolarRadiationByDate.mockResolvedValue(mockSolarData);
+
+      const result = await service.getGeophysicalWeatherData(dt.toISO());
+
+      expect(result).toEqual(mockSolarData);
+      expect(mockNoaaClient.getSolarRadiationByDate).toHaveBeenCalled();
     });
   });
 });

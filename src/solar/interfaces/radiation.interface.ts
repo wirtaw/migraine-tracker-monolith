@@ -80,3 +80,11 @@ export interface IKPIData {
   solarFlux: number;
   sunsPotNumber: number;
 }
+
+export interface IGeophysicalWeatherData {
+  solarFlux: number;
+  aIndex: number;
+  kIndex: number;
+  pastWeather: { level: string };
+  nextWeather: { level: string };
+}

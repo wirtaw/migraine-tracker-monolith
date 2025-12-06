@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SolarWeatherController } from './solar-weather.controller';
 import { SolarWeatherService } from './solar-weather.service';
+import { DateTime } from 'luxon';
 
 describe('SolarWeatherController', () => {
   let controller: SolarWeatherController;
@@ -9,6 +10,7 @@ describe('SolarWeatherController', () => {
 
   const mockSolarService = {
     getRadiation: jest.fn(),
+    getGeophysicalWeatherData: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -48,6 +50,29 @@ describe('SolarWeatherController', () => {
 
       expect(result).toEqual(mockRadiation);
       expect(solarService.getRadiation).toHaveBeenCalledWith(lat, lon);
+    });
+  });
+
+  describe('getGeophysicalWeatherData', () => {
+    const mockSolarData = {
+      kIndex: 2.67,
+      aIndex: 12,
+      solarFlux: 0,
+      pastWeather: { level: '' },
+      nextWeather: { level: '' },
+    };
+    it('should return geophysical historical data', async () => {
+      const dt = DateTime.now().minus({ days: 6 });
+      mockSolarService.getGeophysicalWeatherData.mockResolvedValue(
+        mockSolarData,
+      );
+
+      const result = await controller.getGeophysicalWeatherData(dt.toISO());
+
+      expect(result).toEqual(mockSolarData);
+      expect(solarService.getGeophysicalWeatherData).toHaveBeenCalledWith(
+        dt.toISO(),
+      );
     });
   });
 });
