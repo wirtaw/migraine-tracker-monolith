@@ -4,6 +4,14 @@ export interface IRadiationTodayData {
   ozone: number;
   kpIndex?: number;
   aRunning?: number;
+  Kp1?: number;
+  Kp2?: number;
+  Kp3?: number;
+  Kp4?: number;
+  Kp5?: number;
+  Kp6?: number;
+  Kp7?: number;
+  Kp8?: number;
   ap1?: number;
   ap2?: number;
   ap3?: number;
