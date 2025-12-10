@@ -59,7 +59,19 @@ describe('SolarWeatherController', () => {
       aIndex: 12,
       solarFlux: 0,
       pastWeather: { level: '' },
-      nextWeather: { level: '' },
+      nextWeather: {
+        kpIndex: {
+          observed: '',
+          expected: '',
+          rationale: '',
+        },
+        solarRadiation: {
+          rationale: '',
+        },
+        radioBlackout: {
+          rationale: '',
+        },
+      },
     };
     it('should return geophysical historical data', async () => {
       const dt = DateTime.now().minus({ days: 6 });

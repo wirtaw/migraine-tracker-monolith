@@ -81,10 +81,24 @@ export interface IKPIData {
   sunsPotNumber: number;
 }
 
+export interface NextWeather {
+  kpIndex: {
+    observed: string;
+    expected: string;
+    rationale: string;
+  };
+  solarRadiation: {
+    rationale: string;
+  };
+  radioBlackout: {
+    rationale: string;
+  };
+}
+
 export interface IGeophysicalWeatherData {
   solarFlux: number;
   aIndex: number;
   kIndex: number;
   pastWeather: { level: string };
-  nextWeather: { level: string };
+  nextWeather: NextWeather;
 }

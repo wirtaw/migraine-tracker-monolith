@@ -9,6 +9,7 @@ import {
   IRadiationData,
   IKPIData,
   IGeophysicalWeatherData,
+  NextWeather,
 } from './interfaces/radiation.interface';
 
 @Injectable()
@@ -55,6 +56,11 @@ export class SolarWeatherService {
   ): Promise<IGeophysicalWeatherData> {
     const result: IGeophysicalWeatherData =
       await this.noaa.getSolarRadiationByDate(date);
+    const forecast: NextWeather | undefined =
+      await this.noaa.getSolarRadiationForecast();
+    if (forecast) {
+      result.nextWeather = { ...forecast };
+    }
 
     return result;
   }

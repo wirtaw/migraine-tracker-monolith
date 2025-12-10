@@ -7,6 +7,7 @@ import { Cache } from 'cache-manager';
 import {
   IPlanetaryKindexDataItem,
   IGeophysicalWeatherData,
+  NextWeather,
 } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
 
@@ -46,6 +47,68 @@ export class NoaaClient {
     }
   };
 
+  cleanText(text: string): string {
+    if (!text) return '';
+    return text
+      .replace(/\r?\n|\r/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  process3DayForecast(reportText: string | undefined): NextWeather | undefined {
+    if (!reportText) return undefined;
+    const sectionAMatch = reportText.match(
+      /A\. NOAA Geomagnetic([\s\S]*?)(?=B\. NOAA|$)/,
+    );
+    const sectionBMatch = reportText.match(
+      /B\. NOAA Solar Radiation([\s\S]*?)(?=C\. NOAA|$)/,
+    );
+    const sectionCMatch = reportText.match(
+      /C\. NOAA Radio Blackout([\s\S]*?)(?=$)/,
+    );
+
+    const partA = sectionAMatch ? sectionAMatch[1] : '';
+    const partB = sectionBMatch ? sectionBMatch[1] : '';
+    const partC = sectionCMatch ? sectionCMatch[1] : '';
+
+    const kpObservedRegex = /greatest observed 3 hr \s*([\s\S]*?)(?=\.\n|$)/i;
+
+    const kpExpectedRegex = /greatest expected 3 hr \s*([\s\S]*?)(?=\.\n|$)/i;
+
+    const rationaleRegex = /Rationale:\s*([\s\S]*?)(?=\.\r|$)/i;
+
+    const kpObservedMatch = partA.match(kpObservedRegex);
+    const kpExpectedMatch = partA.match(kpExpectedRegex);
+    const kpRationaleMatch = partA.match(rationaleRegex);
+
+    const solarRationaleMatch = partB.match(rationaleRegex);
+    const radioRationaleMatch = partC.match(rationaleRegex);
+
+    return {
+      kpIndex: {
+        observed: kpObservedMatch
+          ? this.cleanText(`The greatest observed 3 hr ${kpObservedMatch[1]}`)
+          : 'N/A',
+        expected: kpExpectedMatch
+          ? this.cleanText(`The greatest expected 3 hr ${kpExpectedMatch[1]}`)
+          : 'N/A',
+        rationale: kpRationaleMatch
+          ? this.cleanText(kpRationaleMatch[1])
+          : 'N/A',
+      },
+      solarRadiation: {
+        rationale: solarRationaleMatch
+          ? this.cleanText(solarRationaleMatch[1])
+          : 'N/A',
+      },
+      radioBlackout: {
+        rationale: radioRationaleMatch
+          ? this.cleanText(radioRationaleMatch[1])
+          : 'N/A',
+      },
+    };
+  }
+
   async getSolarRadiation(): Promise<IGeophysicalWeatherData | undefined> {
     const cacheKey = `solar_radiation_noaa`;
     const cached =
@@ -67,7 +130,19 @@ export class NoaaClient {
           aIndex: processedData[processedData.length - 1].aRunning,
           kIndex: processedData[processedData.length - 1].Kp,
           pastWeather: { level: '' },
-          nextWeather: { level: '' },
+          nextWeather: {
+            kpIndex: {
+              observed: '',
+              expected: '',
+              rationale: '',
+            },
+            solarRadiation: {
+              rationale: '',
+            },
+            radioBlackout: {
+              rationale: '',
+            },
+          },
         };
 
         await this.cacheManager.set(cacheKey, result, 3600000);
@@ -90,7 +165,19 @@ export class NoaaClient {
       aIndex: 0,
       kIndex: 0,
       pastWeather: { level: '' },
-      nextWeather: { level: '' },
+      nextWeather: {
+        kpIndex: {
+          observed: '',
+          expected: '',
+          rationale: '',
+        },
+        solarRadiation: {
+          rationale: '',
+        },
+        radioBlackout: {
+          rationale: '',
+        },
+      },
     };
 
     if (!dt.isValid) {
@@ -118,7 +205,19 @@ export class NoaaClient {
             aIndex: processedData[processedData.length - 1].aRunning,
             kIndex: processedData[processedData.length - 1].Kp,
             pastWeather: { level: '' },
-            nextWeather: { level: '' },
+            nextWeather: {
+              kpIndex: {
+                observed: '',
+                expected: '',
+                rationale: '',
+              },
+              solarRadiation: {
+                rationale: '',
+              },
+              radioBlackout: {
+                rationale: '',
+              },
+            },
           };
           await this.cacheManager.set(cacheKey, result, 3600000);
 
@@ -132,5 +231,32 @@ export class NoaaClient {
     }
 
     return emptyData;
+  }
+
+  async getSolarRadiationForecast(): Promise<NextWeather | undefined> {
+    const dt = DateTime.now();
+    const cacheKey = `solar_geophysical_3_day_forecast_${dt.toISODate()}`;
+    const cached = await this.cacheManager.get<NextWeather>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const baseUrl = this.config.get<string>('integration.apis.noaa');
+    const url = `${baseUrl}/text/3-day-forecast.txt`;
+
+    try {
+      const response = await firstValueFrom(this.http.get(url));
+      const data = response.data as string | undefined;
+      const result = this.process3DayForecast(data);
+      if (result) {
+        await this.cacheManager.set(cacheKey, result, 3600000);
+
+        return result;
+      }
+      return undefined;
+    } catch (error) {
+      Logger.error('Error fetching NOAA data', error);
+      return undefined;
+    }
   }
 }

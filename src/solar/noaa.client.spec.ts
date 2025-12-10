@@ -6,7 +6,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { of, throwError } from 'rxjs';
 import { AxiosResponse, AxiosHeaders } from 'axios';
 import { DateTime } from 'luxon';
-import { IGeophysicalWeatherData } from './interfaces/radiation.interface';
+import {
+  IGeophysicalWeatherData,
+  NextWeather,
+} from './interfaces/radiation.interface';
 
 describe('NoaaClient', () => {
   let service: NoaaClient;
@@ -158,7 +161,19 @@ describe('NoaaClient', () => {
         aIndex: 12,
         solarFlux: 0,
         pastWeather: { level: '' },
-        nextWeather: { level: '' },
+        nextWeather: {
+          kpIndex: {
+            observed: '',
+            expected: '',
+            rationale: '',
+          },
+          solarRadiation: {
+            rationale: '',
+          },
+          radioBlackout: {
+            rationale: '',
+          },
+        },
       };
       mockCacheManager.get.mockResolvedValue(cachedData);
 
@@ -187,7 +202,19 @@ describe('NoaaClient', () => {
         aIndex: parseInt(data[data.length - 1][2], 10),
         kIndex: parseFloat(data[data.length - 1][1]),
         pastWeather: { level: '' },
-        nextWeather: { level: '' },
+        nextWeather: {
+          kpIndex: {
+            observed: '',
+            expected: '',
+            rationale: '',
+          },
+          solarRadiation: {
+            rationale: '',
+          },
+          radioBlackout: {
+            rationale: '',
+          },
+        },
       };
 
       const response: AxiosResponse = {
@@ -252,7 +279,19 @@ describe('NoaaClient', () => {
         aIndex: 0,
         kIndex: 0,
         pastWeather: { level: '' },
-        nextWeather: { level: '' },
+        nextWeather: {
+          kpIndex: {
+            observed: '',
+            expected: '',
+            rationale: '',
+          },
+          solarRadiation: {
+            rationale: '',
+          },
+          radioBlackout: {
+            rationale: '',
+          },
+        },
       };
       mockCacheManager.get.mockResolvedValue(null);
 
@@ -311,6 +350,360 @@ describe('NoaaClient', () => {
 
       const result = service.processPlanetaryKIndex(mockData as string[], dt);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('getSolarRadiationForecast', () => {
+    let mockData: string = '';
+
+    beforeEach(() => {
+      mockData = ` :Product: 3-Day Forecast
+
+:Issued: 2025 Dec 09 1230 UTC
+
+# Prepared by the U.S. Dept. of Commerce, NOAA, Space Weather Prediction Center
+
+#
+
+A. NOAA Geomagnetic Activity Observation and Forecast
+
+
+The greatest observed 3 hr Kp over the past 24 hours was 2 (below NOAA
+
+Scale levels).
+
+The greatest expected 3 hr Kp for Dec 09-Dec 11 2025 is 6.67 (NOAA Scale
+
+G3).
+
+
+NOAA Kp index breakdown Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+00-03UT 2.33 5.33 (G1) 2.67
+
+03-06UT 0.67 5.00 (G1) 2.00
+
+06-09UT 1.00 5.00 (G1) 2.33
+
+09-12UT 1.00 4.33 2.33
+
+12-15UT 6.67 (G3) 4.00 2.33
+
+15-18UT 5.33 (G1) 3.67 2.33
+
+18-21UT 5.00 (G1) 3.67 2.33
+
+21-00UT 3.67 1.33 2.67
+
+
+Rationale: Periods of G2-G3 (Moderate-Strong) geomagnetic storms are
+
+likely on 09 Dec, due to the anticipated influence of a CME from Dec 06.
+
+
+B. NOAA Solar Radiation Activity Observation and Forecast
+
+
+Solar radiation, as observed by NOAA GOES-18 over the past 24 hours, was
+
+below S-scale storm level thresholds.
+
+
+Solar Radiation Storm Forecast for Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+S1 or greater 15% 15% 15%
+
+
+Rationale: There is a slight chance for S1 (Minor) or greater solar
+
+radiation storms on 09-11 Dec.
+
+
+C. NOAA Radio Blackout Activity and Forecast
+
+
+Radio blackouts reaching the R1 levels were observed over the past 24
+
+hours. The largest was at Dec 08 2025 2117 UTC.
+
+
+Radio Blackout Forecast for Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+R1-R2 65% 65% 65%
+
+R3 or greater 15% 15% 15%
+
+
+Rationale: R1-R2 (Minor-Moderate) radio blackouts are likely, with a
+
+slight chance for R3 (Strong) or greater events on 09-11 Dec. `;
+    });
+
+    it('should return cached data if available', async () => {
+      const dt = DateTime.now();
+      const cachedData = {
+        kpIndex: {
+          observed:
+            ' The greatest observed 3 hr Kp over the past 24 hours was 2 (below NOAA Scale levels). ',
+          expected:
+            ' The greatest expected 3 hr Kp for Dec 09-Dec 11 2025 is 6.67 (NOAA Scale G3). ',
+          rationale:
+            'Periods of G2-G3 (Moderate-Strong) geomagnetic storms are likely on 09 Dec, due to the anticipated influence of a CME from Dec 06',
+        },
+        solarRadiation: {
+          rationale:
+            'There is a slight chance for S1 (Minor) or greater solar radiation storms on 09-11 Dec',
+        },
+        radioBlackout: {
+          rationale:
+            'R1-R2 (Minor-Moderate) radio blackouts are likely, with a slight chance for R3 (Strong) or greater events on 09-11 Dec',
+        },
+      };
+      mockCacheManager.get.mockResolvedValue(cachedData);
+
+      const result = await service.getSolarRadiationForecast();
+
+      expect(result).toEqual(cachedData);
+      expect(mockCacheManager.get).toHaveBeenCalledWith(
+        `solar_geophysical_3_day_forecast_${dt.toISODate()}`,
+      );
+      expect(mockHttpService.get).not.toHaveBeenCalled();
+    });
+
+    it('should fetch and process data if not cached', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockConfigService.get.mockReturnValue('http://noaa-api');
+
+      const dt = DateTime.now();
+
+      const expected: NextWeather = {
+        kpIndex: {
+          observed:
+            'The greatest observed 3 hr Kp over the past 24 hours was 2 (below NOAA Scale levels)',
+          expected:
+            'The greatest expected 3 hr Kp for Dec 09-Dec 11 2025 is 6.67 (NOAA Scale G3)',
+          rationale:
+            'Periods of G2-G3 (Moderate-Strong) geomagnetic storms are likely on 09 Dec, due to the anticipated influence of a CME from Dec 06.',
+        },
+        solarRadiation: {
+          rationale:
+            'There is a slight chance for S1 (Minor) or greater solar radiation storms on 09-11 Dec.',
+        },
+        radioBlackout: {
+          rationale:
+            'R1-R2 (Minor-Moderate) radio blackouts are likely, with a slight chance for R3 (Strong) or greater events on 09-11 Dec.',
+        },
+      };
+
+      const response: AxiosResponse = {
+        data: mockData,
+        status: 200,
+        statusText: 'OK',
+        headers: {} as unknown as AxiosHeaders,
+        config: { headers: {} as unknown as AxiosHeaders },
+      };
+      mockHttpService.get.mockReturnValue(of(response));
+
+      const result = await service.getSolarRadiationForecast();
+
+      expect(result).toBeDefined();
+
+      expect(result).toHaveProperty('kpIndex');
+      expect(result).toHaveProperty('solarRadiation');
+      expect(result).toHaveProperty('radioBlackout');
+
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        `solar_geophysical_3_day_forecast_${dt.toISODate()}`,
+        expected,
+        3600000,
+      );
+    });
+  });
+
+  describe('process3DayForecast', () => {
+    let mockData: string = '';
+
+    beforeEach(() => {
+      mockData = ` :Product: 3-Day Forecast
+
+:Issued: 2025 Dec 09 1230 UTC
+
+# Prepared by the U.S. Dept. of Commerce, NOAA, Space Weather Prediction Center
+
+#
+
+A. NOAA Geomagnetic Activity Observation and Forecast
+
+
+The greatest observed 3 hr Kp over the past 24 hours was 2 (below NOAA
+
+Scale levels).
+
+The greatest expected 3 hr Kp for Dec 09-Dec 11 2025 is 6.67 (NOAA Scale
+
+G3).
+
+
+NOAA Kp index breakdown Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+00-03UT 2.33 5.33 (G1) 2.67
+
+03-06UT 0.67 5.00 (G1) 2.00
+
+06-09UT 1.00 5.00 (G1) 2.33
+
+09-12UT 1.00 4.33 2.33
+
+12-15UT 6.67 (G3) 4.00 2.33
+
+15-18UT 5.33 (G1) 3.67 2.33
+
+18-21UT 5.00 (G1) 3.67 2.33
+
+21-00UT 3.67 1.33 2.67
+
+
+Rationale: Periods of G2-G3 (Moderate-Strong) geomagnetic storms are
+
+likely on 09 Dec, due to the anticipated influence of a CME from Dec 06.
+
+
+B. NOAA Solar Radiation Activity Observation and Forecast
+
+
+Solar radiation, as observed by NOAA GOES-18 over the past 24 hours, was
+
+below S-scale storm level thresholds.
+
+
+Solar Radiation Storm Forecast for Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+S1 or greater 15% 15% 15%
+
+
+Rationale: There is a slight chance for S1 (Minor) or greater solar
+
+radiation storms on 09-11 Dec.
+
+
+C. NOAA Radio Blackout Activity and Forecast
+
+
+Radio blackouts reaching the R1 levels were observed over the past 24
+
+hours. The largest was at Dec 08 2025 2117 UTC.
+
+
+Radio Blackout Forecast for Dec 09-Dec 11 2025
+
+
+Dec 09 Dec 10 Dec 11
+
+R1-R2 65% 65% 65%
+
+R3 or greater 15% 15% 15%
+
+
+Rationale: R1-R2 (Minor-Moderate) radio blackouts are likely, with a
+
+slight chance for R3 (Strong) or greater events on 09-11 Dec. `;
+    });
+
+    it('should return undefined for invalid input', () => {
+      expect(service.process3DayForecast(undefined)).toBeUndefined();
+    });
+
+    it('should process valid data correctly', () => {
+      const result = service.process3DayForecast(mockData);
+
+      expect(result).toBeDefined();
+      expect(result!).toEqual({
+        kpIndex: {
+          observed:
+            'The greatest observed 3 hr Kp over the past 24 hours was 2 (below NOAA Scale levels)',
+          expected:
+            'The greatest expected 3 hr Kp for Dec 09-Dec 11 2025 is 6.67 (NOAA Scale G3)',
+          rationale:
+            'Periods of G2-G3 (Moderate-Strong) geomagnetic storms are likely on 09 Dec, due to the anticipated influence of a CME from Dec 06.',
+        },
+        solarRadiation: {
+          rationale:
+            'There is a slight chance for S1 (Minor) or greater solar radiation storms on 09-11 Dec.',
+        },
+        radioBlackout: {
+          rationale:
+            'R1-R2 (Minor-Moderate) radio blackouts are likely, with a slight chance for R3 (Strong) or greater events on 09-11 Dec.',
+        },
+      });
+    });
+
+    it('should process data not macth case', () => {
+      const result = service.process3DayForecast(`test
+A. NOAA Geomagnetic Activity Observation and Forecast
+
+a
+b
+c
+
+B. NOAA Solar Radiation Activity Observation and Forecast
+
+c
+d
+f
+
+C. NOAA Radio Blackout Activity and Forecast
+        
+e
+f `);
+
+      expect(result).toBeDefined();
+      expect(result!).toEqual({
+        kpIndex: {
+          observed: 'N/A',
+          expected: 'N/A',
+          rationale: 'N/A',
+        },
+        solarRadiation: {
+          rationale: 'N/A',
+        },
+        radioBlackout: {
+          rationale: 'N/A',
+        },
+      });
+    });
+
+    it('should process data not contains', () => {
+      const result = service.process3DayForecast(`test`);
+
+      expect(result).toBeDefined();
+      expect(result!).toEqual({
+        kpIndex: {
+          observed: 'N/A',
+          expected: 'N/A',
+          rationale: 'N/A',
+        },
+        solarRadiation: {
+          rationale: 'N/A',
+        },
+        radioBlackout: {
+          rationale: 'N/A',
+        },
+      });
     });
   });
 });

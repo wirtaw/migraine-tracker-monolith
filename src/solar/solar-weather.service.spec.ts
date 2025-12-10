@@ -20,6 +20,7 @@ describe('SolarWeatherService', () => {
   const mockNoaaClient = {
     getSolarRadiation: jest.fn(),
     getSolarRadiationByDate: jest.fn(),
+    getSolarRadiationForecast: jest.fn(),
   };
 
   const mockGfzClient = {
@@ -153,11 +154,24 @@ describe('SolarWeatherService', () => {
       aIndex: 12,
       solarFlux: 0,
       pastWeather: { level: '' },
-      nextWeather: { level: '' },
+      nextWeather: {
+        kpIndex: {
+          observed: '',
+          expected: '',
+          rationale: '',
+        },
+        solarRadiation: {
+          rationale: '',
+        },
+        radioBlackout: {
+          rationale: '',
+        },
+      },
     };
     it('should fetch data from clients', async () => {
       const dt = DateTime.now().minus({ days: 6 });
       mockNoaaClient.getSolarRadiationByDate.mockResolvedValue(mockSolarData);
+      mockNoaaClient.getSolarRadiationForecast.mockResolvedValue(undefined);
 
       const result = await service.getGeophysicalWeatherData(dt.toISO());
 
