@@ -23,7 +23,7 @@ export class GfzClient {
     }
 
     const dateStr = dt.toFormat('yyyy MM dd');
-    Logger.log(`date ${dateStr}`);
+    //Logger.log(`date ${dateStr}`);
 
     const lines = data.split('\n');
     const line = lines.find(
@@ -31,7 +31,7 @@ export class GfzClient {
     );
 
     if (line) {
-      Logger.log(`matches`, { line });
+      //Logger.log(`matches`, { line });
       const match = line.match(GFZ_LINE_REGEX) as string[];
       return {
         AP: parseInt(match[24], 10),
@@ -73,7 +73,7 @@ export class GfzClient {
     try {
       const response = await firstValueFrom(this.http.get(url));
       const data = response.data as string | undefined;
-      Logger.log(`getKpIndex ${data}`);
+      //Logger.log(`getKpIndex ${data}`);
       const dt = DateTime.now();
       const processedData = this.processKPI(data, dt);
       if (processedData) {

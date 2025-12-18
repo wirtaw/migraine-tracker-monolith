@@ -9,6 +9,7 @@ describe('WeatherController', () => {
 
   const mockWeatherService = {
     getForecast: jest.fn(),
+    getHistorical: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -35,15 +36,16 @@ describe('WeatherController', () => {
       const lat = 52.52;
       const lon = 13.41;
       const mockForecast = {
-        latitude: lat,
-        longitude: lon,
-        current_weather: {
-          temperature: 20,
-          windspeed: 10,
-          winddirection: 180,
-          weathercode: 0,
-          time: '2023-01-01T00:00',
-        },
+        temperature: 20,
+        humidity: 50,
+        pressure: 1013,
+        feels_like: 18,
+        wind_speed_10m: 10,
+        clouds: 0,
+        uvi: 0,
+        description: 'Clear sky',
+        icon: 'clear-day',
+        alerts: [],
       };
 
       mockWeatherService.getForecast.mockResolvedValue(mockForecast);
@@ -52,6 +54,37 @@ describe('WeatherController', () => {
 
       expect(result).toEqual(mockForecast);
       expect(weatherService.getForecast).toHaveBeenCalledWith(lat, lon);
+    });
+  });
+
+  describe('getHistorical', () => {
+    it('should return historical weather data', async () => {
+      const lat = 52.52;
+      const lon = 13.41;
+      const date = '2023-01-01';
+      const mockHistorical = {
+        temperature: 15,
+        humidity: 60,
+        pressure: 1000,
+        feels_like: undefined,
+        wind_speed_10m: 5,
+        clouds: 50,
+        uvi: undefined,
+        description: '',
+        icon: '',
+        alerts: [],
+      };
+
+      mockWeatherService.getHistorical.mockResolvedValue(mockHistorical);
+
+      const result = await controller.getHistorical(lat, lon, date);
+
+      expect(result).toEqual(mockHistorical);
+      expect(weatherService.getHistorical).toHaveBeenCalledWith(
+        lat,
+        lon,
+        new Date(date),
+      );
     });
   });
 });

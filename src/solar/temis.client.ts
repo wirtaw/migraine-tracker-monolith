@@ -140,7 +140,7 @@ export class TemisClient {
         `no closest station for coordinates lat:${lat} lon:${lon}`,
       );
     }
-    Logger.log('closestStation.url ', { url: closestStation.url });
+    //Logger.log('closestStation.url ', { url: closestStation.url });
 
     try {
       const response = await firstValueFrom(this.http.get(closestStation.url));

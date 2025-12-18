@@ -1,31 +1,209 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import { IOpenMeteoData } from './interfaces/weather.interface';
+import { fetchWeatherApi } from 'openmeteo';
+import { IWeatherData } from './interfaces/weather.interface';
 
 @Injectable()
 export class OpenMeteoClient {
-  constructor(
-    private readonly http: HttpService,
-    private readonly config: ConfigService,
-  ) {}
+  private readonly logger = new Logger(OpenMeteoClient.name);
 
-  async fetchForecast(lat: number, lon: number): Promise<IOpenMeteoData> {
-    const baseUrl = this.config.get<string>('integration.apis.openMeteo');
-    const url = `${baseUrl}/v1/forecast`;
+  constructor(private readonly config: ConfigService) {}
 
-    const response = await firstValueFrom(
-      this.http.get(url, {
-        params: {
-          latitude: lat,
-          longitude: lon,
-          current_weather: true,
-          hourly:
-            'temperature_2m,relative_humidity_2m,pressure_msl,apparent_temperature,wind_speed_10m,cloud_cover',
-        },
-      }),
+  async fetchForecast(
+    latitude: number,
+    longitude: number,
+  ): Promise<IWeatherData> {
+    try {
+      const baseUrl = this.config.get<string>('integration.apis.openMeteo');
+      if (!baseUrl) {
+        throw new Error('OpenMeteo API URL is not configured');
+      }
+      const params = {
+        latitude,
+        longitude,
+        current: [
+          'temperature_2m',
+          'relative_humidity_2m',
+          'apparent_temperature',
+          'precipitation',
+          'rain',
+          'showers',
+          'weather_code',
+          'cloud_cover',
+          'surface_pressure',
+          'wind_speed_10m',
+          'wind_direction_10m',
+          'wind_gusts_10m',
+        ],
+        daily: ['uv_index_max', 'precipitation_sum', 'rain_sum'],
+        wind_speed_unit: 'ms',
+      };
+
+      const responses = await fetchWeatherApi(baseUrl, params);
+
+      if (!responses) {
+        throw new Error('Weather data fetch failed');
+      }
+
+      const [response] = responses;
+
+      const current = response.current()!;
+      const daily = response.daily()!;
+      const utcOffsetSeconds = response.utcOffsetSeconds();
+
+      const time = this.range(
+        Number(daily.time()),
+        Number(daily.timeEnd()),
+        daily.interval(),
+      ).map((t) => new Date((t + utcOffsetSeconds) * 1000));
+
+      const uvIndexMax = daily.variables(0)!.valuesArray()!;
+
+      const weather: IWeatherData = {
+        temperature: Math.round(current.variables(0)!.value()),
+        humidity: current.variables(1)!.value(),
+        pressure: Math.round(current.variables(8)!.value()),
+        feels_like: Math.round(current.variables(2)!.value()),
+        wind_speed_10m: Math.round(current.variables(9)!.value()),
+        clouds: current.variables(7)!.value(),
+        uvi: Math.round(
+          uvIndexMax.reduce((acc, prev) => acc + prev, 0) / time.length,
+        ),
+        description: '', // We might want to populate this if possible, but user code had it empty or dependent on something else.
+        // The user's code had `description: '',` and `icon: '',` in `fetchOpenMeteoWeatherData`.
+        // However, the user's `fetchWeatherData` (the first function in the prompt, using `fetch`) had description from `data.current.weather[0].description`.
+        // The `fetchOpenMeteoWeatherData` used `fetchWeatherApi` and had empty description.
+        // I will stick to the user's `fetchOpenMeteoWeatherData` implementation for `description` and `icon`.
+        icon: '',
+        alerts: [],
+      };
+
+      return weather;
+    } catch (error) {
+      this.logger.error('Error fetching weather data:', error);
+      throw error;
+    }
+  }
+
+  async fetchHistorical(
+    latitude: number,
+    longitude: number,
+    dateTime: Date,
+  ): Promise<IWeatherData | undefined> {
+    try {
+      const baseUrl = this.config.get<string>(
+        'integration.apis.openMeteoArchive',
+      );
+      if (!baseUrl) {
+        throw new Error('OpenMeteo Archive API URL is not configured');
+      }
+
+      const params = {
+        latitude,
+        longitude,
+        start_date: this.getDateRange(dateTime),
+        end_date: this.getDateRange(dateTime),
+        hourly: [
+          'temperature_2m',
+          'wind_speed_10m',
+          'precipitation',
+          'relative_humidity_2m',
+          'cloud_cover',
+          'pressure_msl',
+        ],
+        daily: [],
+        wind_speed_unit: 'ms',
+        timezone: 'auto',
+      };
+
+      const responses = await fetchWeatherApi(baseUrl, params);
+
+      if (!responses) {
+        throw new Error('Weather data fetch failed');
+      }
+
+      const [response] = responses;
+
+      const hourly = response.hourly()!;
+      const utcOffsetSeconds = response.utcOffsetSeconds();
+
+      const time = this.range(
+        Number(hourly.time()),
+        Number(hourly.timeEnd()),
+        hourly.interval(),
+      ).map((t) => new Date((t + utcOffsetSeconds) * 1000));
+
+      const temperature2m = hourly.variables(0)!.valuesArray()!;
+      const windSpeed10m = hourly.variables(1)!.valuesArray()!;
+      const relativeHumidity2m = hourly.variables(3)!.valuesArray()!;
+      const cloudCover = hourly.variables(4)!.valuesArray()!;
+      const pressureMsl = hourly.variables(5)!.valuesArray()!;
+
+      const isTemperatureValuesValid =
+        temperature2m.filter((item) => !Number.isNaN(item)).length ===
+        temperature2m.length;
+      const isWindValuesValid =
+        windSpeed10m.filter((item) => !Number.isNaN(item)).length ===
+        windSpeed10m.length;
+      const isHumidityValuesValid =
+        relativeHumidity2m.filter((item) => !Number.isNaN(item)).length ===
+        relativeHumidity2m.length;
+      const isCloudCoverValuesValid =
+        cloudCover.filter((item) => !Number.isNaN(item)).length ===
+        cloudCover.length;
+      const isPressureValuesValid =
+        pressureMsl.filter((item) => !Number.isNaN(item)).length ===
+        pressureMsl.length;
+
+      const weather: IWeatherData = {
+        temperature: isTemperatureValuesValid
+          ? Math.round(
+              temperature2m.reduce((acc, prev) => acc + prev, 0) / time.length,
+            )
+          : undefined,
+        humidity: isHumidityValuesValid
+          ? Math.round(
+              relativeHumidity2m.reduce((acc, prev) => acc + prev, 0) /
+                time.length,
+            )
+          : undefined,
+        pressure: isPressureValuesValid
+          ? Math.round(
+              pressureMsl.reduce((acc, prev) => acc + prev, 0) / time.length,
+            )
+          : undefined,
+        feels_like: undefined,
+        wind_speed_10m: isWindValuesValid
+          ? Math.round(
+              windSpeed10m.reduce((acc, prev) => acc + prev, 0) / time.length,
+            )
+          : undefined,
+        clouds: isCloudCoverValuesValid
+          ? Math.round(
+              cloudCover.reduce((acc, prev) => acc + prev, 0) / time.length,
+            )
+          : undefined,
+        uvi: undefined,
+        description: '',
+        icon: '',
+        alerts: [],
+      };
+
+      return weather;
+    } catch (error) {
+      this.logger.error('Error fetching historical weather data:', error);
+      throw error;
+    }
+  }
+
+  private getDateRange(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  private range(start: number, stop: number, step: number): number[] {
+    return Array.from(
+      { length: (stop - start) / step },
+      (_, i) => start + i * step,
     );
-    return response.data as IOpenMeteoData;
   }
 }
