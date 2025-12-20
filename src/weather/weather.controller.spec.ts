@@ -55,6 +55,14 @@ describe('WeatherController', () => {
       expect(result).toEqual(mockForecast);
       expect(weatherService.getForecast).toHaveBeenCalledWith(lat, lon);
     });
+    it('should propagate service errors', async () => {
+      mockWeatherService.getForecast.mockRejectedValue(
+        new Error('Service failed'),
+      );
+      await expect(controller.getForecast(52.52, 13.41)).rejects.toThrow(
+        'Service failed',
+      );
+    });
   });
 
   describe('getHistorical', () => {
@@ -85,6 +93,15 @@ describe('WeatherController', () => {
         lon,
         new Date(date),
       );
+    });
+
+    it('should propagate service errors', async () => {
+      mockWeatherService.getHistorical.mockRejectedValue(
+        new Error('Service failed'),
+      );
+      await expect(
+        controller.getHistorical(52.52, 13.41, '2023-01-01'),
+      ).rejects.toThrow('Service failed');
     });
   });
 });

@@ -89,7 +89,7 @@ describe('OpenMeteoClient', () => {
       });
 
       expect(fetchWeatherApi).toHaveBeenCalledWith(
-        'https://api.open-meteo.com',
+        'https://api.open-meteo.com/v1/forecast',
         expect.objectContaining({
           latitude: lat,
           longitude: lon,

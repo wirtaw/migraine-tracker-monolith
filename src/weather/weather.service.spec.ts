@@ -88,6 +88,18 @@ describe('WeatherService', () => {
         1800000, // 30 minutes
       );
     });
+    it('should throw error if client fetch fails', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockOpenMeteoClient.fetchForecast.mockRejectedValue(
+        new Error('Fetch failed'),
+      );
+
+      await expect(service.getForecast(lat, lon)).rejects.toThrow(
+        'Fetch failed',
+      );
+      expect(client.fetchForecast).toHaveBeenCalledWith(lat, lon);
+      expect(mockCacheManager.set).not.toHaveBeenCalled();
+    });
   });
 
   describe('getHistorical', () => {
@@ -134,6 +146,19 @@ describe('WeatherService', () => {
         mockWeatherData,
         2592000000, // 30 days
       );
+    });
+
+    it('should throw error if client fetch fails', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockOpenMeteoClient.fetchHistorical.mockRejectedValue(
+        new Error('Fetch failed'),
+      );
+
+      await expect(service.getHistorical(lat, lon, date)).rejects.toThrow(
+        'Fetch failed',
+      );
+      expect(client.fetchHistorical).toHaveBeenCalledWith(lat, lon, date);
+      expect(mockCacheManager.set).not.toHaveBeenCalled();
     });
   });
 });

@@ -39,7 +39,8 @@ export class OpenMeteoClient {
         wind_speed_unit: 'ms',
       };
 
-      const responses = await fetchWeatherApi(baseUrl, params);
+      const url = `${baseUrl}/v1/forecast`;
+      const responses = await fetchWeatherApi(url, params);
 
       if (!responses) {
         throw new Error('Weather data fetch failed');
@@ -97,6 +98,7 @@ export class OpenMeteoClient {
       if (!baseUrl) {
         throw new Error('OpenMeteo Archive API URL is not configured');
       }
+      const url = `${baseUrl}/v1/forecast`;
 
       const params = {
         latitude,
@@ -116,7 +118,7 @@ export class OpenMeteoClient {
         timezone: 'auto',
       };
 
-      const responses = await fetchWeatherApi(baseUrl, params);
+      const responses = await fetchWeatherApi(url, params);
 
       if (!responses) {
         throw new Error('Weather data fetch failed');
