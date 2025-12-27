@@ -97,6 +97,9 @@ export class SymmetricKeyService {
         !response?.data?.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY ||
         !response?.data?.JWT_SECRET
       ) {
+        Logger.warn(
+          `Invalid resonse from worker ${JSON.stringify(response.data)}`,
+        );
         throw new InternalServerErrorException('Invalid resonse from worker');
       }
 
