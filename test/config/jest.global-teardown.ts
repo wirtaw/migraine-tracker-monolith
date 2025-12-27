@@ -11,13 +11,13 @@ dotenv.config({ path: '.env.test.local' });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
-module.exports = async function (
+export default async function (
   globalConfig: Config.GlobalConfig,
   projectConfig: Config.ProjectConfig,
 ) {
-  console.log(globalConfig.testPathPatterns);
-  console.log(projectConfig.cache);
-  if (process.env.CI !== 'true') {
+  const useDocker = process.env.USE_DOCKER === 'true';
+
+  if (useDocker) {
     console.log('Stopping and removing MongoDB Docker container locally...');
     try {
       if (isPodman) {
@@ -32,9 +32,18 @@ module.exports = async function (
       process.exit(1);
     }
   } else {
-    console.log('Running in CI environment, skipping local Docker teardown.');
+    console.log('Stopping MongoMemoryServer...');
     if (global.__MONGOD__) {
       await global.__MONGOD__.stop();
     }
+
+    // Clean up the temporary file
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    if (fs.existsSync(configPath)) {
+      fs.unlinkSync(configPath);
+    }
   }
-};
+}

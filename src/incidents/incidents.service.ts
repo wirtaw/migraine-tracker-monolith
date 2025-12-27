@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -41,10 +42,12 @@ export class IncidentsService {
         createIncidentDto.durationHours.toString(),
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createIncidentDto.notes || '',
-        bufferKey,
-      ),
+      notes: createIncidentDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createIncidentDto.notes,
+            bufferKey,
+          )
+        : '',
       triggers: this.encryptionService.encryptSensitiveData(
         JSON.stringify(createIncidentDto.triggers || []),
         bufferKey,
@@ -62,9 +65,12 @@ export class IncidentsService {
 
   async findAll(key: string, userId: string): Promise<IIncident[]> {
     const incidents = await this.incidentModel.find({ userId }).exec();
-    return incidents
+
+    const result = incidents
       .map((incident) => this.mapToIIncident(incident, key))
       .filter((item) => !!item);
+
+    return result;
   }
 
   async findOne(id: string, key: string, userId: string): Promise<IIncident> {
@@ -182,6 +188,7 @@ export class IncidentsService {
     const decrypt = (value: unknown, type: string = 'unkown'): string => {
       if (typeof value === 'string')
         return this.encryptionService.decryptSensitiveData(value, bufferKey);
+      Logger.error(`Expected string got ${typeof value} for ${type}`);
       throw new Error(`Expected string got ${typeof value} for ${type}`);
     };
 
@@ -193,6 +200,7 @@ export class IncidentsService {
     );
 
     if (!matchedKey) {
+      Logger.error(`Invalid incident type: ${decryptedType}`);
       throw new Error(`Invalid incident type: ${decryptedType}`);
     }
 
@@ -214,12 +222,14 @@ export class IncidentsService {
           );
 
           if (!matchedTriggerKey) {
+            Logger.error(`Invalid incident trigger: ${decryptedType}`);
             throw new Error(`Invalid incident trigger: ${decryptedType}`);
           }
 
           return matchedTriggerKey[1] as TriggerTypeEnum;
         });
       } catch {
+        Logger.error(`Invalid incident triggers: ${incidentDoc.triggers}`);
         throw new Error(`Invalid incident triggers: ${incidentDoc.triggers}`);
       }
     }

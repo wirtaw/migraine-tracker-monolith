@@ -29,7 +29,8 @@ async function bootstrap(): Promise<void> {
   // Configure allowed origins. You can fetch this from config if needed.
   app.enableCors({
     origin: [
-      'http://localhost:5173', // Example: Frontend dev server
+      'http://localhost:5173',
+      'https://migrane-tracker-dashboard.sliplane.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
