@@ -6,4 +6,8 @@ export class AppService {
   getHello(): string {
     return AppDict.welcome;
   }
+
+  getStatus(): { status: string } {
+    return { status: 'ok' };
+  }
 }

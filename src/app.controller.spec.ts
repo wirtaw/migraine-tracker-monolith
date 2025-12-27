@@ -20,4 +20,10 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe(AppDict.welcome);
     });
   });
+
+  describe('status', () => {
+    it('should return { status: "ok" }', () => {
+      expect(appController.getStatus()).toEqual({ status: 'ok' });
+    });
+  });
 });

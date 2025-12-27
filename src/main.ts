@@ -24,14 +24,24 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   /**
+   * @description Configuration
+   */
+  const configService: ConfigService = app.get(ConfigService);
+  const appConfig = configService.get<AppConfig>('app');
+
+  if (!appConfig) {
+    Logger.error('Application configuration "app" is missing!', 'Bootstrap');
+    throw new Error(
+      'Application configuration "app" is not defined. Cannot start.',
+    );
+  }
+
+  /**
    * @description CORS Setup
    */
   // Configure allowed origins. You can fetch this from config if needed.
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'https://migrane-tracker-dashboard.sliplane.app',
-    ],
+    origin: appConfig.corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
@@ -73,18 +83,7 @@ async function bootstrap(): Promise<void> {
   app.use(express.urlencoded({ extended: true, limit: '5mb' }));
   app.use(express.json({ limit: '5mb' }));
 
-  /**
-   * @description Configuration
-   */
-  const configService: ConfigService = app.get(ConfigService);
-  const appConfig = configService.get<AppConfig>('app');
 
-  if (!appConfig) {
-    Logger.error('Application configuration "app" is missing!', 'Bootstrap');
-    throw new Error(
-      'Application configuration "app" is not defined. Cannot start.',
-    );
-  }
 
   /**
    * @description Req & Res timeouts

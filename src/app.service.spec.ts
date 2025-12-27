@@ -23,4 +23,11 @@ describe('AppService', () => {
       expect(result).toBe(AppDict.welcome);
     });
   });
+
+  describe('getStatus', () => {
+    it('should return { status: "ok" }', () => {
+      const result = service.getStatus();
+      expect(result).toEqual({ status: 'ok' });
+    });
+  });
 });
