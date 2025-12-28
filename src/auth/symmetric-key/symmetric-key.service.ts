@@ -77,20 +77,24 @@ export class SymmetricKeyService {
     const signature = await this.generateHmacSignature(timestamp, headerKey);
 
     try {
+      const headers: Record<string, string> = {
+        'X-Timestamp': timestamp,
+        'X-Signature': signature,
+        'Content-Type': 'application/json',
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Content-Security-Policy':
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
+        'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID || '',
+        'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET || '',
+      };
+
       const response = await firstValueFrom<AxiosResponse<IWorkerKeys>>(
         this.httpService.get(workerUrl, {
-          headers: {
-            'X-Timestamp': timestamp,
-            'X-Signature': signature,
-            'Content-Type': 'application/json',
-            'Strict-Transport-Security':
-              'max-age=63072000; includeSubDomains; preload',
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'DENY',
-            'Referrer-Policy': 'strict-origin-when-cross-origin',
-            'Content-Security-Policy':
-              "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
-          },
+          headers,
         }),
       );
       if (
@@ -98,9 +102,9 @@ export class SymmetricKeyService {
         !response?.data?.JWT_SECRET
       ) {
         Logger.warn(
-          `Invalid resonse from worker ${JSON.stringify(response.data)}`,
+          `Invalid response from worker ${JSON.stringify(response.data)}`,
         );
-        throw new InternalServerErrorException('Invalid resonse from worker');
+        throw new InternalServerErrorException('Invalid response from worker');
       }
 
       const jwtEncryptionKey = response.data.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY;
@@ -116,9 +120,7 @@ export class SymmetricKeyService {
       return jwtEncryptionKey;
     } catch (error) {
       Logger.warn(`CLOUDFLARE_WORKER_URL ${process.env.CLOUDFLARE_WORKER_URL}`);
-      //Logger.warn(
-      //  `CLOUDFLARE_WORKER_HEADER_KEY "${process.env.CLOUDFLARE_WORKER_HEADER_KEY}"`,
-      //);
+      Logger.warn(`CLOUDFLARE_WORKER_HEADER_KEY ${process.env.CLOUDFLARE_WORKER_HEADER_KEY}`);
       ErrorExceptionLogging(error, SymmetricKeyService.name);
       throw error;
     }
