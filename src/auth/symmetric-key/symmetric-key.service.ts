@@ -91,7 +91,6 @@ export class SymmetricKeyService {
         'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID || '',
         'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET || '',
       };
-      Logger.warn(`Headers ${JSON.stringify(headers)}`);
 
       const response = await firstValueFrom<AxiosResponse<IWorkerKeys>>(
         this.httpService.get(workerUrl, {
