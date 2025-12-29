@@ -198,6 +198,76 @@ export class OpenMeteoClient {
     }
   }
 
+  async fetchHourlyForecast(
+    latitude: number,
+    longitude: number,
+    start: Date,
+    end: Date,
+  ): Promise<any[]> {
+    try {
+      const baseUrl = this.config.get<string>('integration.apis.openMeteo');
+      if (!baseUrl) {
+        throw new Error('OpenMeteo API URL is not configured');
+      }
+      const params = {
+        latitude,
+        longitude,
+        start_date: this.getDateRange(start),
+        end_date: this.getDateRange(end),
+        hourly: [
+          'temperature_2m',
+          'relative_humidity_2m',
+          'surface_pressure',
+          'wind_speed_10m',
+          'cloud_cover',
+          'direct_radiation',
+          'uv_index',
+        ],
+        wind_speed_unit: 'ms',
+      };
+
+      const url = `${baseUrl}/v1/forecast`;
+      const responses = await fetchWeatherApi(url, params);
+
+      if (!responses) {
+        throw new Error('Weather data fetch failed');
+      }
+
+      const [response] = responses;
+      const hourly = response.hourly()!;
+      const utcOffsetSeconds = response.utcOffsetSeconds();
+
+      const time = this.range(
+        Number(hourly.time()),
+        Number(hourly.timeEnd()),
+        hourly.interval(),
+      ).map((t) => new Date((t + utcOffsetSeconds) * 1000));
+
+      const temperature2m = hourly.variables(0)!.valuesArray()!;
+      const relativeHumidity2m = hourly.variables(1)!.valuesArray()!;
+      const surfacePressure = hourly.variables(2)!.valuesArray()!;
+      const windSpeed10m = hourly.variables(3)!.valuesArray()!;
+      const cloudCover = hourly.variables(4)!.valuesArray()!;
+      const directRadiation = hourly.variables(5)!.valuesArray()!;
+      const uvIndex = hourly.variables(6)!.valuesArray()!;
+
+      return time.map((t, i) => ({
+        datetime: t.toISOString(),
+        temperature: temperature2m[i],
+        humidity: relativeHumidity2m[i],
+        pressure: surfacePressure[i],
+        windSpeed: windSpeed10m[i],
+        clouds: cloudCover[i],
+        directRadiation: directRadiation[i],
+        uvi: uvIndex[i],
+        description: '', // description is not available in hourly forecast easily without weather code mapping
+      }));
+    } catch (error) {
+      this.logger.error('Error fetching hourly forecast:', error);
+      throw error;
+    }
+  }
+
   private getDateRange(date: Date): string {
     return date.toISOString().split('T')[0];
   }

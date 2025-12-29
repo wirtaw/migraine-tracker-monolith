@@ -120,7 +120,9 @@ export class SymmetricKeyService {
       return jwtEncryptionKey;
     } catch (error) {
       Logger.warn(`CLOUDFLARE_WORKER_URL ${process.env.CLOUDFLARE_WORKER_URL}`);
-      Logger.warn(`CLOUDFLARE_WORKER_HEADER_KEY ${process.env.CLOUDFLARE_WORKER_HEADER_KEY}`);
+      Logger.warn(
+        `CLOUDFLARE_WORKER_HEADER_KEY ${process.env.CLOUDFLARE_WORKER_HEADER_KEY}`,
+      );
       ErrorExceptionLogging(error, SymmetricKeyService.name);
       throw error;
     }

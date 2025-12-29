@@ -11,6 +11,7 @@ import {
   Req,
   UsePipes,
   ValidationPipe,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,7 +23,9 @@ import {
 import { LocationsService } from './locations.service';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
+import { GetSummaryQueryDto } from './dto/summary.dto';
 import { ILocation } from './interfaces/locations.interface';
+import { ISummaryResponse } from './interfaces/summary.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
@@ -68,6 +71,21 @@ export class LocationsController {
     const encryptionKey = req?.session?.key || '';
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.locationsService.findAll(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
+  @Get('summary')
+  @ApiOperation({ summary: 'Get summary data for location and date' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Summary data retrieved successfully',
+  })
+  async getSummary(
+    @Query() query: GetSummaryQueryDto,
+    @Req() req: RequestWithUser,
+  ): Promise<ISummaryResponse> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.locationsService.getSummary(query, userId);
   }
 
   @Roles(Role.USER)

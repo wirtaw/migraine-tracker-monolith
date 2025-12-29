@@ -83,8 +83,6 @@ async function bootstrap(): Promise<void> {
   app.use(express.urlencoded({ extended: true, limit: '5mb' }));
   app.use(express.json({ limit: '5mb' }));
 
-
-
   /**
    * @description Req & Res timeouts
    */

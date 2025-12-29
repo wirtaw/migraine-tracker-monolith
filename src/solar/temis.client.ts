@@ -80,18 +80,33 @@ export class TemisClient {
     return closestStation;
   }
 
-  async transform(
+  async getStationData(url: string): Promise<string | undefined> {
+    const cacheKey = `station_data_${url}`;
+    const cached = await this.cacheManager.get<string>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const response = await firstValueFrom(this.http.get(url));
+      const data = response.data as string;
+      if (data) {
+        await this.cacheManager.set(cacheKey, data, 3600000);
+      }
+      return data;
+    } catch (error) {
+      Logger.error(`Error fetching station data from ${url}`, error);
+      return undefined;
+    }
+  }
+
+  transform(
     data: string | undefined,
     date: string,
     url: string,
-  ): Promise<IRadiationData | undefined> {
+  ): IRadiationData | undefined {
     if (!data) {
       return undefined;
-    }
-    const cacheKey = `${url}-${date}`;
-    const cached = await this.cacheManager.get<IRadiationData>(cacheKey);
-    if (cached) {
-      return cached;
     }
     const lines = data.split('\n');
 
@@ -118,7 +133,6 @@ export class TemisClient {
             date: values[0],
             ozone: parseValue(values[16]),
           };
-          await this.cacheManager.set(cacheKey, radiationData, 3600000);
           return radiationData;
         }
       }
@@ -140,16 +154,9 @@ export class TemisClient {
         `no closest station for coordinates lat:${lat} lon:${lon}`,
       );
     }
-    //Logger.log('closestStation.url ', { url: closestStation.url });
 
-    try {
-      const response = await firstValueFrom(this.http.get(closestStation.url));
-      const dt = DateTime.now();
-      const data = response.data as string | undefined;
-      return this.transform(data, dt.toFormat('yyyyMMdd'), closestStation.url);
-    } catch (error) {
-      Logger.error('Error fetching TEMIS data', error);
-      return undefined;
-    }
+    const data = await this.getStationData(closestStation.url);
+    const dt = DateTime.now();
+    return this.transform(data, dt.toFormat('yyyyMMdd'), closestStation.url);
   }
 }

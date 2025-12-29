@@ -100,4 +100,22 @@ export class SolarWeatherService {
       },
     ];
   }
+
+  async getClosestStation(lat: number, lon: number): Promise<any> {
+    return this.temis.getClosestStation(lat, lon);
+  }
+
+  async getRadiationData(
+    stationUrl: string,
+    date: string,
+  ): Promise<IRadiationData | undefined> {
+    // Get station data
+    const data = await this.temis.getStationData(stationUrl);
+    // Transform specifically for the date
+    return this.temis.transform(data, date, stationUrl);
+  }
+
+  async getKpData(date: any): Promise<IKPIData | undefined> {
+    return this.gfz.getKpData(date);
+  }
 }

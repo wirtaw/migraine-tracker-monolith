@@ -62,26 +62,41 @@ export class GfzClient {
   }
 
   async getKpIndex(): Promise<IKPIData | undefined> {
-    const cacheKey = `kp_index_gfz`;
+    return this.getKpData(DateTime.now());
+  }
+
+  async getKpData(date: DateTime): Promise<IKPIData | undefined> {
+    const diffDays = date.diffNow('days').days;
+    // If date is within last 7 days or in future, use nowcast, else use historical
+    const isRecent = diffDays > -7;
+    const type = isRecent ? 'nowcast' : 'history';
+    const dateStr = date.toFormat('yyyy-MM-dd');
+
+    const cacheKey = `kp_index_gfz_${type}_${dateStr}`;
     const cached = await this.cacheManager.get<IKPIData | undefined>(cacheKey);
     if (cached) {
       return cached;
     }
+
     const baseUrl = this.config.get<string>('integration.apis.gfz');
-    const url = `${baseUrl}/kp_index/Kp_ap_Ap_SN_F107_nowcast.txt`;
+    const endpoint = isRecent
+      ? 'Kp_ap_Ap_SN_F107_nowcast.txt'
+      : 'Kp_ap_Ap_SN_F107_since_1932.txt';
+
+    const url = `${baseUrl}/kp_index/${endpoint}`;
 
     try {
       const response = await firstValueFrom(this.http.get(url));
       const data = response.data as string | undefined;
-      //Logger.log(`getKpIndex ${data}`);
-      const dt = DateTime.now();
-      const processedData = this.processKPI(data, dt);
+      const processedData = this.processKPI(data, date);
+
       if (processedData) {
+        // Cache for 1 hour
         await this.cacheManager.set(cacheKey, processedData, 3600000);
       }
       return processedData;
     } catch (error) {
-      Logger.error('Error fetching GFZ data', error);
+      Logger.error(`Error fetching GFZ data from ${url}`, error);
       return undefined;
     }
   }
