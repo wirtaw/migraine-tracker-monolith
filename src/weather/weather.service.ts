@@ -47,4 +47,13 @@ export class WeatherService {
 
     return weatherData;
   }
+
+  async getHourlyForecast(
+    lat: number,
+    lon: number,
+    start: Date,
+    end: Date,
+  ): Promise<any[]> {
+    return this.client.fetchHourlyForecast(lat, lon, start, end);
+  }
 }

@@ -34,10 +34,12 @@ export class SymptomsService {
         createSymptomDto.severity.toString(),
         bufferKey,
       ),
-      note: this.encryptionService.encryptSensitiveData(
-        createSymptomDto.note || '',
-        bufferKey,
-      ),
+      note: createSymptomDto.note
+        ? this.encryptionService.encryptSensitiveData(
+            createSymptomDto.note,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createSymptomDto.datetimeAt,
         bufferKey,

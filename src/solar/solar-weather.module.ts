@@ -12,5 +12,6 @@ import { GfzClient } from './gfz.client';
   imports: [HttpModule, CacheModule.register(), ConfigModule],
   controllers: [SolarWeatherController],
   providers: [SolarWeatherService, TemisClient, NoaaClient, GfzClient],
+  exports: [SolarWeatherService],
 })
 export class SolarWeatherModule {}

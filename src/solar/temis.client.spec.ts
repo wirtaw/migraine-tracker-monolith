@@ -193,7 +193,7 @@ describe('TemisClient', () => {
   });
 
   describe('transform', () => {
-    it('should parse valid data correctly', async () => {
+    it('should parse valid data correctly', () => {
       const date = '20020701';
       const url = 'some-url';
       mockCacheManager.get.mockResolvedValue(null);
@@ -217,12 +217,12 @@ describe('TemisClient', () => {
         ozone: 348.6,
       };
 
-      const result = await service.transform(mockData, date, url);
+      const result = service.transform(mockData, date, url);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
 
-    it('should return cached data', async () => {
+    it('should return cached data', () => {
       const date = '20020701';
       const url = 'some-url';
       const expectedResult = {
@@ -246,12 +246,12 @@ describe('TemisClient', () => {
       };
       mockCacheManager.get.mockResolvedValue(expectedResult);
 
-      const result = await service.transform(mockData, date, url);
+      const result = service.transform(mockData, date, url);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
 
-    it('should parse valid data correctly some values convertyed to zero', async () => {
+    it('should parse valid data correctly some values convertyed to zero', () => {
       const date = '20020701';
       const url = 'some-url';
       mockCacheManager.get.mockResolvedValue(null);
@@ -307,12 +307,12 @@ describe('TemisClient', () => {
         ozone: 348.6,
       };
 
-      const result = await service.transform(mockData, date, url);
+      const result = service.transform(mockData, date, url);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
 
-    it('should return undefined if date not found', async () => {
+    it('should return undefined if date not found', () => {
       mockData = `
 # YYYYMMDD ...
   20020701 ...
@@ -321,16 +321,16 @@ describe('TemisClient', () => {
       const url = 'some-url';
       mockCacheManager.get.mockResolvedValue(null);
 
-      const result = await service.transform(mockData, date, url);
+      const result = service.transform(mockData, date, url);
       expect(result).toBeUndefined();
     });
 
-    it('should return undefined if data undefined', async () => {
+    it('should return undefined if data undefined', () => {
       const date = '20230101';
       const url = 'some-url';
       mockCacheManager.get.mockResolvedValue(null);
 
-      const result = await service.transform(undefined, date, url);
+      const result = service.transform(undefined, date, url);
       expect(result).toBeUndefined();
     });
   });

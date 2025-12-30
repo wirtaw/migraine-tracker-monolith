@@ -40,6 +40,10 @@ class ForecastDto {
   @IsNumber()
   uvi?: number;
 
+  @IsOptional()
+  @IsNumber()
+  directRadiation?: number;
+
   @IsNotEmpty()
   @IsString()
   datetime!: string;
