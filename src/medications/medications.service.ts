@@ -35,10 +35,12 @@ export class MedicationsService {
         createMedicationDto.dosage,
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createMedicationDto.notes || '',
-        bufferKey,
-      ),
+      notes: createMedicationDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createMedicationDto.notes,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createMedicationDto.datetimeAt,
         bufferKey,

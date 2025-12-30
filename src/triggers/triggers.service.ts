@@ -30,10 +30,12 @@ export class TriggersService {
         createTriggerDto.type,
         bufferKey,
       ),
-      note: this.encryptionService.encryptSensitiveData(
-        createTriggerDto.note || '',
-        bufferKey,
-      ),
+      note: createTriggerDto.note
+        ? this.encryptionService.encryptSensitiveData(
+            createTriggerDto.note,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createTriggerDto.datetimeAt,
         bufferKey,

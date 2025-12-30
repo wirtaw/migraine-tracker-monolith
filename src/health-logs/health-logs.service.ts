@@ -63,10 +63,12 @@ export class HealthLogsService {
         createWeightDto.weight.toString(),
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createWeightDto.notes || '',
-        bufferKey,
-      ),
+      notes: createWeightDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createWeightDto.notes,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createWeightDto.datetimeAt,
         bufferKey,
@@ -163,10 +165,12 @@ export class HealthLogsService {
         createHeightDto.height.toString(),
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createHeightDto.notes || '',
-        bufferKey,
-      ),
+      notes: createHeightDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createHeightDto.notes,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createHeightDto.datetimeAt,
         bufferKey,
@@ -267,10 +271,12 @@ export class HealthLogsService {
         createBloodPressureDto.diastolic.toString(),
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createBloodPressureDto.notes || '',
-        bufferKey,
-      ),
+      notes: createBloodPressureDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createBloodPressureDto.notes,
+            bufferKey,
+          )
+        : '',
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createBloodPressureDto.datetimeAt,
         bufferKey,
@@ -392,10 +398,12 @@ export class HealthLogsService {
         createSleepDto.rate.toString(),
         bufferKey,
       ),
-      notes: this.encryptionService.encryptSensitiveData(
-        createSleepDto.notes || '',
-        bufferKey,
-      ),
+      notes: createSleepDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createSleepDto.notes,
+            bufferKey,
+          )
+        : '',
       startedAt: this.encryptionService.encryptSensitiveData(
         createSleepDto.startedAt,
         bufferKey,
