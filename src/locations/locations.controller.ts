@@ -57,6 +57,8 @@ export class LocationsController {
     @Req() req: RequestWithUser,
   ): Promise<ILocation | null> {
     const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    createLocationDto.userId = userId;
     return this.locationsService.create(createLocationDto, encryptionKey);
   }
 

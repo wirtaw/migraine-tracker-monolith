@@ -28,8 +28,8 @@ export interface IPlanetaryKindexMappedData {
 
 export interface ISummaryResponse {
   datetimeAt: string;
-  id?: number;
-  incidentId?: number;
+  id?: string;
+  incidentId?: string;
   forecast: IOpenMeteoData[] | [];
   latitude: number;
   longitude: number;

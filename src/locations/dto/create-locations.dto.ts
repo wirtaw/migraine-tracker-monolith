@@ -38,6 +38,10 @@ class ForecastDto {
   @IsNumber()
   uvi?: number;
 
+  @IsOptional()
+  @IsNumber()
+  directRadiation?: number;
+
   @IsNotEmpty()
   @IsString()
   datetime!: string;
@@ -84,7 +88,7 @@ class SolarRadiationDto {
 }
 
 export class CreateLocationDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   userId!: string;
 

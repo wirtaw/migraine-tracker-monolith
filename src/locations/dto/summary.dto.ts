@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsDateString,
+  IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -40,25 +41,23 @@ export class GetSummaryQueryDto {
 
   @ApiProperty({
     description: 'Location ID',
-    example: 1,
+    example: '6578a9b...',
     required: false,
-    type: Number,
+    type: String,
   })
   @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  id?: number;
+  @IsString()
+  id?: string;
 
   @ApiProperty({
     description: 'Incident ID',
-    example: 101,
+    example: '6578b1c...',
     required: false,
-    type: Number,
+    type: String,
   })
   @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  incidentId?: number;
+  @IsString()
+  incidentId?: string;
 
   // userId is typically extracted from the request usually, but keeping it if needed by the logic
   // However, in the controller we can extract it from the RequestWithUser
