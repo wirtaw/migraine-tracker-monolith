@@ -17,6 +17,11 @@ export default async function (
 ) {
   const useDocker = process.env.USE_DOCKER === 'true';
 
+  if (process.env.MONGO_URI) {
+    // If we used an external URI, we don't need to cleanup anything
+    return;
+  }
+
   if (useDocker) {
     console.log('Stopping and removing MongoDB Docker container locally...');
     try {

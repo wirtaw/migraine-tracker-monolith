@@ -285,12 +285,12 @@ describe('HealthLogsService', () => {
         expect(mockWeightModel).toHaveBeenCalledWith(
           expect.objectContaining({
             weight: `enc(${createDto.weight})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.weight).toBe(73);
-        expect(result.notes).toEqual('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -476,12 +476,12 @@ describe('HealthLogsService', () => {
         expect(mockHeightModel).toHaveBeenCalledWith(
           expect.objectContaining({
             height: `enc(${createDto.height})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.height).toBe(176);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -677,13 +677,13 @@ describe('HealthLogsService', () => {
           expect.objectContaining({
             systolic: `enc(${createDto.systolic})`,
             diastolic: `enc(${createDto.diastolic})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.systolic).toBe(130);
         expect(result.diastolic).toBe(40);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -888,13 +888,13 @@ describe('HealthLogsService', () => {
         expect(mockSleepModel).toHaveBeenCalledWith(
           expect.objectContaining({
             rate: `enc(${createDto.rate})`,
-            notes: 'enc()',
+            notes: '',
             startedAt: `enc(${createDto.startedAt})`,
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.rate).toBe(5);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 

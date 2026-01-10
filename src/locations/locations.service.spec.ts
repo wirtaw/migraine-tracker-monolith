@@ -190,6 +190,7 @@ describe('LocationsService', () => {
   });
 
   it('should be defined', () => {
+    expect(encryptionService).toBeDefined();
     expect(service).toBeDefined();
   });
 

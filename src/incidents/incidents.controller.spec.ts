@@ -9,7 +9,7 @@ import { IIncident } from './interfaces/incident.interface';
 import { NotFoundException } from '@nestjs/common';
 import { IncidentTypeEnum } from './enums/incident-type.enum';
 import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
-import { RequestWithUser } from 'src/auth/interfaces/auth.user.interface';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { IncidentDocument, Incident } from './schemas/incident.schema';
 

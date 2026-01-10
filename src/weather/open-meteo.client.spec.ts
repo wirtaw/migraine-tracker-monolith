@@ -11,7 +11,7 @@ describe('OpenMeteoClient', () => {
   let client: OpenMeteoClient;
 
   const mockConfigService = {
-    get: jest.fn().mockReturnValue('https://api.open-meteo.com'),
+    get: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -38,6 +38,7 @@ describe('OpenMeteoClient', () => {
 
   describe('fetchForecast', () => {
     it('should fetch forecast data and map correctly', async () => {
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
       const lat = 52.52;
       const lon = 13.41;
 
@@ -90,10 +91,26 @@ describe('OpenMeteoClient', () => {
 
       expect(fetchWeatherApi).toHaveBeenCalledWith(
         'https://api.open-meteo.com/v1/forecast',
-        expect.objectContaining({
+        {
+          current: [
+            'temperature_2m',
+            'relative_humidity_2m',
+            'apparent_temperature',
+            'precipitation',
+            'rain',
+            'showers',
+            'weather_code',
+            'cloud_cover',
+            'surface_pressure',
+            'wind_speed_10m',
+            'wind_direction_10m',
+            'wind_gusts_10m',
+          ],
+          daily: ['uv_index_max', 'precipitation_sum', 'rain_sum'],
           latitude: lat,
           longitude: lon,
-        }),
+          wind_speed_unit: 'ms',
+        },
       );
     });
 
@@ -110,6 +127,9 @@ describe('OpenMeteoClient', () => {
       const lat = 52.52;
       const lon = 13.41;
       const date = new Date('2023-01-01T00:00:00Z');
+      mockConfigService.get.mockReturnValue(
+        'https://archive-api.open-meteo.com/v1/archive',
+      );
 
       // Reuse mock structure but maybe with different variables if necessary
       const mockVariables: Record<number, { valuesArray: () => Float32Array }> =
@@ -140,12 +160,23 @@ describe('OpenMeteoClient', () => {
       expect(result?.humidity).toBe(60);
 
       expect(fetchWeatherApi).toHaveBeenCalledWith(
-        'https://archive-api.open-meteo.com/v1/archive',
+        'https://archive-api.open-meteo.com/v1/archive/v1/forecast',
         expect.objectContaining({
-          latitude: lat,
-          longitude: lon,
+          daily: [],
+          end_date: '2023-01-01',
+          hourly: [
+            'temperature_2m',
+            'wind_speed_10m',
+            'precipitation',
+            'relative_humidity_2m',
+            'cloud_cover',
+            'pressure_msl',
+          ],
+          latitude: 52.52,
+          longitude: 13.41,
           start_date: '2023-01-01',
-          end_date: '2023-01-02',
+          timezone: 'auto',
+          wind_speed_unit: 'ms',
         }),
       );
     });

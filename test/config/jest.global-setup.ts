@@ -22,6 +22,17 @@ export default async function (
 ) {
   const useDocker = process.env.USE_DOCKER === 'true';
 
+  if (process.env.MONGO_URI) {
+    console.log(`Using provided Mongo URI: ${process.env.MONGO_URI}`);
+    // Write the URI to a temporary file so test suites can read it if they rely on it
+    // although setup-env should also read env vars.
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    fs.writeFileSync(configPath, JSON.stringify({ mongoUri: process.env.MONGO_URI }));
+    return;
+  }
+
   // Cleanup any existing containers to ensure clean state
   try {
     console.log('Cleaning up any existing mongodb_test containers...');
