@@ -310,7 +310,7 @@ ${generateMockSolarFlux(currentDate)}`;
         'sunsPotNumber',
       ]);
       expect(mockCacheManager.get).toHaveBeenCalledWith(
-        'kp_index_gfz_nowcast_2026-01-10',
+        `kp_index_gfz_nowcast_${DateTime.now().toFormat('yyyy-MM-dd')}`,
       );
     });
 

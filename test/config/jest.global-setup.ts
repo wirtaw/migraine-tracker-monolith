@@ -1,7 +1,9 @@
 // test/setup.ts
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
+import { promisify } from 'node:util';
+import  fs  from 'node:fs';
+import path from 'node:path';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
@@ -26,10 +28,11 @@ export default async function (
     console.log(`Using provided Mongo URI: ${process.env.MONGO_URI}`);
     // Write the URI to a temporary file so test suites can read it if they rely on it
     // although setup-env should also read env vars.
-    const fs = await import('fs');
-    const path = await import('path');
     const configPath = path.join(__dirname, '../../.jest-test-env.json');
-    fs.writeFileSync(configPath, JSON.stringify({ mongoUri: process.env.MONGO_URI }));
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ mongoUri: process.env.MONGO_URI }),
+    );
     return;
   }
 
@@ -55,6 +58,11 @@ export default async function (
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log('MongoDB container started.');
+
+      const uri = `mongodb://root:${process.env.MONGO_INITDB_ROOT_PASSWORD}@localhost:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
+
+      const configPath = path.join(__dirname, '../../.jest-test-env.json');
+      fs.writeFileSync(configPath, JSON.stringify({ mongoUri: uri }));
     } catch (error) {
       console.error('Failed to start MongoDB container:', error);
       process.exit(1);

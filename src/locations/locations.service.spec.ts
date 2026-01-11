@@ -14,6 +14,8 @@ import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
 import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { WeatherService } from '../weather/weather.service';
+import { SolarWeatherService } from '../solar/solar-weather.service';
 
 const userId = 'user123';
 const latitudeValue = 40.7128;
@@ -103,6 +105,16 @@ describe('LocationsService', () => {
     }),
   };
 
+  const mockWeatherService = {
+    getHourlyForecast: jest.fn(),
+  };
+
+  const mockSolarWeatherService = {
+    getClosestStation: jest.fn(),
+    getRadiationData: jest.fn(),
+    getKpData: jest.fn(),
+  };
+
   beforeEach(async () => {
     const mockDocumentInstance = {
       ...mockLocation,
@@ -171,6 +183,14 @@ describe('LocationsService', () => {
         {
           provide: EncryptionService,
           useValue: mockEncryptionService,
+        },
+        {
+          provide: WeatherService,
+          useValue: mockWeatherService,
+        },
+        {
+          provide: SolarWeatherService,
+          useValue: mockSolarWeatherService,
         },
       ],
     }).compile();

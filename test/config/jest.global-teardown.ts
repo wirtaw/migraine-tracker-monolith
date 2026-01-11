@@ -2,6 +2,8 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'node:fs';
+import path from 'node:path'; 
 import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
 
@@ -18,7 +20,10 @@ export default async function (
   const useDocker = process.env.USE_DOCKER === 'true';
 
   if (process.env.MONGO_URI) {
-    // If we used an external URI, we don't need to cleanup anything
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    if (fs.existsSync(configPath)) {
+      fs.unlinkSync(configPath);
+    }
     return;
   }
 
@@ -41,10 +46,6 @@ export default async function (
     if (global.__MONGOD__) {
       await global.__MONGOD__.stop();
     }
-
-    // Clean up the temporary file
-    const fs = await import('fs');
-    const path = await import('path');
 
     const configPath = path.join(__dirname, '../../.jest-test-env.json');
     if (fs.existsSync(configPath)) {

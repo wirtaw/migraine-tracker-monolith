@@ -24,7 +24,7 @@
     "test:integrations": "jest --config ./test/jest-integrations.json",
     "test:docker": "USE_DOCKER=true jest",
     "knip": "knip -c ./knip.json",
-    "update": "ncu -i --format=group"
+    "check:updates": "ncu -i --format=group"
   },
   "languages": [
     {
