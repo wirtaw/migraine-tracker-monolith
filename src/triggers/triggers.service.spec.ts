@@ -221,6 +221,53 @@ describe('TriggersService', () => {
         }),
       );
     });
+
+    it('should create trigger without note', async () => {
+      const createDto: CreateTriggerDto = {
+        userId: mockTriggers[0].userId!,
+        type: typeValue,
+        note: '',
+        datetimeAt: triggerDateTime,
+      };
+
+      const mockTriggerWithoutNote = {
+        ...mockTrigger,
+        note: '',
+        save: jest.fn().mockResolvedValue({
+          ...mockTrigger,
+          note: '',
+          toObject: () => ({ ...mockTrigger, note: '' }),
+        }),
+      } as unknown as TriggerDocument;
+
+      (mockTriggerModel as unknown as jest.Mock).mockImplementation(
+        () => mockTriggerWithoutNote,
+      );
+
+      const result = await service.create(createDto, symmetricKey);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const calledWithPayload = (mockTriggerModel as unknown as jest.Mock).mock
+        .calls[0][0];
+
+      expect(calledWithPayload).toEqual(
+        expect.objectContaining({
+          type: `enc(${createDto.type})`,
+          note: '',
+          datetimeAt: `enc(${createDto.datetimeAt})`,
+        }),
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockTrigger._id.toString(),
+          userId: createDto.userId,
+          type: createDto.type,
+          note: undefined,
+          datetimeAt: new Date(createDto.datetimeAt),
+        }),
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -279,6 +326,25 @@ describe('TriggersService', () => {
           'otherUser',
         ),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidTrigger = {
+        ...mockTrigger,
+        type: 123,
+      };
+
+      mockTriggerModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidTrigger),
+      });
+
+      await expect(
+        service.findOne(
+          mockTrigger._id.toHexString(),
+          symmetricKey,
+          mockTriggers[0].userId!,
+        ),
+      ).rejects.toThrow(Error);
     });
   });
 

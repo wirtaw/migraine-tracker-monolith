@@ -516,6 +516,25 @@ describe('IncidentsService', () => {
         mockIncident._id.toHexString(),
       );
     });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidIncident = {
+        ...mockIncident,
+        type: 123,
+      };
+
+      mockIncidentModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidIncident),
+      });
+
+      await expect(
+        service.findOne(
+          mockIncident._id.toHexString(),
+          symmetricKey,
+          mockIncidents[0].userId!,
+        ),
+      ).rejects.toThrow(Error);
+    });
   });
 
   describe('update', () => {

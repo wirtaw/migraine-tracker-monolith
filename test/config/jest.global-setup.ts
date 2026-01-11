@@ -2,7 +2,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'node:util';
-import  fs  from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import dotenv from 'dotenv';

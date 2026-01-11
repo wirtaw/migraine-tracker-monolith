@@ -296,6 +296,25 @@ describe('SymptomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidSymptom = {
+        ...mockSymptom,
+        type: 123,
+      };
+
+      mockSymptomModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidSymptom),
+      });
+
+      await expect(
+        service.findOne(
+          mockSymptom._id.toHexString(),
+          symmetricKey,
+          mockSymptoms[0].userId!,
+        ),
+      ).rejects.toThrow(Error);
+    });
   });
 
   describe('update', () => {

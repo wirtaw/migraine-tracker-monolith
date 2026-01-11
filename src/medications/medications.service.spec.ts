@@ -317,6 +317,25 @@ describe('MedicationsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidMedication = {
+        ...mockMedication,
+        title: 12345, // Invalid type, should be string
+      };
+
+      mockMedicationModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidMedication),
+      });
+
+      await expect(
+        service.findOne(
+          mockMedication._id.toHexString(),
+          symmetricKey,
+          mockMedications[0].userId!,
+        ),
+      ).rejects.toThrow('Expected string got number for title');
+    });
   });
 
   describe('update', () => {

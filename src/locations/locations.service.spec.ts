@@ -317,6 +317,21 @@ describe('LocationsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidLocation = {
+        ...mockLocation,
+        latitude: 123,
+      };
+
+      mockLocationModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidLocation),
+      });
+
+      await expect(
+        service.findOne(mockLocation._id.toHexString(), symmetricKey, userId),
+      ).rejects.toThrow(Error);
+    });
   });
 
   describe('update', () => {

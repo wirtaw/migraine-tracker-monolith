@@ -254,6 +254,19 @@ describe('UserService', () => {
         NotFoundException,
       );
     });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidUser = {
+        ...mockUser,
+        email: 123,
+      };
+
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidUser),
+      });
+
+      await expect(service.findOne(mockUser.userId)).rejects.toThrow(Error);
+    });
   });
 
   describe('update', () => {

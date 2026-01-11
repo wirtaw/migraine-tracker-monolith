@@ -3,7 +3,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'node:fs';
-import path from 'node:path'; 
+import path from 'node:path';
 import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
 
