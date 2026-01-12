@@ -42,7 +42,6 @@ describe('OpenMeteoClient', () => {
       const lat = 52.52;
       const lon = 13.41;
 
-      // Mocking the complex response structure from openmeteo
       const mockCurrentVariables: Record<number, { value: () => number }> = {
         0: { value: () => 20 }, // temperature
         1: { value: () => 50 }, // humidity
@@ -120,6 +119,18 @@ describe('OpenMeteoClient', () => {
         'OpenMeteo API URL is not configured',
       );
     });
+
+    it('should throw error if request return undefined', async () => {
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
+      const lat = 52.52;
+      const lon = 13.41;
+
+      (fetchWeatherApi as jest.Mock).mockResolvedValue(null);
+
+      await expect(client.fetchForecast(lat, lon)).rejects.toThrow(
+        'Weather data fetch failed',
+      );
+    });
   });
 
   describe('fetchHistorical', () => {
@@ -178,6 +189,31 @@ describe('OpenMeteoClient', () => {
           timezone: 'auto',
           wind_speed_unit: 'ms',
         }),
+      );
+    });
+
+    it('should throw error if config is missing', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+      const lat = 52.52;
+      const lon = 13.41;
+      const date = new Date('2023-01-01T00:00:00Z');
+      await expect(client.fetchHistorical(lat, lon, date)).rejects.toThrow(
+        'OpenMeteo Archive API URL is not configured',
+      );
+    });
+
+    it('should throw error if request return undefined', async () => {
+      mockConfigService.get.mockReturnValue(
+        'https://archive-api.open-meteo.com/v1/archive',
+      );
+      const lat = 52.52;
+      const lon = 13.41;
+      const date = new Date('2023-01-01T00:00:00Z');
+
+      (fetchWeatherApi as jest.Mock).mockResolvedValue(null);
+
+      await expect(client.fetchHistorical(lat, lon, date)).rejects.toThrow(
+        'Weather historical data fetch failed',
       );
     });
   });

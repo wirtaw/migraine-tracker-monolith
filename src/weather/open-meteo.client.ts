@@ -95,9 +95,11 @@ export class OpenMeteoClient {
       const baseUrl = this.config.get<string>(
         'integration.apis.openMeteoArchive',
       );
+
       if (!baseUrl) {
         throw new Error('OpenMeteo Archive API URL is not configured');
       }
+
       const url = `${baseUrl}/v1/forecast`;
 
       const params = {
@@ -121,7 +123,7 @@ export class OpenMeteoClient {
       const responses = await fetchWeatherApi(url, params);
 
       if (!responses) {
-        throw new Error('Weather data fetch failed');
+        throw new Error('Weather historical data fetch failed');
       }
 
       const [response] = responses;
