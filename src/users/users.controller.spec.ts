@@ -64,6 +64,7 @@ describe('UserController', () => {
   let controller: UserController;
   let service: UserService;
   let mockRequest: RequestWithUser;
+  let module: TestingModule;
 
   beforeEach(async () => {
     mockRequest = {
@@ -75,7 +76,7 @@ describe('UserController', () => {
         id: userId,
       },
     } as unknown as RequestWithUser;
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
         {
@@ -93,8 +94,11 @@ describe('UserController', () => {
     service = module.get<UserService>(UserService);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

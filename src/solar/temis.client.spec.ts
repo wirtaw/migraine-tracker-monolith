@@ -10,6 +10,7 @@ import { IStation } from './interfaces/radiation.interface';
 describe('TemisClient', () => {
   let service: TemisClient;
   let mockData: string = '';
+  let module: TestingModule;
 
   const mockHttpService = {
     get: jest.fn(),
@@ -57,7 +58,7 @@ describe('TemisClient', () => {
   20020701    5.935   0.409   3.755   0.299  -1.000  -1.000   6.479   0.738  -1.000  -1.000   1.586   0.252  -1.000  -1.000  -1.000  348.6
   20020702    6.161   0.409   3.885   0.299  -1.000  -1.000   6.781   0.735  -1.000  -1.000   1.694   0.252  -1.000  -1.000  -1.000  338.3
 `;
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         TemisClient,
         { provide: HttpService, useValue: mockHttpService },
@@ -69,8 +70,11 @@ describe('TemisClient', () => {
     service = module.get<TemisClient>(TemisClient);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

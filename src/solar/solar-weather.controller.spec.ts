@@ -7,6 +7,7 @@ import { DateTime } from 'luxon';
 describe('SolarWeatherController', () => {
   let controller: SolarWeatherController;
   let solarService: SolarWeatherService;
+  let module: TestingModule;
 
   const mockSolarService = {
     getRadiation: jest.fn(),
@@ -14,7 +15,7 @@ describe('SolarWeatherController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [SolarWeatherController],
       providers: [
         {
@@ -26,6 +27,13 @@ describe('SolarWeatherController', () => {
 
     controller = module.get<SolarWeatherController>(SolarWeatherController);
     solarService = module.get<SolarWeatherService>(SolarWeatherService);
+  });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

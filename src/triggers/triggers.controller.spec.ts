@@ -44,9 +44,10 @@ describe('TriggersController', () => {
   let controller: TriggersController;
   let service: TriggersService;
   let mockRequest: RequestWithUser;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [TriggersController],
       providers: [
         {
@@ -79,8 +80,11 @@ describe('TriggersController', () => {
     } as unknown as RequestWithUser;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

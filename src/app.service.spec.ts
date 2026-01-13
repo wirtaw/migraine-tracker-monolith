@@ -4,13 +4,20 @@ import { AppDict } from './enums/index';
 
 describe('AppService', () => {
   let service: AppService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [AppService],
     }).compile();
 
     service = module.get<AppService>(AppService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

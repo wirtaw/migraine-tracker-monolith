@@ -48,9 +48,10 @@ describe('MedicationsController', () => {
   let controller: MedicationsController;
   let service: MedicationsService;
   let mockRequest: RequestWithUser;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [MedicationsController],
       providers: [
         {
@@ -83,8 +84,11 @@ describe('MedicationsController', () => {
     } as unknown as RequestWithUser;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

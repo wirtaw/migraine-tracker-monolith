@@ -69,9 +69,10 @@ describe('IncidentsController', () => {
   const symmetricKey = 'test-secret-key-long';
   let mockRequest: RequestWithUser;
   let encryptionService: EncryptionService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [IncidentsController],
       providers: [
         {
@@ -105,8 +106,11 @@ describe('IncidentsController', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

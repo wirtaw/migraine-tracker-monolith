@@ -9,13 +9,14 @@ jest.mock('openmeteo', () => ({
 
 describe('OpenMeteoClient', () => {
   let client: OpenMeteoClient;
+  let module: TestingModule;
 
   const mockConfigService = {
     get: jest.fn(),
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         OpenMeteoClient,
         {
@@ -28,8 +29,11 @@ describe('OpenMeteoClient', () => {
     client = module.get<OpenMeteoClient>(OpenMeteoClient);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

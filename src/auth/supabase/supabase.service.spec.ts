@@ -17,6 +17,7 @@ jest.mock('@supabase/supabase-js', () => {
 describe('SupabaseService', () => {
   let service: SupabaseService;
   let mockClient: Supabase.SupabaseClient;
+  let module: TestingModule;
 
   const mockUser = {
     id: 'user-123',
@@ -34,7 +35,7 @@ describe('SupabaseService', () => {
 
     (Supabase.createClient as jest.Mock).mockReturnValue(mockClient);
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         SupabaseService,
         {
@@ -50,6 +51,12 @@ describe('SupabaseService', () => {
     }).compile();
 
     service = module.get<SupabaseService>(SupabaseService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   describe('getUser', () => {

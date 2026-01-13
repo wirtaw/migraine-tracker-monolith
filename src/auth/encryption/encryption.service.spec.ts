@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 
 describe('EncryptionService', () => {
   let service: EncryptionService;
+  let module: TestingModule;
 
   const mockMasterKey = 'MASTER_KEY_1234567890';
   const mockSymmetricKeyService = {
@@ -12,7 +13,7 @@ describe('EncryptionService', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         EncryptionService,
         {
@@ -23,6 +24,12 @@ describe('EncryptionService', () => {
     }).compile();
 
     service = module.get<EncryptionService>(EncryptionService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

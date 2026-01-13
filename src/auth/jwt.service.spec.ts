@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { CustomJwtService as JwtService } from './jwt.service';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import {
@@ -13,6 +13,7 @@ describe('CustomJwtService', () => {
   let jwtService: JwtService;
   let mockKeyService: Partial<SymmetricKeyService>;
   let keyService: SymmetricKeyService;
+  let module: TestingModule;
   const secretKey = 'test-secret-key-long';
   const normalizedKey = crypto.createHash('sha256').update(secretKey).digest();
 
@@ -21,7 +22,7 @@ describe('CustomJwtService', () => {
       getKey: jest.fn().mockResolvedValue(secretKey),
     };
 
-    const module = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         JwtService,
         {
@@ -33,6 +34,12 @@ describe('CustomJwtService', () => {
 
     jwtService = module.get(JwtService);
     keyService = module.get(SymmetricKeyService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

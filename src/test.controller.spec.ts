@@ -3,13 +3,20 @@ import { TestController } from './test.controller';
 
 describe('TestController', () => {
   let testController: TestController;
+  let app: TestingModule;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    app = await Test.createTestingModule({
       controllers: [TestController],
     }).compile();
 
     testController = app.get<TestController>(TestController);
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('getPublic()', () => {

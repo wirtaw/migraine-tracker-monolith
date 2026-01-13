@@ -6,6 +6,7 @@ import { WeatherService } from './weather.service';
 describe('WeatherController', () => {
   let controller: WeatherController;
   let weatherService: WeatherService;
+  let module: TestingModule;
 
   const mockWeatherService = {
     getForecast: jest.fn(),
@@ -13,7 +14,7 @@ describe('WeatherController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [WeatherController],
       providers: [
         {
@@ -25,6 +26,13 @@ describe('WeatherController', () => {
 
     controller = module.get<WeatherController>(WeatherController);
     weatherService = module.get<WeatherService>(WeatherService);
+  });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
