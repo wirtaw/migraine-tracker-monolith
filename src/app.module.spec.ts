@@ -10,6 +10,12 @@ describe('AppModule', () => {
     }).compile();
   });
 
+  afterEach(async () => {
+    if (testModule) {
+      await testModule.close();
+    }
+  });
+
   it('should validate the app module', () => {
     expect(testModule).toBeDefined();
   });

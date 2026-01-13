@@ -1,7 +1,9 @@
 // test/setup.ts
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
+import { promisify } from 'node:util';
+import fs from 'node:fs';
+import path from 'node:path';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
@@ -12,7 +14,7 @@ declare global {
 
 const execAsync = promisify(exec);
 
-dotenv.config({ path: '.env.test.local' });
+dotenv.config({ path: path.join(__dirname, '../../.env.test.local') });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
@@ -21,6 +23,18 @@ export default async function (
   projectConfig: Config.ProjectConfig,
 ) {
   const useDocker = process.env.USE_DOCKER === 'true';
+
+  if (process.env.MONGO_URI) {
+    console.log(`Using provided Mongo URI: ${process.env.MONGO_URI}`);
+    // Write the URI to a temporary file so test suites can read it if they rely on it
+    // although setup-env should also read env vars.
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ mongoUri: process.env.MONGO_URI }),
+    );
+    return;
+  }
 
   // Cleanup any existing containers to ensure clean state
   try {
@@ -44,6 +58,11 @@ export default async function (
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log('MongoDB container started.');
+
+      const uri = `mongodb://root:${process.env.MONGO_INITDB_ROOT_PASSWORD}@localhost:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
+
+      const configPath = path.join(__dirname, '../../.jest-test-env.json');
+      fs.writeFileSync(configPath, JSON.stringify({ mongoUri: uri }));
     } catch (error) {
       console.error('Failed to start MongoDB container:', error);
       process.exit(1);

@@ -5,14 +5,22 @@ import { AppDict } from './enums/index';
 
 describe('AppController', () => {
   let appController: AppController;
+  let app: TestingModule;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    app = await Test.createTestingModule({
       controllers: [AppController],
       providers: [AppService],
     }).compile();
 
     appController = app.get<AppController>(AppController);
+  });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('root', () => {

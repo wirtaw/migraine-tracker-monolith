@@ -1,16 +1,12 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MedicationsService } from './medications.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Medication,
-  MedicationDocument,
-  MedicationSchema,
-} from './schemas/medication.schema';
+import { Medication, MedicationDocument } from './schemas/medication.schema';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
-import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -82,7 +78,6 @@ describe('MedicationsService', () => {
   let mockDocumentInstance: MedicationDocument;
   let encryptionService: EncryptionService;
   let module: TestingModule;
-  let model: Model<MedicationDocument>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -142,28 +137,7 @@ describe('MedicationsService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Medication.name, schema: MedicationSchema },
-        ]),
-      ],
       providers: [
         MedicationsService,
         {
@@ -178,14 +152,10 @@ describe('MedicationsService', () => {
     }).compile();
 
     service = module.get<MedicationsService>(MedicationsService);
-    model = module.get<Model<MedicationDocument>>(
-      getModelToken(Medication.name),
-    );
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
-    await model.deleteMany({});
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -316,6 +286,25 @@ describe('MedicationsService', () => {
           'otherUser',
         ),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidMedication = {
+        ...mockMedication,
+        title: 12345, // Invalid type, should be string
+      };
+
+      mockMedicationModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidMedication),
+      });
+
+      await expect(
+        service.findOne(
+          mockMedication._id.toHexString(),
+          symmetricKey,
+          mockMedications[0].userId!,
+        ),
+      ).rejects.toThrow('Expected string got number for title');
     });
   });
 

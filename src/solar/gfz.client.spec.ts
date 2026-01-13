@@ -133,6 +133,7 @@ function generateMockSolarFlux(
 describe('GfzClient', () => {
   let client: GfzClient;
   let httpService: HttpService;
+  let module: TestingModule;
 
   const mockHttpService = {
     get: jest.fn(),
@@ -191,7 +192,7 @@ ${generateMockSolarFlux(currentDate)}`;
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         GfzClient,
         { provide: HttpService, useValue: mockHttpService },
@@ -204,8 +205,11 @@ ${generateMockSolarFlux(currentDate)}`;
     httpService = module.get<HttpService>(HttpService);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
@@ -309,7 +313,9 @@ ${generateMockSolarFlux(currentDate)}`;
         'solarFlux',
         'sunsPotNumber',
       ]);
-      expect(mockCacheManager.get).toHaveBeenCalledWith('kp_index_gfz');
+      expect(mockCacheManager.get).toHaveBeenCalledWith(
+        `kp_index_gfz_nowcast_${DateTime.now().toFormat('yyyy-MM-dd')}`,
+      );
     });
 
     it('should return undefined if not get today date', async () => {

@@ -57,6 +57,7 @@ describe('AuthService', () => {
   let supabaseService: SupabaseService;
   let jwtService: CustomJwtService;
   let userModelConstructorSpy: jest.Mock<UserDocument, [UserInRequest]>;
+  let module: TestingModule;
 
   const mockEncryptionService = {
     deriveSymmetricKey: jest.fn(),
@@ -91,7 +92,7 @@ describe('AuthService', () => {
   beforeEach(async () => {
     const { userModelMock: successMock } = createUserModelMock(mockUser);
     userModelConstructorSpy = successMock;
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         AuthService,
         {
@@ -126,6 +127,12 @@ describe('AuthService', () => {
     });
 
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

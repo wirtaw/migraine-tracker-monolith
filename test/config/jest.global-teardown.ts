@@ -2,6 +2,8 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'node:fs';
+import path from 'node:path';
 import dotenv from 'dotenv';
 import type { Config } from '@jest/types';
 
@@ -16,6 +18,14 @@ export default async function (
   projectConfig: Config.ProjectConfig,
 ) {
   const useDocker = process.env.USE_DOCKER === 'true';
+
+  if (process.env.MONGO_URI) {
+    const configPath = path.join(__dirname, '../../.jest-test-env.json');
+    if (fs.existsSync(configPath)) {
+      fs.unlinkSync(configPath);
+    }
+    return;
+  }
 
   if (useDocker) {
     console.log('Stopping and removing MongoDB Docker container locally...');
@@ -36,10 +46,6 @@ export default async function (
     if (global.__MONGOD__) {
       await global.__MONGOD__.stop();
     }
-
-    // Clean up the temporary file
-    const fs = await import('fs');
-    const path = await import('path');
 
     const configPath = path.join(__dirname, '../../.jest-test-env.json');
     if (fs.existsSync(configPath)) {

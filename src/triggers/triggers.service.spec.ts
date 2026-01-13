@@ -1,16 +1,12 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TriggersService } from './triggers.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Trigger,
-  TriggerDocument,
-  TriggerSchema,
-} from './schemas/trigger.schema';
+import { Trigger, TriggerDocument } from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
-import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -69,7 +65,6 @@ describe('TriggersService', () => {
   let mockTriggerModel: jest.Mocked<Model<TriggerDocument>>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
-  let model: Model<TriggerDocument>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -124,28 +119,7 @@ describe('TriggersService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Trigger.name, schema: TriggerSchema },
-        ]),
-      ],
       providers: [
         TriggersService,
         {
@@ -160,12 +134,10 @@ describe('TriggersService', () => {
     }).compile();
 
     service = module.get<TriggersService>(TriggersService);
-    model = module.get<Model<TriggerDocument>>(getModelToken(Trigger.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
-    await model.deleteMany({});
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -217,6 +189,53 @@ describe('TriggersService', () => {
           userId: createDto.userId,
           type: createDto.type,
           note: createDto.note,
+          datetimeAt: new Date(createDto.datetimeAt),
+        }),
+      );
+    });
+
+    it('should create trigger without note', async () => {
+      const createDto: CreateTriggerDto = {
+        userId: mockTriggers[0].userId!,
+        type: typeValue,
+        note: '',
+        datetimeAt: triggerDateTime,
+      };
+
+      const mockTriggerWithoutNote = {
+        ...mockTrigger,
+        note: '',
+        save: jest.fn().mockResolvedValue({
+          ...mockTrigger,
+          note: '',
+          toObject: () => ({ ...mockTrigger, note: '' }),
+        }),
+      } as unknown as TriggerDocument;
+
+      (mockTriggerModel as unknown as jest.Mock).mockImplementation(
+        () => mockTriggerWithoutNote,
+      );
+
+      const result = await service.create(createDto, symmetricKey);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const calledWithPayload = (mockTriggerModel as unknown as jest.Mock).mock
+        .calls[0][0];
+
+      expect(calledWithPayload).toEqual(
+        expect.objectContaining({
+          type: `enc(${createDto.type})`,
+          note: '',
+          datetimeAt: `enc(${createDto.datetimeAt})`,
+        }),
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockTrigger._id.toString(),
+          userId: createDto.userId,
+          type: createDto.type,
+          note: undefined,
           datetimeAt: new Date(createDto.datetimeAt),
         }),
       );
@@ -279,6 +298,25 @@ describe('TriggersService', () => {
           'otherUser',
         ),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidTrigger = {
+        ...mockTrigger,
+        type: 123,
+      };
+
+      mockTriggerModel.findById = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidTrigger),
+      });
+
+      await expect(
+        service.findOne(
+          mockTrigger._id.toHexString(),
+          symmetricKey,
+          mockTriggers[0].userId!,
+        ),
+      ).rejects.toThrow(Error);
     });
   });
 

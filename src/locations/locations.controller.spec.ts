@@ -37,8 +37,10 @@ describe('LocationsController', () => {
   let service: LocationsService;
   let mockRequest: RequestWithUser;
 
+  let module: TestingModule;
+
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [LocationsController],
       providers: [
         {
@@ -66,8 +68,11 @@ describe('LocationsController', () => {
     } as unknown as RequestWithUser;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

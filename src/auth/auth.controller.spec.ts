@@ -31,6 +31,7 @@ const mockRegisterResult = {
 describe('AuthController', () => {
   let controller: AuthController;
   let service: AuthService;
+  let module: TestingModule;
 
   const mockAuthService = {
     register: jest.fn().mockResolvedValue(mockRegisterResult),
@@ -47,7 +48,7 @@ describe('AuthController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         {
@@ -64,6 +65,12 @@ describe('AuthController', () => {
     service = module.get<AuthService>(AuthService);
 
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

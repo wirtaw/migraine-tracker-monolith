@@ -94,6 +94,7 @@ describe('UserService', () => {
   let service: UserService;
   let mockUserModel: jest.Mocked<Model<UserDocument>>;
   let mockDocumentInstance: UserDocument;
+  let module: TestingModule;
 
   const mockEncryptionService = {
     encryptSensitiveData: jest.fn((data) => `encrypted_${data}`),
@@ -131,7 +132,7 @@ describe('UserService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         UserService,
         {
@@ -146,6 +147,12 @@ describe('UserService', () => {
     }).compile();
 
     service = module.get<UserService>(UserService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
@@ -253,6 +260,19 @@ describe('UserService', () => {
       await expect(service.findOne('nonExistentUser')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should throw Error if decrypted value is not a string', async () => {
+      const invalidUser = {
+        ...mockUser,
+        email: 123,
+      };
+
+      mockUserModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(invalidUser),
+      });
+
+      await expect(service.findOne(mockUser.userId)).rejects.toThrow(Error);
     });
   });
 

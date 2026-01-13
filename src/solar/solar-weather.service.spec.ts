@@ -12,6 +12,7 @@ describe('SolarWeatherService', () => {
   let temisClient: TemisClient;
   let noaaClient: NoaaClient;
   let gfzClient: GfzClient;
+  let module: TestingModule;
 
   const mockTemisClient = {
     getUVData: jest.fn(),
@@ -33,7 +34,7 @@ describe('SolarWeatherService', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         SolarWeatherService,
         { provide: TemisClient, useValue: mockTemisClient },
@@ -52,8 +53,11 @@ describe('SolarWeatherService', () => {
     gfzClient = module.get<GfzClient>(GfzClient);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

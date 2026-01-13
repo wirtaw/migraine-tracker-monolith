@@ -9,7 +9,7 @@ import { IIncident } from './interfaces/incident.interface';
 import { NotFoundException } from '@nestjs/common';
 import { IncidentTypeEnum } from './enums/incident-type.enum';
 import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
-import { RequestWithUser } from 'src/auth/interfaces/auth.user.interface';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { IncidentDocument, Incident } from './schemas/incident.schema';
 
@@ -69,9 +69,10 @@ describe('IncidentsController', () => {
   const symmetricKey = 'test-secret-key-long';
   let mockRequest: RequestWithUser;
   let encryptionService: EncryptionService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [IncidentsController],
       providers: [
         {
@@ -105,8 +106,11 @@ describe('IncidentsController', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

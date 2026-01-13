@@ -13,6 +13,7 @@ import {
 
 describe('NoaaClient', () => {
   let service: NoaaClient;
+  let module: TestingModule;
 
   const mockHttpService = {
     get: jest.fn(),
@@ -55,7 +56,7 @@ describe('NoaaClient', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         NoaaClient,
         { provide: HttpService, useValue: mockHttpService },
@@ -67,8 +68,11 @@ describe('NoaaClient', () => {
     service = module.get<NoaaClient>(NoaaClient);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {

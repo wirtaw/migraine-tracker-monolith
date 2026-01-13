@@ -145,7 +145,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: user.id,
+      userId: singInUserId,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -180,7 +180,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: user.id,
+      userId: singInUserId,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -198,7 +198,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: user.id,
+      userId: singInUserId,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,
@@ -227,7 +227,7 @@ describe('Incidents Access Flow (integration)', () => {
     const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
     const incidentDateTime = '2023-01-01T12:00:00.000Z';
     const createDto: CreateIncidentDto = {
-      userId: user.id,
+      userId: singInUserId,
       type: IncidentTypeEnum.MIGRAINE_ATTACK,
       startTime: incidentStartDateTime,
       durationHours: 2,

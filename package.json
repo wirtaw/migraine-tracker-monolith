@@ -20,10 +20,13 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:unit": "jest --testPathIgnorePatterns \".*\\\\.int\\\\.spec\\\\.ts$\" \".*integration\\\\.spec\\\\.ts$\"",
+    "test:int-src": "jest --testRegex \".*(\\\\.int|integration)\\\\.spec\\\\.ts$\"",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:integrations": "jest --config ./test/jest-integrations.json",
+    "test:integrations": "jest --config ./test/jest-integrations.json --runInBand",
+    "test:docker": "USE_DOCKER=true jest",
     "knip": "knip -c ./knip.json",
-    "update": "ncu -i --format=group"
+    "check:updates": "ncu -i --format=group"
   },
   "languages": [
     {

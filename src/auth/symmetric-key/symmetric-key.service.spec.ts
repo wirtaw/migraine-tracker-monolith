@@ -8,13 +8,14 @@ import { SymmetricKeyService } from './symmetric-key.service';
 
 describe('SymmetricKeyService with HMAC', () => {
   let service: SymmetricKeyService;
+  let module: TestingModule;
 
   const mockHttpService = {
     get: jest.fn(),
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         SymmetricKeyService,
         {
@@ -31,6 +32,12 @@ describe('SymmetricKeyService with HMAC', () => {
     process.env.CLOUDFLARE_WORKER_HEADER_KEY =
       'aabbccddeeff00112233445566778899';
     service['cachedKey'] = null;
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should throw error if CLOUDFLARE_WORKER_URL or CLOUDFLARE_WORKER_HEADER_KEY is missing', async () => {

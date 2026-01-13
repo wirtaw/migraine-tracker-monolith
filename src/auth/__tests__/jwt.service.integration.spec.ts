@@ -11,6 +11,7 @@ process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
 
 describe('CustomJwtService (integration)', () => {
   let jwtService: CustomJwtService;
+  let module: TestingModule;
 
   const mockHttpService = {
     get: jest.fn().mockReturnValue(
@@ -25,7 +26,7 @@ describe('CustomJwtService (integration)', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         CustomJwtService,
         SymmetricKeyService,
@@ -37,6 +38,12 @@ describe('CustomJwtService (integration)', () => {
     }).compile();
 
     jwtService = module.get<CustomJwtService>(CustomJwtService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should sign and verify a valid token', async () => {

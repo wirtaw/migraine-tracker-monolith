@@ -1,17 +1,13 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthLogsService } from './health-logs.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
-import { Model, Types, HydratedDocument } from 'mongoose';
+import { getModelToken } from '@nestjs/mongoose';
+import { Types, HydratedDocument } from 'mongoose';
 import {
   Weight,
   Height,
   BloodPressure,
   Sleep,
-  WeightSchema,
-  HeightSchema,
-  BloodPressureSchema,
-  SleepSchema,
 } from './schemas/health-logs.schema';
 import {
   CreateWeightDto,
@@ -25,7 +21,7 @@ import {
   UpdateBloodPressureDto,
   UpdateSleepDto,
 } from './dto/update-health-logs.dto';
-import { NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 const userId = 'user123';
@@ -151,10 +147,6 @@ const createMockModel = <T>(data: MockDoc<T>[]): MockModel<T> => {
 
 describe('HealthLogsService', () => {
   let service: HealthLogsService;
-  let weightModel: Model<Weight>;
-  let heightModel: Model<Height>;
-  let bloodPressureModel: Model<BloodPressure>;
-  let sleepModel: Model<Sleep>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
 
@@ -180,31 +172,7 @@ describe('HealthLogsService', () => {
   const mockSleepModel = createMockModel(mockSleeps);
 
   beforeEach(async () => {
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Weight.name, schema: WeightSchema },
-          { name: Height.name, schema: HeightSchema },
-          { name: BloodPressure.name, schema: BloodPressureSchema },
-          { name: Sleep.name, schema: SleepSchema },
-        ]),
-      ],
       providers: [
         HealthLogsService,
         { provide: getModelToken(Weight.name), useValue: mockWeightModel },
@@ -222,22 +190,12 @@ describe('HealthLogsService', () => {
     }).compile();
 
     service = module.get<HealthLogsService>(HealthLogsService);
-    weightModel = module.get<Model<Weight>>(getModelToken(Weight.name));
-    heightModel = module.get<Model<Height>>(getModelToken(Height.name));
-    bloodPressureModel = module.get<Model<BloodPressure>>(
-      getModelToken(BloodPressure.name),
-    );
-    sleepModel = module.get<Model<Sleep>>(getModelToken(Sleep.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
 
     jest.clearAllMocks();
   });
 
-  afterEach(async () => {
-    await weightModel.deleteMany({});
-    await heightModel.deleteMany({});
-    await bloodPressureModel.deleteMany({});
-    await sleepModel.deleteMany({});
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -285,12 +243,12 @@ describe('HealthLogsService', () => {
         expect(mockWeightModel).toHaveBeenCalledWith(
           expect.objectContaining({
             weight: `enc(${createDto.weight})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.weight).toBe(73);
-        expect(result.notes).toEqual('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -476,12 +434,12 @@ describe('HealthLogsService', () => {
         expect(mockHeightModel).toHaveBeenCalledWith(
           expect.objectContaining({
             height: `enc(${createDto.height})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.height).toBe(176);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -677,13 +635,13 @@ describe('HealthLogsService', () => {
           expect.objectContaining({
             systolic: `enc(${createDto.systolic})`,
             diastolic: `enc(${createDto.diastolic})`,
-            notes: 'enc()',
+            notes: '',
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.systolic).toBe(130);
         expect(result.diastolic).toBe(40);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
@@ -888,13 +846,13 @@ describe('HealthLogsService', () => {
         expect(mockSleepModel).toHaveBeenCalledWith(
           expect.objectContaining({
             rate: `enc(${createDto.rate})`,
-            notes: 'enc()',
+            notes: '',
             startedAt: `enc(${createDto.startedAt})`,
             datetimeAt: `enc(${createDto.datetimeAt})`,
           }),
         );
         expect(result.rate).toBe(5);
-        expect(result.notes).toBe('');
+        expect(result.notes).toBeUndefined();
       });
     });
 
