@@ -53,8 +53,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Test
-        run: NODE_ENV=test pnpm test
+      - name: Unit Tests
+        timeout-minutes: 5
+        run: NODE_ENV=test pnpm test:unit
         env:
           NODE_ENV: test
           IS_PODMAN: false
@@ -63,7 +64,21 @@ jobs:
           MONGODB_HOST: ${{ env.MONGODB_HOST }}
           MONGO_URI: ${{ env.MONGO_URI }}
 
-      - name: Test E2E
+      - name: Integration Tests
+        timeout-minutes: 5
+        run: |
+          NODE_ENV=test pnpm test:int-src
+          NODE_ENV=test pnpm test:integrations
+        env:
+          NODE_ENV: test
+          IS_PODMAN: false
+          MONGODB_USER: ${{ env.MONGODB_USER }}
+          MONGODB_PASSWORD: ${{ env.MONGODB_PASSWORD }}
+          MONGODB_HOST: ${{ env.MONGODB_HOST }}
+          MONGO_URI: ${{ env.MONGO_URI }}
+
+      - name: E2E Tests
+        timeout-minutes: 5
         run: NODE_ENV=test pnpm test:e2e
         env:
           NODE_ENV: test

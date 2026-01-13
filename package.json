@@ -20,6 +20,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:unit": "jest --testPathIgnorePatterns \".*\\\\.int\\\\.spec\\\\.ts$\" \".*integration\\\\.spec\\\\.ts$\"",
+    "test:int-src": "jest --testRegex \".*(\\\\.int|integration)\\\\.spec\\\\.ts$\"",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:integrations": "jest --config ./test/jest-integrations.json",
     "test:docker": "USE_DOCKER=true jest",
