@@ -12,3 +12,7 @@ if (process.env.MONGO_URI) {
     process.env.MONGO_URI = config.mongoUri;
   }
 }
+// Set a default JWT_SECRET for tests if not already present
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'test_secret_key_for_unit_tests';
+}
