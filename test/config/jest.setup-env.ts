@@ -24,6 +24,10 @@ if (!process.env.CF_ACCESS_CLIENT_SECRET) {
   process.env.CF_ACCESS_CLIENT_SECRET = 'test-client-secret';
 }
 
+if (!process.env.MONGODB_DB_NAME) {
+  process.env.MONGODB_DB_NAME = 'test_db_name';
+}
+
 const configPath = path.join(__dirname, '../../.jest-test-env.json');
 
 if (process.env.MONGO_URI) {
