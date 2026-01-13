@@ -59,7 +59,7 @@ export default async function (
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log('MongoDB container started.');
 
-      const uri = `mongodb://root:${process.env.MONGO_INITDB_ROOT_PASSWORD}@localhost:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
+      const uri = `mongodb://root:${process.env.MONGO_INITDB_ROOT_PASSWORD}@localhost:${process.env.MONGODB_PORT}/${process.env.MONGODB_DB_NAME}?authSource=admin`;
 
       const configPath = path.join(__dirname, '../../.jest-test-env.json');
       fs.writeFileSync(configPath, JSON.stringify({ mongoUri: uri }));
