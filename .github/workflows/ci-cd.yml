@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches:  [master]
+    branches: [master]
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
     services:
       mongo:
         image: mongo:5.0
-        ports: ['27017:27017']
+        ports: ["27017:27017"]
         options: >-
           --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval=10s
@@ -23,9 +23,9 @@ jobs:
     env:
       MONGODB_USER: ${{ vars.MONGODB_USER }}
       MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-      MONGODB_HOST: mongo
+      MONGODB_HOST: localhost
       MONGODB_CLUSTER: ${{ vars.MONGODB_CLUSTER }}
-      MONGO_URI: mongodb://mongo:27017/testdb
+      MONGO_URI: mongodb://localhost:27017/testdb
 
     steps:
       - name: Checkout code
@@ -52,33 +52,6 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
-      
-      - name: Wait for MongoDB to be ready
-        run: |
-          node -e "
-          const net = require('net');
-          const RETRIES = 10;
-          let attempts = 0;
-      
-          function check() {
-            const socket = net.createConnection(27017, 'mongo');
-            socket.on('connect', () => {
-              console.log('MongoDB is ready!');
-              socket.end();
-            });
-            socket.on('error', () => {
-              if (++attempts >= RETRIES) {
-                console.error('MongoDB did not start in time.');
-                process.exit(1);
-              } else {
-                console.log('Waiting for MongoDB...');
-                setTimeout(check, 5000);
-              }
-            });
-          }
-      
-          check();
-          "
 
       - name: Test
         run: NODE_ENV=test pnpm test
