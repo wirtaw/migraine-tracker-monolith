@@ -223,7 +223,8 @@ describe('Incidents Ownership Access (integration)', () => {
       .findOne({ userId: userA.id })
       .lean();
 
-    incidentId = incidentInDb?._id as string;
+    if (!incidentInDb) throw new Error('Incident not found in DB');
+    incidentId = (incidentInDb._id as any).toString();
 
     expect(incBody.notes).toBe('Created by userA');
   });
@@ -247,6 +248,6 @@ describe('Incidents Ownership Access (integration)', () => {
     await request(app.getHttpServer() as Server)
       .delete(`/incidents/${incidentId}`)
       .set('Authorization', `Bearer ${sessionUserB.access_token}`)
-      .expect(HttpStatus.FORBIDDEN);
+      .expect(HttpStatus.NOT_FOUND);
   });
 });

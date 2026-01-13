@@ -14,7 +14,7 @@ declare global {
 
 const execAsync = promisify(exec);
 
-dotenv.config({ path: '.env.test.local' });
+dotenv.config({ path: path.join(__dirname, '../../.env.test.local') });
 
 const isPodman = process.env.IS_PODMAN && process.env.IS_PODMAN === 'true';
 
