@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SymptomsService } from './symptoms.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Symptom,
-  SymptomDocument,
-} from './schemas/symptom.schema';
+import { Symptom, SymptomDocument } from './schemas/symptom.schema';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -146,7 +143,7 @@ describe('SymptomsService', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

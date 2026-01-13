@@ -195,7 +195,7 @@ describe('HealthLogsService', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

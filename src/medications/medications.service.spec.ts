@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MedicationsService } from './medications.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Medication,
-  MedicationDocument,
-} from './schemas/medication.schema';
+import { Medication, MedicationDocument } from './schemas/medication.schema';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -158,7 +155,7 @@ describe('MedicationsService', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

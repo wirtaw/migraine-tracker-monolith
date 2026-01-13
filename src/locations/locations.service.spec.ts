@@ -5,10 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LocationsService } from './locations.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Location,
-  LocationDocument,
-} from './schemas/locations.schema';
+import { Location, LocationDocument } from './schemas/locations.schema';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -176,7 +173,7 @@ describe('LocationsService', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

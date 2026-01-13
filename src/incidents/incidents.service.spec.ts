@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { IncidentsService } from './incidents.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Incident,
-  IncidentDocument,
-} from './schemas/incident.schema';
+import { Incident, IncidentDocument } from './schemas/incident.schema';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import {
@@ -268,7 +265,7 @@ describe('IncidentsService', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TriggersService } from './triggers.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
-import {
-  Trigger,
-  TriggerDocument,
-} from './schemas/trigger.schema';
+import { Trigger, TriggerDocument } from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -140,7 +137,7 @@ describe('TriggersService', () => {
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
