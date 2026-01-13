@@ -3,16 +3,15 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LocationsService } from './locations.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Location,
   LocationDocument,
-  LocationSchema,
 } from './schemas/locations.schema';
 import { CreateLocationDto } from './dto/create-locations.dto';
 import { UpdateLocationDto } from './dto/update-locations.dto';
-import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { WeatherService } from '../weather/weather.service';
 import { SolarWeatherService } from '../solar/solar-weather.service';
@@ -86,7 +85,6 @@ describe('LocationsService', () => {
   let mockLocationModel: jest.Mocked<Model<LocationDocument>>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
-  let model: Model<LocationDocument>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -152,28 +150,7 @@ describe('LocationsService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Location.name, schema: LocationSchema },
-        ]),
-      ],
       providers: [
         LocationsService,
         {
@@ -196,12 +173,10 @@ describe('LocationsService', () => {
     }).compile();
 
     service = module.get<LocationsService>(LocationsService);
-    model = module.get<Model<LocationDocument>>(getModelToken(Location.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
   afterEach(async () => {
-    await model.deleteMany({});
     jest.clearAllMocks();
   });
 

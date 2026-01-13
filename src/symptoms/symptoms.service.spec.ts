@@ -1,16 +1,15 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymptomsService } from './symptoms.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Symptom,
   SymptomDocument,
-  SymptomSchema,
 } from './schemas/symptom.schema';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
-import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -75,7 +74,6 @@ describe('SymptomsService', () => {
   let mockDocumentInstance: SymptomDocument;
   let encryptionService: EncryptionService;
   let module: TestingModule;
-  let model: Model<SymptomDocument>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -130,28 +128,7 @@ describe('SymptomsService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Symptom.name, schema: SymptomSchema },
-        ]),
-      ],
       providers: [
         SymptomsService,
         {
@@ -166,12 +143,10 @@ describe('SymptomsService', () => {
     }).compile();
 
     service = module.get<SymptomsService>(SymptomsService);
-    model = module.get<Model<SymptomDocument>>(getModelToken(Symptom.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
   afterEach(async () => {
-    await model.deleteMany({});
     jest.clearAllMocks();
   });
 

@@ -1,18 +1,16 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { IncidentsService } from './incidents.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Incident,
   IncidentDocument,
-  IncidentSchema,
 } from './schemas/incident.schema';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import {
   NotFoundException,
-  Logger,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -190,7 +188,6 @@ function matchesQuery<T extends Record<string, unknown>>(
 
 describe('IncidentsService', () => {
   let service: IncidentsService;
-  let model: Model<IncidentDocument>;
   let mockIncidentModel: jest.Mocked<Model<IncidentDocument>>;
   let mockDocumentInstance: IncidentDocument;
   let encryptionService: EncryptionService;
@@ -253,28 +250,7 @@ describe('IncidentsService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Incident.name, schema: IncidentSchema },
-        ]),
-      ],
       providers: [
         IncidentsService,
         {
@@ -289,12 +265,10 @@ describe('IncidentsService', () => {
     }).compile();
 
     service = module.get<IncidentsService>(IncidentsService);
-    model = module.get<Model<IncidentDocument>>(getModelToken(Incident.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
   afterEach(async () => {
-    await model.deleteMany({});
     jest.clearAllMocks();
   });
 

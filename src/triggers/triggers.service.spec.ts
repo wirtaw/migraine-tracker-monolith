@@ -1,16 +1,15 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TriggersService } from './triggers.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types, HydratedDocument } from 'mongoose';
 import {
   Trigger,
   TriggerDocument,
-  TriggerSchema,
 } from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
-import { NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 /* eslint-disable @typescript-eslint/unbound-method */
@@ -69,7 +68,6 @@ describe('TriggersService', () => {
   let mockTriggerModel: jest.Mocked<Model<TriggerDocument>>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
-  let model: Model<TriggerDocument>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -124,28 +122,7 @@ describe('TriggersService', () => {
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Trigger.name, schema: TriggerSchema },
-        ]),
-      ],
       providers: [
         TriggersService,
         {
@@ -160,12 +137,10 @@ describe('TriggersService', () => {
     }).compile();
 
     service = module.get<TriggersService>(TriggersService);
-    model = module.get<Model<TriggerDocument>>(getModelToken(Trigger.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
   });
 
   afterEach(async () => {
-    await model.deleteMany({});
     jest.clearAllMocks();
   });
 

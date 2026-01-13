@@ -1,17 +1,13 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthLogsService } from './health-logs.service';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
-import { Model, Types, HydratedDocument } from 'mongoose';
+import { getModelToken } from '@nestjs/mongoose';
+import { Types, HydratedDocument } from 'mongoose';
 import {
   Weight,
   Height,
   BloodPressure,
   Sleep,
-  WeightSchema,
-  HeightSchema,
-  BloodPressureSchema,
-  SleepSchema,
 } from './schemas/health-logs.schema';
 import {
   CreateWeightDto,
@@ -25,7 +21,7 @@ import {
   UpdateBloodPressureDto,
   UpdateSleepDto,
 } from './dto/update-health-logs.dto';
-import { NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
 const userId = 'user123';
@@ -151,10 +147,6 @@ const createMockModel = <T>(data: MockDoc<T>[]): MockModel<T> => {
 
 describe('HealthLogsService', () => {
   let service: HealthLogsService;
-  let weightModel: Model<Weight>;
-  let heightModel: Model<Height>;
-  let bloodPressureModel: Model<BloodPressure>;
-  let sleepModel: Model<Sleep>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
 
@@ -180,31 +172,7 @@ describe('HealthLogsService', () => {
   const mockSleepModel = createMockModel(mockSleeps);
 
   beforeEach(async () => {
-    let dbUri =
-      !process.env.MONGODB_PORT && process.env.MONGODB_CLUSTER
-        ? `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/?retryWrites=true&w=majority&appName=${process.env.MONGODB_CLUSTER}`
-        : `mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DBNAME}?authSource=admin`;
-
-    Logger.log(`Database URI ${dbUri}`);
-
-    if (process.env.MONGO_URI) {
-      dbUri = process.env.MONGO_URI;
-    }
-
     module = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRootAsync({
-          useFactory: () => ({
-            uri: dbUri,
-          }),
-        }),
-        MongooseModule.forFeature([
-          { name: Weight.name, schema: WeightSchema },
-          { name: Height.name, schema: HeightSchema },
-          { name: BloodPressure.name, schema: BloodPressureSchema },
-          { name: Sleep.name, schema: SleepSchema },
-        ]),
-      ],
       providers: [
         HealthLogsService,
         { provide: getModelToken(Weight.name), useValue: mockWeightModel },
@@ -222,22 +190,12 @@ describe('HealthLogsService', () => {
     }).compile();
 
     service = module.get<HealthLogsService>(HealthLogsService);
-    weightModel = module.get<Model<Weight>>(getModelToken(Weight.name));
-    heightModel = module.get<Model<Height>>(getModelToken(Height.name));
-    bloodPressureModel = module.get<Model<BloodPressure>>(
-      getModelToken(BloodPressure.name),
-    );
-    sleepModel = module.get<Model<Sleep>>(getModelToken(Sleep.name));
     encryptionService = module.get<EncryptionService>(EncryptionService);
 
     jest.clearAllMocks();
   });
 
   afterEach(async () => {
-    await weightModel.deleteMany({});
-    await heightModel.deleteMany({});
-    await bloodPressureModel.deleteMany({});
-    await sleepModel.deleteMany({});
     jest.clearAllMocks();
   });
 
