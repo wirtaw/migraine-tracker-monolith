@@ -78,6 +78,24 @@ export class LocationsService {
     return this.mapToILocation(location, key);
   }
 
+  async findByIncidentId(
+    incidentId: string,
+    key: string,
+    userId: string,
+  ): Promise<ILocation> {
+    const location = await this.locationModel
+      .findOne({ incidentId, userId })
+      .exec();
+
+    if (!location) {
+      throw new NotFoundException(
+        `Location for incident ID "${incidentId}" not found`,
+      );
+    }
+
+    return this.mapToILocation(location, key);
+  }
+
   async update(
     id: string,
     updateLocationDto: UpdateLocationDto,

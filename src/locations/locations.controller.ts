@@ -111,6 +111,30 @@ export class LocationsController {
   }
 
   @Roles(Role.USER)
+  @Get('incident/:incidentId')
+  @ApiOperation({ summary: 'Find location by Incident ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The location has been found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The location not found.',
+  })
+  async findByIncidentId(
+    @Param('incidentId') incidentId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<ILocation | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.locationsService.findByIncidentId(
+      incidentId,
+      encryptionKey,
+      userId,
+    );
+  }
+
+  @Roles(Role.USER)
   @Patch(':id')
   @ApiOperation({ summary: 'Update the location' })
   @ApiBody({

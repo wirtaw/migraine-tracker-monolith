@@ -306,6 +306,39 @@ describe('LocationsService', () => {
     });
   });
 
+  describe('findByIncidentId', () => {
+    it('should return a decrypted location by incidentId', async () => {
+      mockLocationModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockLocation),
+      });
+
+      const result = await service.findByIncidentId('1', symmetricKey, userId);
+
+      expect(mockLocationModel.findOne).toHaveBeenCalledWith({
+        incidentId: '1',
+        userId,
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockLocation._id.toString(),
+          userId,
+          latitude: latitudeValue,
+          longitude: longitudeValue,
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if location for incidentId not found', async () => {
+      mockLocationModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.findByIncidentId('nonExistentIncidentId', symmetricKey, userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('update', () => {
     it('should update and return the updated location', async () => {
       const updateDto: UpdateLocationDto = {

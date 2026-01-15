@@ -25,6 +25,7 @@ const mockLocationsService = {
   create: jest.fn().mockResolvedValue(mockILocation),
   findAll: jest.fn().mockResolvedValue([mockILocation]),
   findOne: jest.fn().mockResolvedValue(mockILocation),
+  findByIncidentId: jest.fn().mockResolvedValue(mockILocation),
   update: jest.fn().mockResolvedValue(mockILocation),
   remove: jest.fn().mockResolvedValue(undefined),
 };
@@ -106,6 +107,24 @@ describe('LocationsController', () => {
       const result = await controller.findOne(mockILocation.id, mockRequest);
       expect(service.findOne).toHaveBeenCalledWith(
         mockILocation.id,
+        symmetricKey,
+        userId,
+      );
+      expect(result).toEqual(mockILocation);
+    });
+  });
+
+  describe('findByIncidentId', () => {
+    it('should return a location by incidentId', async () => {
+      const incidentId = '1';
+      mockLocationsService.findByIncidentId = jest
+        .fn()
+        .mockResolvedValue(mockILocation);
+
+      const result = await controller.findByIncidentId(incidentId, mockRequest);
+
+      expect(service.findByIncidentId).toHaveBeenCalledWith(
+        incidentId,
         symmetricKey,
         userId,
       );
