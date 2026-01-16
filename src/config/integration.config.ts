@@ -1,4 +1,18 @@
-export default () => ({
+export interface IntegrationConfig {
+  apis: {
+    temis: string;
+    gfz: string;
+    noaa: string;
+    openMeteo: string;
+    openMeteoArchive: string;
+  };
+  caching: {
+    weatherTtl: number;
+    solarTtl: number;
+  };
+}
+
+export default (): IntegrationConfig => ({
   apis: {
     temis: process.env.TEMIS_BASE_URL || 'https://www.temis.nl/uvradiation',
     gfz: process.env.GFZ_BASE_URL || 'https://www-app3.gfz-potsdam.de',

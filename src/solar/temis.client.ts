@@ -103,7 +103,6 @@ export class TemisClient {
   transform(
     data: string | undefined,
     date: string,
-    url: string,
   ): IRadiationData | undefined {
     if (!data) {
       return undefined;
@@ -157,6 +156,6 @@ export class TemisClient {
 
     const data = await this.getStationData(closestStation.url);
     const dt = DateTime.now();
-    return this.transform(data, dt.toFormat('yyyyMMdd'), closestStation.url);
+    return this.transform(data, dt.toFormat('yyyyMMdd'));
   }
 }

@@ -10,7 +10,9 @@ import {
   IKPIData,
   IGeophysicalWeatherData,
   NextWeather,
+  IStation,
 } from './interfaces/radiation.interface';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class SolarWeatherService {
@@ -101,7 +103,7 @@ export class SolarWeatherService {
     ];
   }
 
-  async getClosestStation(lat: number, lon: number): Promise<any> {
+  async getClosestStation(lat: number, lon: number): Promise<IStation | null> {
     return this.temis.getClosestStation(lat, lon);
   }
 
@@ -112,10 +114,10 @@ export class SolarWeatherService {
     // Get station data
     const data = await this.temis.getStationData(stationUrl);
     // Transform specifically for the date
-    return this.temis.transform(data, date, stationUrl);
+    return this.temis.transform(data, date);
   }
 
-  async getKpData(date: any): Promise<IKPIData | undefined> {
+  async getKpData(date: DateTime): Promise<IKPIData | undefined> {
     return this.gfz.getKpData(date);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { fetchWeatherApi } from 'openmeteo';
-import { IWeatherData } from './interfaces/weather.interface';
+import { IWeatherData, IHourlyForecast } from './interfaces/weather.interface';
 
 @Injectable()
 export class OpenMeteoClient {
@@ -205,7 +205,7 @@ export class OpenMeteoClient {
     longitude: number,
     start: Date,
     end: Date,
-  ): Promise<any[]> {
+  ): Promise<IHourlyForecast[]> {
     try {
       const baseUrl = this.config.get<string>('integration.apis.openMeteo');
       if (!baseUrl) {

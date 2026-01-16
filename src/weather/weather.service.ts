@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { OpenMeteoClient } from './open-meteo.client';
-import { IWeatherData } from './interfaces/weather.interface';
+import { IWeatherData, IHourlyForecast } from './interfaces/weather.interface';
 
 @Injectable()
 export class WeatherService {
@@ -53,7 +53,7 @@ export class WeatherService {
     lon: number,
     start: Date,
     end: Date,
-  ): Promise<any[]> {
+  ): Promise<IHourlyForecast[]> {
     return this.client.fetchHourlyForecast(lat, lon, start, end);
   }
 }
