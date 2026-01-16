@@ -16,7 +16,10 @@ import { HydratedDocument, Model } from 'mongoose';
 import { CustomJwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { createUserModelMock } from './mocks/createUserModelMock';
+import {
+  createUserModelMock,
+  UserModelMock,
+} from './mocks/createUserModelMock';
 import { Role } from './enums/roles.enum';
 import { RoleDto } from './dto/role.dto';
 
@@ -56,7 +59,7 @@ describe('AuthService', () => {
   let encryptionService: EncryptionService;
   let supabaseService: SupabaseService;
   let jwtService: CustomJwtService;
-  let userModelConstructorSpy: jest.Mock<UserDocument, [UserInRequest]>;
+  let userModelConstructorSpy: UserModelMock;
   let module: TestingModule;
 
   const mockEncryptionService = {
@@ -205,7 +208,8 @@ describe('AuthService', () => {
         symmetricKeyBuffer,
       );
 
-      const userPayload = userModelConstructorSpy.mock.calls[0][0];
+      const userPayload = (userModelConstructorSpy as unknown as jest.Mock).mock
+        .calls[0][0];
 
       expect(userPayload).toEqual(expectedUserData);
 

@@ -28,3 +28,15 @@ export interface IOpenMeteoData {
   windSpeed: number;
   uvi: number;
 }
+
+export interface IHourlyForecast {
+  datetime: string;
+  temperature: number;
+  humidity: number;
+  pressure: number;
+  windSpeed: number;
+  clouds: number;
+  directRadiation: number;
+  uvi: number;
+  description: string;
+}

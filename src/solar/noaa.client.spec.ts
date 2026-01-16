@@ -319,7 +319,7 @@ describe('NoaaClient', () => {
     it('should process valid data correctly', () => {
       const dt = DateTime.now();
       const todayStr = dt.toFormat('yyyy-MM-dd');
-      const mockData: any[] = [
+      const mockData: unknown[] = [
         ['header'],
         [`${todayStr} 00:00:00.000`, '3.00', '15', '8'],
         ['2000-01-01 00:00:00.000', '1.00', '5', '8'], // Different date

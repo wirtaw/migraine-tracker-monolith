@@ -139,7 +139,7 @@ function isQueryObject(value: unknown): value is QueryObject {
 function isInOperator(
   obj: QueryObject,
 ): obj is { $in: Array<string | number> } {
-  return '$in' in obj && Array.isArray((obj as any).$in);
+  return '$in' in obj && Array.isArray((obj as { $in: unknown }).$in);
 }
 
 function matchesQuery<T extends Record<string, unknown>>(
@@ -215,21 +215,23 @@ describe('IncidentsService', () => {
       return mockDocumentInstance;
     }) as unknown as jest.Mocked<Model<IncidentDocument>>;
 
-    mockIncidentModel.find = jest.fn().mockImplementation((query = {}) => {
-      const matched = mockIncidents.filter((inc) =>
-        matchesQuery<MockIncident>(inc, query),
-      );
+    mockIncidentModel.find = jest
+      .fn()
+      .mockImplementation((query: Query = {}) => {
+        const matched = mockIncidents.filter((inc) =>
+          matchesQuery<MockIncident>(inc, query),
+        );
 
-      return {
-        exec: jest.fn().mockResolvedValue(matched),
-        limit: jest.fn().mockImplementation((n: number) => ({
-          exec: jest.fn().mockResolvedValue(matched.slice(0, n)),
-        })),
-        sort: jest.fn().mockImplementation(() => ({
+        return {
           exec: jest.fn().mockResolvedValue(matched),
-        })),
-      };
-    });
+          limit: jest.fn().mockImplementation((n: number) => ({
+            exec: jest.fn().mockResolvedValue(matched.slice(0, n)),
+          })),
+          sort: jest.fn().mockImplementation(() => ({
+            exec: jest.fn().mockResolvedValue(matched),
+          })),
+        };
+      });
     mockIncidentModel.findById = jest.fn().mockImplementation((id: string) => {
       const found =
         mockIncidents.find(
@@ -293,9 +295,9 @@ describe('IncidentsService', () => {
 
       const result = await service.create(createDto, symmetricKey);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const calledWithPayload = (mockIncidentModel as unknown as jest.Mock).mock
-        .calls[0][0];
+      const mockConstructor = mockIncidentModel as unknown as jest.Mock;
+      const calls = mockConstructor.mock.calls as unknown[][];
+      const calledWithPayload = calls[0][0];
 
       expect(calledWithPayload).toEqual(
         expect.objectContaining({

@@ -199,7 +199,6 @@ describe('TemisClient', () => {
   describe('transform', () => {
     it('should parse valid data correctly', () => {
       const date = '20020701';
-      const url = 'some-url';
       mockCacheManager.get.mockResolvedValue(null);
       const expectedResult = {
         CMF: -1.0,
@@ -221,14 +220,14 @@ describe('TemisClient', () => {
         ozone: 348.6,
       };
 
-      const result = service.transform(mockData, date, url);
+      const result = service.transform(mockData, date);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
 
     it('should return cached data', () => {
       const date = '20020701';
-      const url = 'some-url';
+
       const expectedResult = {
         CMF: -1.0,
         cloud_Free_DNA_damage_UV_dose: 1.586,
@@ -250,14 +249,14 @@ describe('TemisClient', () => {
       };
       mockCacheManager.get.mockResolvedValue(expectedResult);
 
-      const result = service.transform(mockData, date, url);
+      const result = service.transform(mockData, date);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
 
     it('should parse valid data correctly some values convertyed to zero', () => {
       const date = '20020701';
-      const url = 'some-url';
+
       mockCacheManager.get.mockResolvedValue(null);
       mockData = `# TEMIS v2.0 UV index and UV dose overpass file
 # =============================================
@@ -311,7 +310,7 @@ describe('TemisClient', () => {
         ozone: 348.6,
       };
 
-      const result = service.transform(mockData, date, url);
+      const result = service.transform(mockData, date);
       expect(result).toBeDefined();
       expect(result).toStrictEqual(expectedResult);
     });
@@ -322,19 +321,19 @@ describe('TemisClient', () => {
   20020701 ...
         `;
       const date = '20230101';
-      const url = 'some-url';
+
       mockCacheManager.get.mockResolvedValue(null);
 
-      const result = service.transform(mockData, date, url);
+      const result = service.transform(mockData, date);
       expect(result).toBeUndefined();
     });
 
     it('should return undefined if data undefined', () => {
       const date = '20230101';
-      const url = 'some-url';
+
       mockCacheManager.get.mockResolvedValue(null);
 
-      const result = service.transform(undefined, date, url);
+      const result = service.transform(undefined, date);
       expect(result).toBeUndefined();
     });
   });

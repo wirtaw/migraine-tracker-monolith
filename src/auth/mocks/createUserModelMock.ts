@@ -23,7 +23,7 @@ export interface UserModelMockResult {
 export function createUserModelMock(
   mockUserData: Partial<User> = {},
   options: CreateUserModelMockOptions = {},
-) {
+): UserModelMockResult {
   const {
     saveSuccess = true,
     findOneResult = mockUserData,
@@ -72,5 +72,8 @@ export function createUserModelMock(
     return Promise.reject(new Error('Create failed'));
   });
 
-  return { userModelMock, mockDocumentInstance };
+  return {
+    userModelMock: userModelMock as unknown as UserModelMock,
+    mockDocumentInstance,
+  };
 }

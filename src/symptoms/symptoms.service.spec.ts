@@ -168,9 +168,9 @@ describe('SymptomsService', () => {
 
       const result = await service.create(createDto, symmetricKey);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const calledWithPayload = (mockSymptomModel as unknown as jest.Mock).mock
-        .calls[0][0];
+      const mockConstructor = mockSymptomModel as unknown as jest.Mock;
+      const calls = mockConstructor.mock.calls as unknown[][];
+      const calledWithPayload = calls[0][0];
 
       expect(calledWithPayload).toEqual(
         expect.objectContaining({
