@@ -32,4 +32,4 @@ COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3000
 
 # Define the command to run the application
-CMD [ "node", "dist/main.js" ]
+CMD [ "sh", "-c", "NODE_ENV=production node dist/main.js" ]

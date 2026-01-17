@@ -19,6 +19,8 @@ import { AppModule } from './app.module';
 import { AppConfig } from './config/app/app.config';
 import { ControllerName } from './enums/index';
 import { AllExceptionsFilter } from './all-exceptions.filter';
+import { DocsMiddleware } from './common/middleware/docs.middleware';
+import { CustomJwtService } from './auth/jwt.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -82,6 +84,15 @@ async function bootstrap(): Promise<void> {
    */
   app.use(express.urlencoded({ extended: true, limit: '5mb' }));
   app.use(express.json({ limit: '5mb' }));
+
+  /**
+   * @description Internal Documentation Protection
+   */
+  const jwtService = app.get(CustomJwtService);
+  const docsMiddleware = new DocsMiddleware(jwtService);
+  app.use('/docs', (req: Request, res: Response, next: NextFunction) =>
+    docsMiddleware.use(req, res, next),
+  );
 
   /**
    * @description Req & Res timeouts
