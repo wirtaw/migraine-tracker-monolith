@@ -23,6 +23,7 @@ import { IncidentsService } from './incidents.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
+import { IIncidentStats } from './interfaces/incident-stats.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
@@ -68,6 +69,19 @@ export class IncidentsController {
     const encryptionKey = req?.session?.key || '';
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.incidentsService.findAll(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
+  @Get('stats')
+  @ApiOperation({ summary: 'Get aggregated statistics of incidents' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The incident statistics',
+  })
+  async getStats(@Req() req: RequestWithUser): Promise<IIncidentStats> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.getStats(encryptionKey, userId);
   }
 
   @Roles(Role.USER)

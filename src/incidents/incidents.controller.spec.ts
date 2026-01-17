@@ -13,6 +13,8 @@ import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { IncidentDocument, Incident } from './schemas/incident.schema';
 
+import { IIncidentStats } from './interfaces/incident-stats.interface';
+
 const mockIIncident: IIncident = {
   id: '60c72b2f9b1d8e001c8e4d3a',
   userId: 'user123',
@@ -40,9 +42,28 @@ const mockIIncidents: IIncident[] = [
   },
 ];
 
+const mockStats: IIncidentStats = {
+  byType: {
+    [IncidentTypeEnum.MIGRAINE_ATTACK]: 1,
+    [IncidentTypeEnum.AURA_EPISODE]: 1,
+  } as Record<IncidentTypeEnum, number>,
+  byTrigger: {
+    [TriggerTypeEnum.STRESS]: 1,
+    [TriggerTypeEnum.LACK_OF_SLEEP]: 1,
+    [TriggerTypeEnum.WEATHER]: 1,
+  } as Record<TriggerTypeEnum, number>,
+  byTime: {
+    dailyCounts: { '2023-01-01': 2 },
+    totalDurationHours: 6,
+    averageDurationHours: 3,
+    totalIncidents: 2,
+  },
+};
+
 const mockIncidentsService = {
   create: jest.fn().mockResolvedValue(mockIIncident),
   findAll: jest.fn().mockResolvedValue(mockIIncidents),
+  getStats: jest.fn().mockResolvedValue(mockStats),
   findOne: jest.fn().mockResolvedValue(mockIIncident),
   update: jest.fn().mockResolvedValue(mockIIncident),
   remove: jest.fn().mockResolvedValue(undefined),
@@ -196,6 +217,16 @@ describe('IncidentsController', () => {
       const result = await controller.findAll(mockRequest);
       expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, id);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return aggregated statistics', async () => {
+      const getStatsSpy = jest.spyOn(service, 'getStats');
+      const result = await controller.getStats(mockRequest);
+
+      expect(getStatsSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual(mockStats);
     });
   });
 

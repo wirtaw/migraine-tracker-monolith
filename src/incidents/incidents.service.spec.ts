@@ -848,4 +848,86 @@ describe('IncidentsService', () => {
       });
     });
   });
+
+  describe('getStats', () => {
+    it('should return aggregated statistics', async () => {
+      const result = await service.getStats(
+        symmetricKey,
+        mockIncidents[0].userId!,
+      );
+
+      expect(result).toEqual({
+        byType: {
+          [IncidentTypeEnum.MIGRAINE_ATTACK]: 1,
+          [IncidentTypeEnum.AURA_EPISODE]: 1,
+        },
+        byTrigger: {
+          [TriggerTypeEnum.STRESS]: 1,
+          [TriggerTypeEnum.LACK_OF_SLEEP]: 1,
+          [TriggerTypeEnum.WEATHER]: 1,
+        },
+        byTime: {
+          dailyCounts: { '2023-01-01': 2 },
+          totalDurationHours: 6,
+          averageDurationHours: 3,
+          totalIncidents: 2,
+        },
+      });
+    });
+
+    it('should return empty stats if no incidents found', async () => {
+      mockIncidentModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await service.getStats(symmetricKey, 'empty-user');
+
+      expect(result).toEqual({
+        byType: {},
+        byTrigger: {},
+        byTime: {
+          dailyCounts: {},
+          totalDurationHours: 0,
+          averageDurationHours: 0,
+          totalIncidents: 0,
+        },
+      });
+    });
+
+    it('should handle incidents without triggers', async () => {
+      const incidentWithoutTriggers = {
+        ...mockIncidents[0],
+        triggers: undefined,
+      };
+      mockIncidentModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([incidentWithoutTriggers]),
+      });
+
+      const result = await service.getStats(
+        symmetricKey,
+        mockIncidents[0].userId!,
+      );
+
+      expect(result.byTrigger).toEqual({});
+      expect(result.byTime.totalIncidents).toBe(1);
+    });
+
+    it('should round duration values to 2 decimal places', async () => {
+      const incidentWithDecimal = {
+        ...mockIncidents[0],
+        durationHours: `enc(2.555)`,
+      };
+      mockIncidentModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([incidentWithDecimal]),
+      });
+
+      const result = await service.getStats(
+        symmetricKey,
+        mockIncidents[0].userId!,
+      );
+
+      expect(result.byTime.totalDurationHours).toBe(2.56);
+      expect(result.byTime.averageDurationHours).toBe(2.56);
+    });
+  });
 });

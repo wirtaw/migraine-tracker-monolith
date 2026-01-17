@@ -13,8 +13,10 @@ import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IIncident } from './interfaces/incident.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { DateTime } from 'luxon';
 import { IncidentTypeEnum } from './enums/incident-type.enum';
 import { TriggerTypeEnum } from '../triggers/enums/trigger-type.enum';
+import { IIncidentStats } from './interfaces/incident-stats.interface';
 
 @Injectable()
 export class IncidentsService {
@@ -61,6 +63,58 @@ export class IncidentsService {
     const savedIncident = await createdIncident.save();
 
     return this.mapToIIncident(savedIncident, key);
+  }
+
+  async getStats(key: string, userId: string): Promise<IIncidentStats> {
+    const incidents = await this.findAll(key, userId);
+
+    const stats: IIncidentStats = {
+      byType: {} as Record<IncidentTypeEnum, number>,
+      byTrigger: {} as Record<TriggerTypeEnum, number>,
+      byTime: {
+        dailyCounts: {},
+        totalDurationHours: 0,
+        averageDurationHours: 0,
+        totalIncidents: 0,
+      },
+    };
+
+    incidents.forEach((incident) => {
+      // By Type
+      stats.byType[incident.type] = (stats.byType[incident.type] || 0) + 1;
+
+      // By Trigger
+      if (incident.triggers) {
+        incident.triggers.forEach((trigger) => {
+          stats.byTrigger[trigger] = (stats.byTrigger[trigger] || 0) + 1;
+        });
+      }
+
+      // By Time
+      const dateKey = DateTime.fromJSDate(incident.datetimeAt).toFormat(
+        'yyyy-MM-dd',
+      );
+      stats.byTime.dailyCounts[dateKey] =
+        (stats.byTime.dailyCounts[dateKey] || 0) + 1;
+
+      stats.byTime.totalDurationHours += incident.durationHours;
+      stats.byTime.totalIncidents++;
+    });
+
+    // Round total duration to 2 decimal places
+    stats.byTime.totalDurationHours = parseFloat(
+      stats.byTime.totalDurationHours.toFixed(2),
+    );
+
+    if (stats.byTime.totalIncidents > 0) {
+      stats.byTime.averageDurationHours = parseFloat(
+        (stats.byTime.totalDurationHours / stats.byTime.totalIncidents).toFixed(
+          2,
+        ),
+      );
+    }
+
+    return stats;
   }
 
   async findAll(key: string, userId: string): Promise<IIncident[]> {
@@ -239,9 +293,8 @@ export class IncidentsService {
       userId: incidentDoc.userId,
       type: incidentType,
       startTime: new Date(decrypt(String(incidentDoc.startTime), 'startTime')),
-      durationHours: parseInt(
+      durationHours: parseFloat(
         decrypt(String(incidentDoc.durationHours), 'durationHours'),
-        10,
       ),
       notes: incidentDoc.notes
         ? decrypt(incidentDoc.notes, 'notes')
