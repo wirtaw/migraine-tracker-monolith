@@ -3,7 +3,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { EncryptionService } from './encryption/encryption.service';
@@ -33,7 +32,6 @@ import { RbacGuard } from './guard/rbac.guard';
     EncryptionService,
     AuthService,
     UserService,
-    JwtStrategy,
     SupabaseService,
     CustomJwtService,
     RbacGuard,
