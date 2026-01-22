@@ -8,13 +8,13 @@ import { Reflector } from '@nestjs/core';
 import { SupabaseService } from '../supabase/supabase.service';
 import { Role } from '../enums/roles.enum';
 import { Permission } from '../enums/permissions.enum';
-import { CustomJwtService } from '../jwt.service';
+import { JwtService } from '../jwt.service';
 
 describe('RbacGuard', () => {
   let guard: RbacGuard;
   let reflector: Reflector;
   let supabaseService: SupabaseService;
-  let jwtService: CustomJwtService;
+  let jwtService: JwtService;
 
   const mockJwtService = {
     verifyToken: jest.fn(),
@@ -29,7 +29,7 @@ describe('RbacGuard', () => {
         },
       },
     } as unknown as SupabaseService;
-    jwtService = mockJwtService as unknown as CustomJwtService;
+    jwtService = mockJwtService as unknown as JwtService;
 
     guard = new RbacGuard(reflector, supabaseService, jwtService);
   });

@@ -20,7 +20,7 @@ import type {
   ChangeRoleResponse,
   UserPayload,
 } from './interfaces/auth.user.interface';
-import { CustomJwtService } from './jwt.service';
+import { JwtService } from './jwt.service';
 import { Role } from './enums/roles.enum';
 import { StringValue } from 'ms';
 import { RoleDto } from './dto/role.dto';
@@ -31,7 +31,7 @@ export class AuthService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly encryptionService: EncryptionService,
-    private readonly jwtService: CustomJwtService,
+    private readonly jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 

@@ -5,13 +5,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { CustomJwtService } from '../../auth/jwt.service';
+import { JwtService } from '../../auth/jwt.service';
 
 @Injectable()
 export class DocsMiddleware implements NestMiddleware {
   private readonly logger = new Logger(DocsMiddleware.name);
 
-  constructor(private readonly jwtService: CustomJwtService) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     const environment = process.env.NODE_ENV;

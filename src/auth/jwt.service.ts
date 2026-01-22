@@ -10,7 +10,7 @@ import {
 } from './interfaces/auth.user.interface';
 
 @Injectable()
-export class CustomJwtService {
+export class JwtService {
   constructor(private readonly keyService: SymmetricKeyService) {}
 
   async verifyToken(token: string): Promise<DecodedUserPayload> {
