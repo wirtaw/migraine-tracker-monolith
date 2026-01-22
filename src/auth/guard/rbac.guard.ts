@@ -20,14 +20,14 @@ import {
   RequestWithUser,
   DecodedUserPayload,
 } from '../interfaces/auth.user.interface';
-import { CustomJwtService } from '../jwt.service';
+import { JwtService } from '../jwt.service';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly supabaseService: SupabaseService,
-    private readonly jwtService: CustomJwtService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

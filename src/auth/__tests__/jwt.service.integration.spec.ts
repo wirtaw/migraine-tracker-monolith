@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
-import { CustomJwtService } from '../jwt.service';
+import { JwtService } from '../jwt.service';
 import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
 import { UserPayloadWithKey } from '../interfaces/auth.user.interface';
 import { Role } from '../enums/roles.enum';
@@ -9,8 +9,8 @@ import { Role } from '../enums/roles.enum';
 process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
 process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
 
-describe('CustomJwtService (integration)', () => {
-  let jwtService: CustomJwtService;
+describe('JwtService (integration)', () => {
+  let jwtService: JwtService;
   let module: TestingModule;
 
   const mockHttpService = {
@@ -28,7 +28,7 @@ describe('CustomJwtService (integration)', () => {
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
-        CustomJwtService,
+        JwtService,
         SymmetricKeyService,
         {
           provide: HttpService,
@@ -37,7 +37,7 @@ describe('CustomJwtService (integration)', () => {
       ],
     }).compile();
 
-    jwtService = module.get<CustomJwtService>(CustomJwtService);
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   afterEach(async () => {

@@ -17,7 +17,7 @@ import {
   Incident,
   IncidentDocument,
 } from '../../src/incidents/schemas/incident.schema';
-import { CustomJwtService } from '../../src/auth/jwt.service';
+import { JwtService } from '../../src/auth/jwt.service';
 import { IncidentTypeEnum } from '../../src/incidents/enums/incident-type.enum';
 import { TriggerTypeEnum } from '../../src/triggers/enums/trigger-type.enum';
 import { SupabaseService } from '../../src/auth/supabase/supabase.service';
@@ -31,7 +31,7 @@ describe('Incidents Ownership Access (integration)', () => {
   let incidentId: string;
   let mockHttpService;
   let connection: Connection;
-  let jwtService: CustomJwtService;
+  let jwtService: JwtService;
 
   const userA: SupabaseUser = {
     id: 'userA-id',
@@ -130,7 +130,7 @@ describe('Incidents Ownership Access (integration)', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    jwtService = moduleFixture.get<CustomJwtService>(CustomJwtService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
     connection = moduleFixture.get<Connection>(getConnectionToken());
     incidentModel = moduleFixture.get<Model<IncidentDocument>>(
       getModelToken(Incident.name),

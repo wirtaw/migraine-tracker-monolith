@@ -11,7 +11,7 @@ import { UserService } from '../users/users.service';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { HttpModule } from '@nestjs/axios';
-import { CustomJwtService } from './jwt.service';
+import { JwtService } from './jwt.service';
 import { RbacGuard } from './guard/rbac.guard';
 
 @Module({
@@ -33,10 +33,10 @@ import { RbacGuard } from './guard/rbac.guard';
     AuthService,
     UserService,
     SupabaseService,
-    CustomJwtService,
+    JwtService,
     RbacGuard,
     { provide: APP_GUARD, useClass: RbacGuard },
   ],
-  exports: [JwtModule, SupabaseService, EncryptionService, CustomJwtService],
+  exports: [JwtModule, SupabaseService, EncryptionService, JwtService],
 })
 export class AuthModule {}

@@ -13,7 +13,7 @@ import { SupabaseService } from './supabase/supabase.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { HydratedDocument, Model } from 'mongoose';
-import { CustomJwtService } from './jwt.service';
+import { JwtService } from './jwt.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import {
@@ -58,7 +58,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let encryptionService: EncryptionService;
   let supabaseService: SupabaseService;
-  let jwtService: CustomJwtService;
+  let jwtService: JwtService;
   let userModelConstructorSpy: UserModelMock;
   let module: TestingModule;
 
@@ -107,7 +107,7 @@ describe('AuthService', () => {
           useValue: mockSupabaseService,
         },
         {
-          provide: CustomJwtService,
+          provide: JwtService,
           useValue: mockJwtService,
         },
         {
@@ -118,7 +118,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    jwtService = module.get<CustomJwtService>(CustomJwtService);
+    jwtService = module.get<JwtService>(JwtService);
     encryptionService = module.get<EncryptionService>(EncryptionService);
     supabaseService = module.get<SupabaseService>(SupabaseService);
 
@@ -441,7 +441,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -521,7 +521,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -573,7 +573,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -660,7 +660,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -745,7 +745,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -865,7 +865,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {
@@ -913,7 +913,7 @@ describe('AuthService', () => {
             useValue: mockSupabaseService,
           },
           {
-            provide: CustomJwtService,
+            provide: JwtService,
             useValue: mockJwtService,
           },
           {

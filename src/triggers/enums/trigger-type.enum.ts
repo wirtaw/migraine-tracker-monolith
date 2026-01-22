@@ -20,4 +20,7 @@ export enum TriggerTypeEnum {
   HARD_JOB = 'Hard Job',
   COLD = 'Cold',
   TOOTHACHE = 'Toothache',
+  STOMACH = 'Stomach',
+  TIRED = 'Tired',
+  CHOCOLATE = 'Chocolate',
 }

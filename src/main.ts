@@ -20,7 +20,7 @@ import { AppConfig } from './config/app/app.config';
 import { ControllerName } from './enums/index';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { DocsMiddleware } from './common/middleware/docs.middleware';
-import { CustomJwtService } from './auth/jwt.service';
+import { JwtService } from './auth/jwt.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -88,7 +88,7 @@ async function bootstrap(): Promise<void> {
   /**
    * @description Internal Documentation Protection
    */
-  const jwtService = app.get(CustomJwtService);
+  const jwtService = app.get(JwtService);
   const docsMiddleware = new DocsMiddleware(jwtService);
   app.use('/docs', (req: Request, res: Response, next: NextFunction) =>
     docsMiddleware.use(req, res, next),

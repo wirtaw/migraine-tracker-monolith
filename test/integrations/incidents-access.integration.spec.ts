@@ -8,7 +8,7 @@ import { of } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { AppModule } from '../../src/app.module';
-import { CustomJwtService } from '../../src/auth/jwt.service';
+import { JwtService } from '../../src/auth/jwt.service';
 import { Role } from '../../src/auth/enums/roles.enum';
 import { AuthResponse } from '../../src/auth/interfaces/auth.user.interface';
 import { CreateIncidentDto } from '../../src/incidents/dto/create-incident.dto';
@@ -25,7 +25,7 @@ import { isObjectIdOrString } from '../helper/index';
 
 describe('Incidents Access Flow (integration)', () => {
   let app: INestApplication;
-  let jwtService: CustomJwtService;
+  let jwtService: JwtService;
   let connection: Connection;
   let incidentModel: Model<IncidentDocument>;
   let mockHttpService;
@@ -106,7 +106,7 @@ describe('Incidents Access Flow (integration)', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    jwtService = moduleFixture.get<CustomJwtService>(CustomJwtService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
     connection = moduleFixture.get<Connection>(getConnectionToken());
     incidentModel = moduleFixture.get<Model<IncidentDocument>>(
       getModelToken(Incident.name),

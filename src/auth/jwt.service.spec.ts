@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CustomJwtService as JwtService } from './jwt.service';
+import { JwtService } from './jwt.service';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import {
   UserPayloadWithKey,
@@ -9,7 +9,7 @@ import {
 import jwt from 'jsonwebtoken';
 import { Role } from './enums/roles.enum';
 
-describe('CustomJwtService', () => {
+describe('JwtService', () => {
   let jwtService: JwtService;
   let mockKeyService: Partial<SymmetricKeyService>;
   let keyService: SymmetricKeyService;
