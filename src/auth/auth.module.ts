@@ -7,7 +7,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { EncryptionService } from './encryption/encryption.service';
 import { User, UserSchema } from '../users/schemas/user.schema';
-import { UserService } from '../users/users.service';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { HttpModule } from '@nestjs/axios';
@@ -31,7 +30,6 @@ import { RbacGuard } from './guard/rbac.guard';
     SymmetricKeyService,
     EncryptionService,
     AuthService,
-    UserService,
     SupabaseService,
     JwtService,
     RbacGuard,

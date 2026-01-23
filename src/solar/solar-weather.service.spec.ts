@@ -6,6 +6,7 @@ import { NoaaClient } from './noaa.client';
 import { GfzClient } from './gfz.client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DateTime } from 'luxon';
+import { UserService } from '../users/users.service';
 
 describe('SolarWeatherService', () => {
   let service: SolarWeatherService;
@@ -33,6 +34,10 @@ describe('SolarWeatherService', () => {
     set: jest.fn(),
   };
 
+  const mockUserService = {
+    trackSolarRequest: jest.fn(),
+  };
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
@@ -43,6 +48,10 @@ describe('SolarWeatherService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: UserService,
+          useValue: mockUserService,
         },
       ],
     }).compile();
@@ -124,7 +133,7 @@ describe('SolarWeatherService', () => {
     it('should return cached data if available', async () => {
       mockCacheManager.get.mockResolvedValue(expectedResult);
 
-      const result = await service.getRadiation(lat, lon);
+      const result = await service.getRadiation(lat, lon, 'user123');
 
       expect(result).toEqual(expectedResult);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
@@ -137,13 +146,14 @@ describe('SolarWeatherService', () => {
       mockNoaaClient.getSolarRadiation.mockResolvedValue(mockSolarData);
       mockGfzClient.getKpIndex.mockResolvedValue(mockKpData);
 
-      const result = await service.getRadiation(lat, lon);
+      const result = await service.getRadiation(lat, lon, 'user123');
 
       expect(result).toEqual(expectedResult);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
       expect(temisClient.getUVData).toHaveBeenCalledWith(lat, lon);
       expect(noaaClient.getSolarRadiation).toHaveBeenCalled();
       expect(gfzClient.getKpIndex).toHaveBeenCalled();
+      expect(mockUserService.trackSolarRequest).toHaveBeenCalledWith('user123');
       expect(mockCacheManager.set).toHaveBeenCalledWith(
         cacheKey,
         expectedResult,
@@ -177,10 +187,14 @@ describe('SolarWeatherService', () => {
       mockNoaaClient.getSolarRadiationByDate.mockResolvedValue(mockSolarData);
       mockNoaaClient.getSolarRadiationForecast.mockResolvedValue(undefined);
 
-      const result = await service.getGeophysicalWeatherData(dt.toISO());
+      const result = await service.getGeophysicalWeatherData(
+        dt.toISO(),
+        'user123',
+      );
 
       expect(result).toEqual(mockSolarData);
       expect(mockNoaaClient.getSolarRadiationByDate).toHaveBeenCalled();
+      expect(mockUserService.trackSolarRequest).toHaveBeenCalledWith('user123');
     });
   });
 });

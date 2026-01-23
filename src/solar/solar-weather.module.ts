@@ -7,9 +7,10 @@ import { SolarWeatherService } from './solar-weather.service';
 import { TemisClient } from './temis.client';
 import { NoaaClient } from './noaa.client';
 import { GfzClient } from './gfz.client';
+import { UserModule } from '../users/users.module';
 
 @Module({
-  imports: [HttpModule, CacheModule.register(), ConfigModule],
+  imports: [HttpModule, CacheModule.register(), ConfigModule, UserModule],
   controllers: [SolarWeatherController],
   providers: [SolarWeatherService, TemisClient, NoaaClient, GfzClient],
   exports: [SolarWeatherService],

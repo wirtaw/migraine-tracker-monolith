@@ -3,12 +3,14 @@ import { WeatherService } from './weather.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
   ApiResponse,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiTags,
 } from '@nestjs/swagger';
 import { IWeatherData } from './interfaces/weather.interface';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { Req } from '@nestjs/common';
 
 @ApiTags('weather')
 @ApiBearerAuth('JWT-auth')
@@ -27,8 +29,10 @@ export class WeatherController {
   async getForecast(
     @Query('latitude') lat: number,
     @Query('longitude') lon: number,
+    @Req() req: RequestWithUser,
   ): Promise<IWeatherData | undefined> {
-    return this.weatherService.getForecast(Number(lat), Number(lon));
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.weatherService.getForecast(Number(lat), Number(lon), userId);
   }
 
   @Get('historical')
@@ -39,11 +43,14 @@ export class WeatherController {
     @Query('latitude') lat: number,
     @Query('longitude') lon: number,
     @Query('date') date: string,
+    @Req() req: RequestWithUser,
   ): Promise<IWeatherData | undefined> {
+    const userId = req?.user?.id || req?.session?.userId || '';
     return this.weatherService.getHistorical(
       Number(lat),
       Number(lon),
       new Date(date),
+      userId,
     );
   }
 }

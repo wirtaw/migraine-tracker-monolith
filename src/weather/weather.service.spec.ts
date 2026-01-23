@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WeatherService } from './weather.service';
 import { OpenMeteoClient } from './open-meteo.client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { UserService } from '../users/users.service';
 
 describe('WeatherService', () => {
   let service: WeatherService;
@@ -19,6 +20,10 @@ describe('WeatherService', () => {
     set: jest.fn(),
   };
 
+  const mockUserService = {
+    trackWeatherRequest: jest.fn(),
+  };
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
@@ -30,6 +35,10 @@ describe('WeatherService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: UserService,
+          useValue: mockUserService,
         },
       ],
     }).compile();
@@ -70,22 +79,26 @@ describe('WeatherService', () => {
     it('should return cached forecast if available', async () => {
       mockCacheManager.get.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getForecast(lat, lon);
+      const result = await service.getForecast(lat, lon, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
       expect(client.fetchForecast).not.toHaveBeenCalled();
+      expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
     });
 
     it('should fetch forecast from client if not cached', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockOpenMeteoClient.fetchForecast.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getForecast(lat, lon);
+      const result = await service.getForecast(lat, lon, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
       expect(client.fetchForecast).toHaveBeenCalledWith(lat, lon);
+      expect(mockUserService.trackWeatherRequest).toHaveBeenCalledWith(
+        'user123',
+      );
       expect(mockCacheManager.set).toHaveBeenCalledWith(
         cacheKey,
         mockWeatherData,
@@ -98,7 +111,7 @@ describe('WeatherService', () => {
         new Error('Fetch failed'),
       );
 
-      await expect(service.getForecast(lat, lon)).rejects.toThrow(
+      await expect(service.getForecast(lat, lon, 'user123')).rejects.toThrow(
         'Fetch failed',
       );
       expect(client.fetchForecast).toHaveBeenCalledWith(lat, lon);
@@ -129,22 +142,26 @@ describe('WeatherService', () => {
     it('should return cached historical data if available', async () => {
       mockCacheManager.get.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getHistorical(lat, lon, date);
+      const result = await service.getHistorical(lat, lon, date, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
       expect(client.fetchHistorical).not.toHaveBeenCalled();
+      expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
     });
 
     it('should fetch historical data from client if not cached', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockOpenMeteoClient.fetchHistorical.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getHistorical(lat, lon, date);
+      const result = await service.getHistorical(lat, lon, date, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
       expect(client.fetchHistorical).toHaveBeenCalledWith(lat, lon, date);
+      expect(mockUserService.trackWeatherRequest).toHaveBeenCalledWith(
+        'user123',
+      );
       expect(mockCacheManager.set).toHaveBeenCalledWith(
         cacheKey,
         mockWeatherData,
@@ -158,9 +175,9 @@ describe('WeatherService', () => {
         new Error('Fetch failed'),
       );
 
-      await expect(service.getHistorical(lat, lon, date)).rejects.toThrow(
-        'Fetch failed',
-      );
+      await expect(
+        service.getHistorical(lat, lon, date, 'user123'),
+      ).rejects.toThrow('Fetch failed');
       expect(client.fetchHistorical).toHaveBeenCalledWith(lat, lon, date);
       expect(mockCacheManager.set).not.toHaveBeenCalled();
     });

@@ -3,6 +3,13 @@ interface IFetchDataErrors {
   magneticWeather: string;
 }
 
+export interface IUserStatistics {
+  dbUsageBytes: number;
+  weatherApiRequests: number;
+  solarApiRequests: number;
+  lastUpdated: Date;
+}
+
 export interface IUser {
   userId: string;
   supabaseId: string;
@@ -21,4 +28,5 @@ export interface IUser {
   fetchMagneticWeather: boolean;
   fetchWeather: boolean;
   role: string;
+  statistics?: IUserStatistics;
 }

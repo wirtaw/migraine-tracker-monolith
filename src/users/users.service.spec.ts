@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { Model, HydratedDocument } from 'mongoose';
+import { Model, HydratedDocument, Aggregate, Query } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,10 +9,22 @@ import { NotFoundException } from '@nestjs/common';
 import { Role } from '../auth/enums/roles.enum';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { Incident } from '../incidents/schemas/incident.schema';
+import { Medication } from '../medications/schemas/medication.schema';
+import { Symptom } from '../symptoms/schemas/symptom.schema';
+import { Trigger } from '../triggers/schemas/trigger.schema';
+import { Location } from '../locations/schemas/locations.schema';
+import {
+  Weight,
+  Height,
+  BloodPressure,
+  Sleep,
+} from '../health-logs/schemas/health-logs.schema';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
 const mockUser: HydratedDocument<User> = {
+  userId: 'user123',
   supabaseId: 'user123',
   longitude: '-74.006',
   latitude: '40.7128',
@@ -38,6 +50,12 @@ const mockDbUser: HydratedDocument<User> = {
   ...mockUser,
   longitude: 'encrypted_-74.006',
   latitude: 'encrypted_40.7128',
+  statistics: {
+    dbUsageBytes: 0,
+    weatherApiRequests: 0,
+    solarApiRequests: 0,
+    lastUpdated: new Date(),
+  },
 } as never;
 
 const mockDbUsers: HydratedDocument<User>[] = [
@@ -62,6 +80,12 @@ const mockDbUsers: HydratedDocument<User>[] = [
     fetchMagneticWeather: true,
     fetchWeather: true,
     role: Role.USER,
+    statistics: {
+      dbUsageBytes: 0,
+      weatherApiRequests: 0,
+      solarApiRequests: 0,
+      lastUpdated: new Date(),
+    },
   },
 ] as never;
 
@@ -131,12 +155,54 @@ describe('UserService', () => {
     mockUserModel.deleteOne = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     });
+    mockUserModel.aggregate = jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue([]),
+    } as unknown as Aggregate<unknown[]>);
+    mockUserModel.updateOne = jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue({}),
+    } as unknown as Query<unknown, unknown>);
 
     module = await Test.createTestingModule({
       providers: [
         UserService,
         {
           provide: getModelToken(User.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Incident.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Medication.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Symptom.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Trigger.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Location.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Weight.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Height.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(BloodPressure.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Sleep.name),
           useValue: mockUserModel,
         },
         {
@@ -192,6 +258,7 @@ describe('UserService', () => {
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
         role: Role.USER,
+        statistics: expect.any(Object) as unknown,
       });
     });
   });
@@ -220,6 +287,7 @@ describe('UserService', () => {
           fetchMagneticWeather: t.fetchMagneticWeather,
           fetchWeather: t.fetchWeather,
           role: Role.USER,
+          statistics: expect.any(Object) as unknown,
         })),
       );
     });
@@ -250,6 +318,7 @@ describe('UserService', () => {
         fetchMagneticWeather: mockUser.fetchMagneticWeather,
         fetchWeather: mockUser.fetchWeather,
         role: Role.USER,
+        statistics: expect.any(Object) as unknown,
       });
     });
 
@@ -336,6 +405,7 @@ describe('UserService', () => {
         fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
         fetchWeather: updatedMockUser.fetchWeather,
         role: Role.USER,
+        statistics: expect.any(Object) as unknown,
       });
     });
 
@@ -411,7 +481,7 @@ describe('UserService', () => {
       );
 
       expect(mockUserModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { userId: mockUser.userId },
+        { supabaseId: mockUser.userId },
         {
           ...updateDto,
           longitude: 'encrypted_-118.2437',
@@ -438,6 +508,7 @@ describe('UserService', () => {
         fetchMagneticWeather: updatedMockUser.fetchMagneticWeather,
         fetchWeather: updatedMockUser.fetchWeather,
         role: Role.USER,
+        statistics: expect.any(Object) as unknown,
       });
     });
 
@@ -458,6 +529,76 @@ describe('UserService', () => {
           'somekey',
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('trackWeatherRequest', () => {
+    it('should increment weatherApiRequests', async () => {
+      await service.trackWeatherRequest(mockUser.supabaseId);
+      expect(mockUserModel.updateOne).toHaveBeenCalledWith(
+        { supabaseId: mockUser.supabaseId },
+        {
+          $inc: { 'statistics.weatherApiRequests': 1 },
+          $set: {
+            'statistics.lastUpdated': expect.any(Date) as unknown as Date,
+          },
+        },
+      );
+    });
+  });
+
+  describe('trackSolarRequest', () => {
+    it('should increment solarApiRequests', async () => {
+      await service.trackSolarRequest(mockUser.supabaseId);
+      expect(mockUserModel.updateOne).toHaveBeenCalledWith(
+        { supabaseId: mockUser.supabaseId },
+        {
+          $inc: { 'statistics.solarApiRequests': 1 },
+          $set: {
+            'statistics.lastUpdated': expect.any(Date) as unknown as Date,
+          },
+        },
+      );
+    });
+  });
+
+  describe('getStatistics', () => {
+    it('should return user statistics and update dbUsage', async () => {
+      const mockResult = [{ size: 1024 }];
+      mockUserModel.aggregate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult),
+      } as unknown as Aggregate<unknown[]>);
+
+      const mockUserWithStats = {
+        ...mockDbUser,
+        statistics: {
+          dbUsageBytes: 0,
+          weatherApiRequests: 5,
+          solarApiRequests: 2,
+          lastUpdated: new Date(),
+        },
+      };
+
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUserWithStats),
+      } as unknown as Query<unknown, unknown>);
+
+      mockUserModel.findOneAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          ...mockUserWithStats,
+          statistics: {
+            ...mockUserWithStats.statistics,
+            dbUsageBytes: 10240,
+          },
+        }),
+      } as unknown as Query<unknown, unknown>);
+
+      const stats = await service.getStatistics(mockUser.supabaseId);
+
+      expect(stats!.weatherApiRequests).toBe(5);
+      expect(stats!.solarApiRequests).toBe(2);
+      expect(stats!.dbUsageBytes).toBe(10240); // 10 models * 1024
+      expect(mockUserModel.findOneAndUpdate).toHaveBeenCalled();
     });
   });
 });

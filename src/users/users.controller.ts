@@ -92,6 +92,23 @@ export class UserController {
     return this.userService.updateProfile(userId, updateUserDto, encryptionKey);
   }
 
+  @Roles(Role.USER)
+  @Get('me/statistics')
+  @ApiOperation({ summary: 'Get current user statistics' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user statistics',
+  })
+  async getMyStatistics(
+    @Req() req: RequestWithUser,
+  ): Promise<IUser['statistics']> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    if (!userId) {
+      throw new NotFoundException(`User session not found`);
+    }
+    return this.userService.getStatistics(userId);
+  }
+
   @Roles(Role.ADMIN)
   @Get()
   @ApiOperation({ summary: 'Get list of user data entries' })

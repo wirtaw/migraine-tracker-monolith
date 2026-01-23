@@ -12,6 +12,8 @@ import {
   IRadiationTodayData,
   IGeophysicalWeatherData,
 } from './interfaces/radiation.interface';
+import { Req } from '@nestjs/common';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 @ApiTags('solar')
 @ApiBearerAuth('JWT-auth')
@@ -30,8 +32,14 @@ export class SolarWeatherController {
   async getRadiation(
     @Query('latitude') latitude: number,
     @Query('longitude') longitude: number,
+    @Req() req: RequestWithUser,
   ): Promise<IRadiationTodayData[]> {
-    return this.solarService.getRadiation(Number(latitude), Number(longitude));
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.solarService.getRadiation(
+      Number(latitude),
+      Number(longitude),
+      userId,
+    );
   }
 
   @Get('geophysical/historical')
@@ -44,7 +52,9 @@ export class SolarWeatherController {
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   async getGeophysicalWeatherData(
     @Query('date') date: string,
+    @Req() req: RequestWithUser,
   ): Promise<IGeophysicalWeatherData> {
-    return this.solarService.getGeophysicalWeatherData(date);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.solarService.getGeophysicalWeatherData(date, userId);
   }
 }

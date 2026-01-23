@@ -196,6 +196,7 @@ export class LocationsService {
         longitude,
         start.toJSDate(),
         end.toJSDate(),
+        userId,
       );
 
       // Filter/Slice logic similar to legacy:
@@ -241,11 +242,13 @@ export class LocationsService {
             this.fetchAndMapRadiationData(
               closestStation.url,
               dt.minus({ days: 1 }),
+              userId,
             ),
-            this.fetchAndMapRadiationData(closestStation.url, dt),
+            this.fetchAndMapRadiationData(closestStation.url, dt, userId),
             this.fetchAndMapRadiationData(
               closestStation.url,
               dt.plus({ days: 1 }),
+              userId,
             ),
           ]);
 
@@ -262,8 +265,8 @@ export class LocationsService {
     // KPI (GFZ)
     try {
       const [kpiDataCurrent, kpiDataAfter] = await Promise.all([
-        this.solarWeatherService.getKpData(dt),
-        this.solarWeatherService.getKpData(dt.plus({ days: 1 })),
+        this.solarWeatherService.getKpData(dt, userId),
+        this.solarWeatherService.getKpData(dt.plus({ days: 1 }), userId),
       ]);
 
       if (kpiDataCurrent) {
@@ -323,11 +326,13 @@ export class LocationsService {
   private async fetchAndMapRadiationData(
     stationUrl: string,
     dateTime: DateTime,
+    userId?: string,
   ): Promise<IRadiationMappedData | null> {
     try {
       const radiationData = await this.solarWeatherService.getRadiationData(
         stationUrl,
         dateTime.toFormat('yyyyMMdd'),
+        userId,
       );
       if (radiationData) {
         return {

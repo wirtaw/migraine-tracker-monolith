@@ -13,6 +13,7 @@ import {
   IStation,
 } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class SolarWeatherService {
@@ -21,11 +22,13 @@ export class SolarWeatherService {
     private readonly noaa: NoaaClient,
     private readonly gfz: GfzClient,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly userService: UserService,
   ) {}
 
   async getRadiation(
     latitude: number,
     longitude: number,
+    userId?: string,
   ): Promise<IRadiationTodayData[]> {
     const cacheKey = `solar_radiation_${latitude.toFixed(2)}_${longitude.toFixed(2)}`;
     const cached = await this.cacheManager.get<IRadiationTodayData[]>(cacheKey);
@@ -50,11 +53,17 @@ export class SolarWeatherService {
 
     // 1 hour TTL (3600000 ms)
     await this.cacheManager.set(cacheKey, result, 3600000);
+
+    if (userId) {
+      void this.userService.trackSolarRequest(userId);
+    }
+
     return result;
   }
 
   async getGeophysicalWeatherData(
     date: string,
+    userId?: string,
   ): Promise<IGeophysicalWeatherData> {
     const result: IGeophysicalWeatherData =
       await this.noaa.getSolarRadiationByDate(date);
@@ -62,6 +71,10 @@ export class SolarWeatherService {
       await this.noaa.getSolarRadiationForecast();
     if (forecast) {
       result.nextWeather = { ...forecast };
+    }
+
+    if (userId) {
+      void this.userService.trackSolarRequest(userId);
     }
 
     return result;
@@ -110,14 +123,29 @@ export class SolarWeatherService {
   async getRadiationData(
     stationUrl: string,
     date: string,
+    userId?: string,
   ): Promise<IRadiationData | undefined> {
     // Get station data
     const data = await this.temis.getStationData(stationUrl);
+
+    if (userId) {
+      void this.userService.trackSolarRequest(userId);
+    }
+
     // Transform specifically for the date
     return this.temis.transform(data, date);
   }
 
-  async getKpData(date: DateTime): Promise<IKPIData | undefined> {
-    return this.gfz.getKpData(date);
+  async getKpData(
+    date: DateTime,
+    userId?: string,
+  ): Promise<IKPIData | undefined> {
+    const data = await this.gfz.getKpData(date);
+
+    if (userId) {
+      void this.userService.trackSolarRequest(userId);
+    }
+
+    return data;
   }
 }

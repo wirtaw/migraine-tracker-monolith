@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WeatherController } from './weather.controller';
 import { WeatherService } from './weather.service';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 describe('WeatherController', () => {
   let controller: WeatherController;
@@ -12,6 +13,11 @@ describe('WeatherController', () => {
     getForecast: jest.fn(),
     getHistorical: jest.fn(),
   };
+
+  const mockRequest = {
+    user: { id: 'user123' },
+    session: { userId: 'user123' },
+  } as unknown as RequestWithUser;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -58,18 +64,22 @@ describe('WeatherController', () => {
 
       mockWeatherService.getForecast.mockResolvedValue(mockForecast);
 
-      const result = await controller.getForecast(lat, lon);
+      const result = await controller.getForecast(lat, lon, mockRequest);
 
       expect(result).toEqual(mockForecast);
-      expect(weatherService.getForecast).toHaveBeenCalledWith(lat, lon);
+      expect(weatherService.getForecast).toHaveBeenCalledWith(
+        lat,
+        lon,
+        'user123',
+      );
     });
     it('should propagate service errors', async () => {
       mockWeatherService.getForecast.mockRejectedValue(
         new Error('Service failed'),
       );
-      await expect(controller.getForecast(52.52, 13.41)).rejects.toThrow(
-        'Service failed',
-      );
+      await expect(
+        controller.getForecast(52.52, 13.41, mockRequest),
+      ).rejects.toThrow('Service failed');
     });
   });
 
@@ -93,13 +103,19 @@ describe('WeatherController', () => {
 
       mockWeatherService.getHistorical.mockResolvedValue(mockHistorical);
 
-      const result = await controller.getHistorical(lat, lon, date);
+      const result = await controller.getHistorical(
+        lat,
+        lon,
+        date,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockHistorical);
       expect(weatherService.getHistorical).toHaveBeenCalledWith(
         lat,
         lon,
         new Date(date),
+        'user123',
       );
     });
 
@@ -108,7 +124,7 @@ describe('WeatherController', () => {
         new Error('Service failed'),
       );
       await expect(
-        controller.getHistorical(52.52, 13.41, '2023-01-01'),
+        controller.getHistorical(52.52, 13.41, '2023-01-01', mockRequest),
       ).rejects.toThrow('Service failed');
     });
   });

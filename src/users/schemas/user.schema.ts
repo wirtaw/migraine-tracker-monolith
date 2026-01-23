@@ -15,6 +15,23 @@ class FetchDataErrors {
 
 const FetchDataErrorsSchema = SchemaFactory.createForClass(FetchDataErrors);
 
+@Schema({ _id: false })
+class UserStatistics {
+  @Prop({ default: 0 })
+  dbUsageBytes!: number;
+
+  @Prop({ default: 0 })
+  weatherApiRequests!: number;
+
+  @Prop({ default: 0 })
+  solarApiRequests!: number;
+
+  @Prop({ default: Date.now })
+  lastUpdated!: Date;
+}
+
+const UserStatisticsSchema = SchemaFactory.createForClass(UserStatistics);
+
 @Schema()
 export class User {
   @Prop({ required: true, unique: true })
@@ -67,6 +84,9 @@ export class User {
 
   @Prop({ required: false, default: Role.GUEST })
   role!: string;
+
+  @Prop({ type: UserStatisticsSchema, required: false, default: () => ({}) })
+  statistics?: UserStatistics;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

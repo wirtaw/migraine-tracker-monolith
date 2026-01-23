@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SolarWeatherController } from './solar-weather.controller';
 import { SolarWeatherService } from './solar-weather.service';
 import { DateTime } from 'luxon';
+import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 
 describe('SolarWeatherController', () => {
   let controller: SolarWeatherController;
@@ -13,6 +14,11 @@ describe('SolarWeatherController', () => {
     getRadiation: jest.fn(),
     getGeophysicalWeatherData: jest.fn(),
   };
+
+  const mockRequest = {
+    user: { id: 'user123' },
+    session: { userId: 'user123' },
+  } as unknown as RequestWithUser;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -54,10 +60,14 @@ describe('SolarWeatherController', () => {
 
       mockSolarService.getRadiation.mockResolvedValue(mockRadiation);
 
-      const result = await controller.getRadiation(lat, lon);
+      const result = await controller.getRadiation(lat, lon, mockRequest);
 
       expect(result).toEqual(mockRadiation);
-      expect(solarService.getRadiation).toHaveBeenCalledWith(lat, lon);
+      expect(solarService.getRadiation).toHaveBeenCalledWith(
+        lat,
+        lon,
+        'user123',
+      );
     });
   });
 
@@ -87,11 +97,15 @@ describe('SolarWeatherController', () => {
         mockSolarData,
       );
 
-      const result = await controller.getGeophysicalWeatherData(dt.toISO());
+      const result = await controller.getGeophysicalWeatherData(
+        dt.toISO(),
+        mockRequest,
+      );
 
       expect(result).toEqual(mockSolarData);
       expect(solarService.getGeophysicalWeatherData).toHaveBeenCalledWith(
         dt.toISO(),
+        'user123',
       );
     });
   });
