@@ -77,7 +77,7 @@ describe('OpenMeteoClient', () => {
 
       (fetchWeatherApi as jest.Mock).mockResolvedValue([mockResponse]);
 
-      const result = await client.fetchForecast(lat, lon);
+      const result = await client.getCurrentForecast(lat, lon);
 
       expect(result).toEqual({
         temperature: 20,
@@ -119,7 +119,7 @@ describe('OpenMeteoClient', () => {
 
     it('should throw error if config is missing', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      await expect(client.fetchForecast(0, 0)).rejects.toThrow(
+      await expect(client.getCurrentForecast(0, 0)).rejects.toThrow(
         'OpenMeteo API URL is not configured',
       );
     });
@@ -131,7 +131,7 @@ describe('OpenMeteoClient', () => {
 
       (fetchWeatherApi as jest.Mock).mockResolvedValue(null);
 
-      await expect(client.fetchForecast(lat, lon)).rejects.toThrow(
+      await expect(client.getCurrentForecast(lat, lon)).rejects.toThrow(
         'Weather data fetch failed',
       );
     });

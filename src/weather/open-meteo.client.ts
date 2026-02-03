@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { fetchWeatherApi } from 'openmeteo';
-import { IWeatherData, IHourlyForecast } from './interfaces/weather.interface';
+import {
+  IWeatherData,
+  IHourlyForecastDetail,
+  IForecastResponse,
+} from './interfaces/weather.interface';
 
 @Injectable()
 export class OpenMeteoClient {
@@ -9,7 +13,7 @@ export class OpenMeteoClient {
 
   constructor(private readonly config: ConfigService) {}
 
-  async fetchForecast(
+  async getCurrentForecast(
     latitude: number,
     longitude: number,
   ): Promise<IWeatherData> {
@@ -205,7 +209,7 @@ export class OpenMeteoClient {
     longitude: number,
     start: Date,
     end: Date,
-  ): Promise<IHourlyForecast[]> {
+  ): Promise<IHourlyForecastDetail[]> {
     try {
       const baseUrl = this.config.get<string>('integration.apis.openMeteo');
       if (!baseUrl) {
@@ -266,6 +270,98 @@ export class OpenMeteoClient {
       }));
     } catch (error) {
       this.logger.error('Error fetching hourly forecast:', error);
+      throw error;
+    }
+  }
+
+  async getForecast(
+    latitude: number | undefined,
+    longitude: number | undefined,
+  ): Promise<IForecastResponse> {
+    if (latitude === undefined || longitude === undefined) {
+      throw new Error('Latitude and Longitude must be provided');
+    }
+
+    const params = {
+      latitude,
+      longitude,
+      hourly: ['temperature_2m', 'relative_humidity_2m', 'weather_code'],
+      daily: [
+        'weather_code',
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'precipitation_sum',
+      ],
+      timezone: 'auto',
+      forecast_days: 3,
+    };
+
+    const baseUrl = this.config.get<string>(
+      'integration.apis.openMeteoArchive',
+    );
+
+    if (!baseUrl) {
+      throw new Error('OpenMeteo Archive API URL is not configured');
+    }
+
+    try {
+      const responses = await fetchWeatherApi(baseUrl, params);
+      const response = responses[0]; // Process first location
+
+      const utcOffsetSeconds = response.utcOffsetSeconds();
+      const timezone = response.timezone();
+
+      const hourly = response.hourly()!;
+      const daily = response.daily()!;
+
+      // Map Hourly Data
+      const hourlyData = {
+        time: this.range(
+          Number(hourly.time()),
+          Number(hourly.timeEnd()),
+          hourly.interval(),
+        ).map((t) => new Date((t + utcOffsetSeconds) * 1000)),
+        temperature: hourly.variables(0)!.valuesArray()!,
+        humidity: hourly.variables(1)!.valuesArray()!,
+        weatherCode: hourly.variables(2)!.valuesArray()!,
+      };
+
+      // Map Daily Data
+      const dailyData = {
+        time: this.range(
+          Number(daily.time()),
+          Number(daily.timeEnd()),
+          daily.interval(),
+        ).map((t) => new Date((t + utcOffsetSeconds) * 1000)),
+        weatherCode: daily.variables(0)!.valuesArray()!,
+        temperatureMax: daily.variables(1)!.valuesArray()!,
+        temperatureMin: daily.variables(2)!.valuesArray()!,
+        precipitationSum: daily.variables(3)!.valuesArray()!,
+      };
+
+      return {
+        latitude: response.latitude(),
+        longitude: response.longitude(),
+        timezone: timezone || 'UTC',
+        hourly: hourlyData.time.map((time, i) => ({
+          time,
+          temperature: hourlyData.temperature[i],
+          humidity: hourlyData.humidity[i],
+          weatherCode: hourlyData.weatherCode[i],
+        })),
+        daily: dailyData.time.map((time, i) => ({
+          date: time,
+          weatherCode: dailyData.weatherCode[i],
+          temperatureMax: dailyData.temperatureMax[i],
+          temperatureMin: dailyData.temperatureMin[i],
+          precipitationSum: dailyData.precipitationSum[i],
+        })),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch forecast for lat:${latitude}, lon:${longitude}`,
+        error,
+      );
       throw error;
     }
   }

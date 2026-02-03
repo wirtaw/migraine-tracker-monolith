@@ -103,7 +103,10 @@ export class MedicationsService {
       );
     }
 
-    if (updateMedicationDto.notes !== undefined) {
+    if (
+      updateMedicationDto.notes !== undefined &&
+      updateMedicationDto.notes !== ''
+    ) {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateMedicationDto.notes,
         bufferKey,

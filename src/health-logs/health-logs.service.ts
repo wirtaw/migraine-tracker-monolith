@@ -123,7 +123,7 @@ export class HealthLogsService {
         bufferKey,
       );
     }
-    if (updateWeightDto.notes !== undefined) {
+    if (updateWeightDto.notes !== undefined && updateWeightDto.notes !== '') {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateWeightDto.notes,
         bufferKey,
@@ -225,7 +225,7 @@ export class HealthLogsService {
         bufferKey,
       );
     }
-    if (updateHeightDto.notes !== undefined) {
+    if (updateHeightDto.notes !== undefined && updateHeightDto.notes !== '') {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateHeightDto.notes,
         bufferKey,
@@ -350,7 +350,10 @@ export class HealthLogsService {
         bufferKey,
       );
     }
-    if (updateBloodPressureDto.notes !== undefined) {
+    if (
+      updateBloodPressureDto.notes !== undefined &&
+      updateBloodPressureDto.notes !== ''
+    ) {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateBloodPressureDto.notes,
         bufferKey,
@@ -458,7 +461,7 @@ export class HealthLogsService {
         bufferKey,
       );
     }
-    if (updateSleepDto.notes !== undefined) {
+    if (updateSleepDto.notes !== undefined && updateSleepDto.notes !== '') {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateSleepDto.notes,
         bufferKey,

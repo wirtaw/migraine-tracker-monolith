@@ -102,7 +102,7 @@ export class SymptomsService {
       );
     }
 
-    if (updateSymptomDto.note !== undefined) {
+    if (updateSymptomDto.note !== undefined && updateSymptomDto.note !== '') {
       encryptedUpdate.note = this.encryptionService.encryptSensitiveData(
         updateSymptomDto.note,
         bufferKey,

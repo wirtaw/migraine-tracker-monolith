@@ -1,8 +1,12 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { OpenMeteoClient } from './open-meteo.client';
-import { IWeatherData, IHourlyForecast } from './interfaces/weather.interface';
+import {
+  IWeatherData,
+  IHourlyForecastDetail,
+  IForecastResponse,
+} from './interfaces/weather.interface';
 import { UserService } from '../users/users.service';
 
 @Injectable()
@@ -13,7 +17,7 @@ export class WeatherService {
     private readonly userService: UserService,
   ) {}
 
-  async getForecast(
+  async getCurrentWeather(
     lat: number,
     lon: number,
     userId?: string,
@@ -24,7 +28,7 @@ export class WeatherService {
       return cached;
     }
 
-    const weatherData = await this.client.fetchForecast(lat, lon);
+    const weatherData = await this.client.getCurrentForecast(lat, lon);
 
     if (userId) {
       void this.userService.trackWeatherRequest(userId);
@@ -69,7 +73,7 @@ export class WeatherService {
     start: Date,
     end: Date,
     userId?: string,
-  ): Promise<IHourlyForecast[]> {
+  ): Promise<IHourlyForecastDetail[]> {
     const hourlyForecast = await this.client.fetchHourlyForecast(
       lat,
       lon,
@@ -82,5 +86,30 @@ export class WeatherService {
     }
 
     return hourlyForecast;
+  }
+
+  async getForecast(
+    latitude: number | undefined,
+    longitude: number | undefined,
+    userId?: string,
+  ): Promise<IForecastResponse> {
+    const cacheKey = `weather_forecast_${latitude?.toFixed(2)}_${longitude?.toFixed(2)}`;
+    const cachedForecast =
+      await this.cacheManager.get<IForecastResponse>(cacheKey);
+    if (cachedForecast) {
+      Logger.debug(`Returning cached forecast for ${latitude}, ${longitude}`);
+      return cachedForecast;
+    }
+
+    const forecast = await this.client.getForecast(latitude, longitude);
+
+    if (forecast && userId) {
+      void this.userService.trackWeatherRequest(userId);
+    }
+
+    // 30 minutes TTL (1800000 ms)
+    await this.cacheManager.set(cacheKey, forecast, 1800000);
+
+    return forecast;
   }
 }

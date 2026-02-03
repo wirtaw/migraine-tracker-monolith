@@ -29,7 +29,7 @@ export interface IOpenMeteoData {
   uvi: number;
 }
 
-export interface IHourlyForecast {
+export interface IHourlyForecastDetail {
   datetime: string;
   temperature: number;
   humidity: number;
@@ -39,4 +39,27 @@ export interface IHourlyForecast {
   directRadiation: number;
   uvi: number;
   description: string;
+}
+
+export interface IHourlyForecast {
+  time: Date;
+  temperature: number;
+  humidity: number;
+  weatherCode: number;
+}
+
+export interface IDailyForecast {
+  date: Date;
+  temperatureMax: number;
+  temperatureMin: number;
+  weatherCode: number;
+  precipitationSum: number;
+}
+
+export interface IForecastResponse {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  hourly: IHourlyForecast[];
+  daily: IDailyForecast[];
 }

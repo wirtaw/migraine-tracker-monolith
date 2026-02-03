@@ -2,17 +2,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WeatherService } from './weather.service';
 import { OpenMeteoClient } from './open-meteo.client';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { UserService } from '../users/users.service';
+import { IForecastResponse } from './interfaces/weather.interface';
 
 describe('WeatherService', () => {
   let service: WeatherService;
   let client: OpenMeteoClient;
   let module: TestingModule;
+  let cacheManager: Cache;
 
   const mockOpenMeteoClient = {
-    fetchForecast: jest.fn(),
+    getCurrentForecast: jest.fn(),
     fetchHistorical: jest.fn(),
+    getForecast: jest.fn(),
   };
 
   const mockCacheManager = {
@@ -22,6 +25,14 @@ describe('WeatherService', () => {
 
   const mockUserService = {
     trackWeatherRequest: jest.fn(),
+  };
+
+  const mockForecast: IForecastResponse = {
+    latitude: 52.52,
+    longitude: 13.41,
+    timezone: 'UTC',
+    hourly: [],
+    daily: [],
   };
 
   beforeEach(async () => {
@@ -45,6 +56,7 @@ describe('WeatherService', () => {
 
     service = module.get<WeatherService>(WeatherService);
     client = module.get<OpenMeteoClient>(OpenMeteoClient);
+    cacheManager = module.get(CACHE_MANAGER);
   });
 
   afterEach(async () => {
@@ -58,7 +70,7 @@ describe('WeatherService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getForecast', () => {
+  describe('getCurrentWeather', () => {
     const lat = 52.52;
     const lon = 13.41;
     const cacheKey = `weather_forecast_${lat.toFixed(2)}_${lon.toFixed(2)}`;
@@ -79,23 +91,23 @@ describe('WeatherService', () => {
     it('should return cached forecast if available', async () => {
       mockCacheManager.get.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getForecast(lat, lon, 'user123');
+      const result = await service.getCurrentWeather(lat, lon, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
-      expect(client.fetchForecast).not.toHaveBeenCalled();
+      expect(client.getCurrentForecast).not.toHaveBeenCalled();
       expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
     });
 
     it('should fetch forecast from client if not cached', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockOpenMeteoClient.fetchForecast.mockResolvedValue(mockWeatherData);
+      mockOpenMeteoClient.getCurrentForecast.mockResolvedValue(mockWeatherData);
 
-      const result = await service.getForecast(lat, lon, 'user123');
+      const result = await service.getCurrentWeather(lat, lon, 'user123');
 
       expect(result).toEqual(mockWeatherData);
       expect(mockCacheManager.get).toHaveBeenCalledWith(cacheKey);
-      expect(client.fetchForecast).toHaveBeenCalledWith(lat, lon);
+      expect(client.getCurrentForecast).toHaveBeenCalledWith(lat, lon);
       expect(mockUserService.trackWeatherRequest).toHaveBeenCalledWith(
         'user123',
       );
@@ -107,14 +119,14 @@ describe('WeatherService', () => {
     });
     it('should throw error if client fetch fails', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockOpenMeteoClient.fetchForecast.mockRejectedValue(
+      mockOpenMeteoClient.getCurrentForecast.mockRejectedValue(
         new Error('Fetch failed'),
       );
 
-      await expect(service.getForecast(lat, lon, 'user123')).rejects.toThrow(
-        'Fetch failed',
-      );
-      expect(client.fetchForecast).toHaveBeenCalledWith(lat, lon);
+      await expect(
+        service.getCurrentWeather(lat, lon, 'user123'),
+      ).rejects.toThrow('Fetch failed');
+      expect(client.getCurrentForecast).toHaveBeenCalledWith(lat, lon);
       expect(mockCacheManager.set).not.toHaveBeenCalled();
     });
   });
@@ -180,6 +192,28 @@ describe('WeatherService', () => {
       ).rejects.toThrow('Fetch failed');
       expect(client.fetchHistorical).toHaveBeenCalledWith(lat, lon, date);
       expect(mockCacheManager.set).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getForecast', () => {
+    it('should return cached forecast if available', async () => {
+      mockCacheManager.get.mockResolvedValue(mockForecast);
+
+      const result = await service.getForecast(52.52, 13.41);
+
+      expect(result).toEqual(mockForecast);
+      expect(client.getForecast).not.toHaveBeenCalled();
+    });
+
+    it('should fetch and cache forecast if not in cache', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockOpenMeteoClient.getForecast.mockResolvedValue(mockForecast);
+
+      const result = await service.getForecast(52.52, 13.41);
+
+      expect(result).toEqual(mockForecast);
+      expect(client.getForecast).toHaveBeenCalledWith(52.52, 13.41);
+      expect(cacheManager.set).toHaveBeenCalled();
     });
   });
 });

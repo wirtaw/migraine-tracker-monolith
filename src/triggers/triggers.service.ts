@@ -91,7 +91,7 @@ export class TriggersService {
       );
     }
 
-    if (updateTriggerDto.note !== undefined) {
+    if (updateTriggerDto.note !== undefined && updateTriggerDto.note !== '') {
       encryptedUpdate.note = this.encryptionService.encryptSensitiveData(
         updateTriggerDto.note,
         bufferKey,

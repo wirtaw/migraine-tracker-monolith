@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WeatherController } from './weather.controller';
 import { WeatherService } from './weather.service';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { GetForecastDto } from './dto/get-forecast.dto';
 
 describe('WeatherController', () => {
   let controller: WeatherController;
@@ -10,14 +11,22 @@ describe('WeatherController', () => {
   let module: TestingModule;
 
   const mockWeatherService = {
-    getForecast: jest.fn(),
+    getCurrentWeather: jest.fn(),
     getHistorical: jest.fn(),
+    getForecast: jest.fn(),
   };
 
   const mockRequest = {
     user: { id: 'user123' },
     session: { userId: 'user123' },
   } as unknown as RequestWithUser;
+
+  const mockForecast = {
+    latitude: 52.52,
+    longitude: 13.41,
+    hourly: [],
+    daily: [],
+  };
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -45,7 +54,7 @@ describe('WeatherController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getForecast', () => {
+  describe('getCurrentWeather', () => {
     it('should return weather forecast', async () => {
       const lat = 52.52;
       const lon = 13.41;
@@ -62,23 +71,23 @@ describe('WeatherController', () => {
         alerts: [],
       };
 
-      mockWeatherService.getForecast.mockResolvedValue(mockForecast);
+      mockWeatherService.getCurrentWeather.mockResolvedValue(mockForecast);
 
-      const result = await controller.getForecast(lat, lon, mockRequest);
+      const result = await controller.getCurrentWeather(lat, lon, mockRequest);
 
       expect(result).toEqual(mockForecast);
-      expect(weatherService.getForecast).toHaveBeenCalledWith(
+      expect(weatherService.getCurrentWeather).toHaveBeenCalledWith(
         lat,
         lon,
         'user123',
       );
     });
     it('should propagate service errors', async () => {
-      mockWeatherService.getForecast.mockRejectedValue(
+      mockWeatherService.getCurrentWeather.mockRejectedValue(
         new Error('Service failed'),
       );
       await expect(
-        controller.getForecast(52.52, 13.41, mockRequest),
+        controller.getCurrentWeather(52.52, 13.41, mockRequest),
       ).rejects.toThrow('Service failed');
     });
   });
@@ -126,6 +135,22 @@ describe('WeatherController', () => {
       await expect(
         controller.getHistorical(52.52, 13.41, '2023-01-01', mockRequest),
       ).rejects.toThrow('Service failed');
+    });
+  });
+
+  describe('getForecast', () => {
+    it('should call service with correct parameters', async () => {
+      const dto: GetForecastDto = { latitude: 52.52, longitude: 13.41 };
+      mockWeatherService.getForecast.mockResolvedValue(mockForecast);
+
+      const result = await controller.getForecast(dto, mockRequest);
+
+      expect(weatherService.getForecast).toHaveBeenCalledWith(
+        dto.latitude,
+        dto.longitude,
+        'user123',
+      );
+      expect(result).toEqual(mockForecast);
     });
   });
 });

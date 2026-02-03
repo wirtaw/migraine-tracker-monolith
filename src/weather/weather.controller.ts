@@ -8,9 +8,13 @@ import {
   ApiBearerAuth,
   ApiTags,
 } from '@nestjs/swagger';
-import { IWeatherData } from './interfaces/weather.interface';
+import {
+  IForecastResponse,
+  IWeatherData,
+} from './interfaces/weather.interface';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
 import { Req } from '@nestjs/common';
+import { GetForecastDto } from './dto/get-forecast.dto';
 
 @ApiTags('weather')
 @ApiBearerAuth('JWT-auth')
@@ -26,13 +30,17 @@ export class WeatherController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Not Found' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
-  async getForecast(
+  async getCurrentWeather(
     @Query('latitude') lat: number,
     @Query('longitude') lon: number,
     @Req() req: RequestWithUser,
   ): Promise<IWeatherData | undefined> {
     const userId = req?.user?.id || req?.session?.userId || '';
-    return this.weatherService.getForecast(Number(lat), Number(lon), userId);
+    return this.weatherService.getCurrentWeather(
+      Number(lat),
+      Number(lon),
+      userId,
+    );
   }
 
   @Get('historical')
@@ -50,6 +58,25 @@ export class WeatherController {
       Number(lat),
       Number(lon),
       new Date(date),
+      userId,
+    );
+  }
+
+  @Get('forecast')
+  @Roles(Role.USER)
+  @ApiOperation({ summary: 'Get 3-day weather forecast' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns 3-day hourly and daily forecast',
+  })
+  async getForecast(
+    @Query() query: GetForecastDto,
+    @Req() req: RequestWithUser,
+  ): Promise<IForecastResponse> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.weatherService.getForecast(
+      query.latitude,
+      query.longitude,
       userId,
     );
   }
