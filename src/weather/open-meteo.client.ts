@@ -285,7 +285,13 @@ export class OpenMeteoClient {
     const params = {
       latitude,
       longitude,
-      hourly: ['temperature_2m', 'relative_humidity_2m', 'weather_code'],
+      hourly: [
+        'temperature_2m',
+        'relative_humidity_2m',
+        'weather_code',
+        'cloud_cover',
+        'surface_pressure',
+      ],
       daily: [
         'weather_code',
         'temperature_2m_max',
@@ -296,16 +302,15 @@ export class OpenMeteoClient {
       forecast_days: 3,
     };
 
-    const baseUrl = this.config.get<string>(
-      'integration.apis.openMeteoArchive',
-    );
+    const baseUrl = this.config.get<string>('integration.apis.openMeteo');
 
     if (!baseUrl) {
       throw new Error('OpenMeteo Archive API URL is not configured');
     }
 
     try {
-      const responses = await fetchWeatherApi(baseUrl, params);
+      const url = `${baseUrl}/v1/forecast`;
+      const responses = await fetchWeatherApi(url, params);
       const response = responses[0]; // Process first location
 
       const utcOffsetSeconds = response.utcOffsetSeconds();
@@ -324,6 +329,8 @@ export class OpenMeteoClient {
         temperature: hourly.variables(0)!.valuesArray()!,
         humidity: hourly.variables(1)!.valuesArray()!,
         weatherCode: hourly.variables(2)!.valuesArray()!,
+        cloudCover: hourly.variables(3)!.valuesArray(),
+        surfacePressure: hourly.variables(4)!.valuesArray(),
       };
 
       // Map Daily Data
@@ -348,6 +355,12 @@ export class OpenMeteoClient {
           temperature: hourlyData.temperature[i],
           humidity: hourlyData.humidity[i],
           weatherCode: hourlyData.weatherCode[i],
+          cloudCover: hourlyData.cloudCover
+            ? hourlyData.cloudCover[i]
+            : undefined,
+          surfacePressure: hourlyData.surfacePressure
+            ? hourlyData.surfacePressure[i]
+            : undefined,
         })),
         daily: dailyData.time.map((time, i) => ({
           date: time,
@@ -361,6 +374,7 @@ export class OpenMeteoClient {
       this.logger.error(
         `Failed to fetch forecast for lat:${latitude}, lon:${longitude}`,
         error,
+        params,
       );
       throw error;
     }

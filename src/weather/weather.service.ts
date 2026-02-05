@@ -22,7 +22,7 @@ export class WeatherService {
     lon: number,
     userId?: string,
   ): Promise<IWeatherData> {
-    const cacheKey = `weather_forecast_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    const cacheKey = `weather_current_${lat.toFixed(2)}_${lon.toFixed(2)}`;
     const cached = await this.cacheManager.get<IWeatherData>(cacheKey);
     if (cached) {
       return cached;

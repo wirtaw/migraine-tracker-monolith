@@ -73,7 +73,7 @@ describe('WeatherService', () => {
   describe('getCurrentWeather', () => {
     const lat = 52.52;
     const lon = 13.41;
-    const cacheKey = `weather_forecast_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    const cacheKey = `weather_current_${lat.toFixed(2)}_${lon.toFixed(2)}`;
 
     const mockWeatherData = {
       temperature: 20,
