@@ -3,4 +3,5 @@ trigger: always_on
 ---
 
 Not use `pnpm test` to check globally. No automated test runs, without
-agreement. Now it has problem with memory leakage and can halt system.
+agreement. Now it has problem with memory leakage and can halt system. Add to
+the all test runs with jest `NODE_ENV=test` to use MongoDB in memory solution.

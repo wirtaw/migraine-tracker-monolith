@@ -74,11 +74,7 @@ export class OpenMeteoClient {
         uvi: Math.round(
           uvIndexMax.reduce((acc, prev) => acc + prev, 0) / time.length,
         ),
-        description: '', // We might want to populate this if possible, but user code had it empty or dependent on something else.
-        // The user's code had `description: '',` and `icon: '',` in `fetchOpenMeteoWeatherData`.
-        // However, the user's `fetchWeatherData` (the first function in the prompt, using `fetch`) had description from `data.current.weather[0].description`.
-        // The `fetchOpenMeteoWeatherData` used `fetchWeatherApi` and had empty description.
-        // I will stick to the user's `fetchOpenMeteoWeatherData` implementation for `description` and `icon`.
+        description: '',
         icon: '',
         alerts: [],
       };
@@ -329,8 +325,8 @@ export class OpenMeteoClient {
         temperature: hourly.variables(0)!.valuesArray()!,
         humidity: hourly.variables(1)!.valuesArray()!,
         weatherCode: hourly.variables(2)!.valuesArray()!,
-        cloudCover: hourly.variables(3)!.valuesArray(),
-        surfacePressure: hourly.variables(4)!.valuesArray(),
+        cloudCover: hourly.variables(3)!.valuesArray()!,
+        surfacePressure: hourly.variables(4)!.valuesArray()!,
       };
 
       // Map Daily Data
@@ -355,12 +351,8 @@ export class OpenMeteoClient {
           temperature: hourlyData.temperature[i],
           humidity: hourlyData.humidity[i],
           weatherCode: hourlyData.weatherCode[i],
-          cloudCover: hourlyData.cloudCover
-            ? hourlyData.cloudCover[i]
-            : undefined,
-          surfacePressure: hourlyData.surfacePressure
-            ? hourlyData.surfacePressure[i]
-            : undefined,
+          cloudCover: hourlyData?.cloudCover[i],
+          surfacePressure: hourlyData.surfacePressure[i],
         })),
         daily: dailyData.time.map((time, i) => ({
           date: time,

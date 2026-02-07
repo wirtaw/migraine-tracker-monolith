@@ -221,4 +221,200 @@ describe('OpenMeteoClient', () => {
       );
     });
   });
+
+  describe('fetchHourlyForecast', () => {
+    it('should fetch hourly forecast and map correctly', async () => {
+      const lat = 52.52;
+      const lon = 13.41;
+      const start = new Date('2023-01-01T00:00:00Z');
+      const end = new Date('2023-01-02T00:00:00Z');
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
+
+      const mockVariables: Record<number, { valuesArray: () => Float32Array }> =
+        {
+          0: { valuesArray: () => new Float32Array([10]) }, // temperature
+          1: { valuesArray: () => new Float32Array([60]) }, // humidity
+          2: { valuesArray: () => new Float32Array([1000]) }, // pressure
+          3: { valuesArray: () => new Float32Array([5]) }, // wind_speed
+          4: { valuesArray: () => new Float32Array([20]) }, // cloud_cover
+          5: { valuesArray: () => new Float32Array([100]) }, // direct_radiation
+          6: { valuesArray: () => new Float32Array([2]) }, // uv_index
+        };
+
+      const mockResponse = {
+        hourly: () => ({
+          time: () => 0,
+          timeEnd: () => 86400,
+          interval: () => 86400,
+          variables: (index: number) => mockVariables[index],
+        }),
+        utcOffsetSeconds: () => 0,
+      };
+
+      (fetchWeatherApi as jest.Mock).mockResolvedValue([mockResponse]);
+
+      const result = await client.fetchHourlyForecast(lat, lon, start, end);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        datetime: '1970-01-01T00:00:00.000Z', // Based on time 0
+        temperature: 10,
+        humidity: 60,
+        pressure: 1000,
+        windSpeed: 5,
+        clouds: 20,
+        directRadiation: 100,
+        uvi: 2,
+        description: '',
+      });
+
+      expect(fetchWeatherApi).toHaveBeenCalledWith(
+        'https://api.open-meteo.com/v1/forecast',
+        expect.objectContaining({
+          latitude: lat,
+          longitude: lon,
+          start_date: '2023-01-01',
+          end_date: '2023-01-02',
+          hourly: [
+            'temperature_2m',
+            'relative_humidity_2m',
+            'surface_pressure',
+            'wind_speed_10m',
+            'cloud_cover',
+            'direct_radiation',
+            'uv_index',
+          ],
+        }),
+      );
+    });
+
+    it('should throw error if config is missing', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+      const lat = 52.52;
+      const lon = 13.41;
+      const start = new Date();
+      const end = new Date();
+      await expect(
+        client.fetchHourlyForecast(lat, lon, start, end),
+      ).rejects.toThrow('OpenMeteo API URL is not configured');
+    });
+
+    it('should throw error if request fails', async () => {
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
+      const lat = 52.52;
+      const lon = 13.41;
+      const start = new Date();
+      const end = new Date();
+
+      (fetchWeatherApi as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        client.fetchHourlyForecast(lat, lon, start, end),
+      ).rejects.toThrow('Weather data fetch failed');
+    });
+  });
+
+  describe('getForecast', () => {
+    it('should fetch forecast and map correctly', async () => {
+      const lat = 52.52;
+      const lon = 13.41;
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
+
+      const mockHourlyVariables: Record<
+        number,
+        { valuesArray: () => Float32Array }
+      > = {
+        0: { valuesArray: () => new Float32Array([10]) }, // temperature
+        1: { valuesArray: () => new Float32Array([60]) }, // humidity
+        2: { valuesArray: () => new Float32Array([1]) }, // weather_code
+        3: { valuesArray: () => new Float32Array([20]) }, // cloud_cover
+        4: { valuesArray: () => new Float32Array([1000]) }, // surface_pressure
+      };
+
+      const mockDailyVariables: Record<
+        number,
+        { valuesArray: () => Float32Array }
+      > = {
+        0: { valuesArray: () => new Float32Array([2]) }, // weather_code
+        1: { valuesArray: () => new Float32Array([25]) }, // temperature_2m_max
+        2: { valuesArray: () => new Float32Array([15]) }, // temperature_2m_min
+        3: { valuesArray: () => new Float32Array([5]) }, // precipitation_sum
+      };
+
+      const mockResponse = {
+        latitude: () => lat,
+        longitude: () => lon,
+        timezone: () => 'UTC',
+        utcOffsetSeconds: () => 0,
+        hourly: () => ({
+          time: () => 0,
+          timeEnd: () => 3600,
+          interval: () => 3600,
+          variables: (index: number) => mockHourlyVariables[index],
+        }),
+        daily: () => ({
+          time: () => 0,
+          timeEnd: () => 86400,
+          interval: () => 86400,
+          variables: (index: number) => mockDailyVariables[index],
+        }),
+      };
+
+      (fetchWeatherApi as jest.Mock).mockResolvedValue([mockResponse]);
+
+      const result = await client.getForecast(lat, lon);
+
+      expect(result).toEqual({
+        latitude: lat,
+        longitude: lon,
+        timezone: 'UTC',
+        hourly: [
+          {
+            time: new Date('1970-01-01T00:00:00.000Z'),
+            temperature: 10,
+            humidity: 60,
+            weatherCode: 1,
+            cloudCover: 20,
+            surfacePressure: 1000,
+          },
+        ],
+        daily: [
+          {
+            date: new Date('1970-01-01T00:00:00.000Z'),
+            weatherCode: 2,
+            temperatureMax: 25,
+            temperatureMin: 15,
+            precipitationSum: 5,
+          },
+        ],
+      });
+    });
+
+    it('should throw error if latitude or longitude is missing', async () => {
+      await expect(client.getForecast(undefined, 13.41)).rejects.toThrow(
+        'Latitude and Longitude must be provided',
+      );
+      await expect(client.getForecast(52.52, undefined)).rejects.toThrow(
+        'Latitude and Longitude must be provided',
+      );
+    });
+
+    it('should throw error if config is missing', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+      await expect(client.getForecast(52.52, 13.41)).rejects.toThrow(
+        'OpenMeteo Archive API URL is not configured',
+      );
+    });
+
+    it('should throw error if request fails', async () => {
+      mockConfigService.get.mockReturnValue('https://api.open-meteo.com');
+      (fetchWeatherApi as jest.Mock).mockRejectedValue(
+        new Error('Fetch error'),
+      );
+
+      await expect(client.getForecast(52.52, 13.41)).rejects.toThrow(
+        'Fetch error',
+      );
+    });
+  });
 });

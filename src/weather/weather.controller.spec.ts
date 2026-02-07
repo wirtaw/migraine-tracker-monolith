@@ -82,6 +82,40 @@ describe('WeatherController', () => {
         'user123',
       );
     });
+
+    it('should call service with empty string if user is missing', async () => {
+      const lat = 52.52;
+      const lon = 13.41;
+      const mockForecast = {
+        temperature: 20,
+        humidity: 50,
+        pressure: 1013,
+        feels_like: 18,
+        wind_speed_10m: 10,
+        clouds: 0,
+        uvi: 0,
+        description: 'Clear sky',
+        icon: 'clear-day',
+        alerts: [],
+      };
+      const reqWithoutUser = {} as RequestWithUser;
+
+      mockWeatherService.getCurrentWeather.mockResolvedValue(mockForecast);
+
+      const result = await controller.getCurrentWeather(
+        lat,
+        lon,
+        reqWithoutUser,
+      );
+
+      expect(result).toEqual(mockForecast);
+      expect(weatherService.getCurrentWeather).toHaveBeenCalledWith(
+        lat,
+        lon,
+        '',
+      );
+    });
+
     it('should propagate service errors', async () => {
       mockWeatherService.getCurrentWeather.mockRejectedValue(
         new Error('Service failed'),
@@ -109,6 +143,7 @@ describe('WeatherController', () => {
         icon: '',
         alerts: [],
       };
+      const reqWithoutUser = {} as RequestWithUser;
 
       mockWeatherService.getHistorical.mockResolvedValue(mockHistorical);
 
@@ -116,7 +151,7 @@ describe('WeatherController', () => {
         lat,
         lon,
         date,
-        mockRequest,
+        reqWithoutUser,
       );
 
       expect(result).toEqual(mockHistorical);
@@ -124,7 +159,43 @@ describe('WeatherController', () => {
         lat,
         lon,
         new Date(date),
-        'user123',
+        '',
+      );
+    });
+
+    it('should call service with empty string if user is missing', async () => {
+      const lat = 52.52;
+      const lon = 13.41;
+      const date = '2023-01-01';
+      const mockHistorical = {
+        temperature: 15,
+        humidity: 60,
+        pressure: 1000,
+        feels_like: undefined,
+        wind_speed_10m: 5,
+        clouds: 50,
+        uvi: undefined,
+        description: '',
+        icon: '',
+        alerts: [],
+      };
+      const reqWithoutUser = {} as RequestWithUser;
+
+      mockWeatherService.getHistorical.mockResolvedValue(mockHistorical);
+
+      const result = await controller.getHistorical(
+        lat,
+        lon,
+        date,
+        reqWithoutUser,
+      );
+
+      expect(result).toEqual(mockHistorical);
+      expect(weatherService.getHistorical).toHaveBeenCalledWith(
+        lat,
+        lon,
+        new Date(date),
+        '',
       );
     });
 
@@ -149,6 +220,21 @@ describe('WeatherController', () => {
         dto.latitude,
         dto.longitude,
         'user123',
+      );
+      expect(result).toEqual(mockForecast);
+    });
+
+    it('should call service with empty string if user is missing', async () => {
+      const dto: GetForecastDto = { latitude: 52.52, longitude: 13.41 };
+      mockWeatherService.getForecast.mockResolvedValue(mockForecast);
+      const reqWithoutUser = {} as RequestWithUser;
+
+      const result = await controller.getForecast(dto, reqWithoutUser);
+
+      expect(weatherService.getForecast).toHaveBeenCalledWith(
+        dto.latitude,
+        dto.longitude,
+        '',
       );
       expect(result).toEqual(mockForecast);
     });

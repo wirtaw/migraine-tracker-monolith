@@ -59,8 +59,8 @@ export class WeatherService {
       void this.userService.trackWeatherRequest(userId);
     }
 
+    // 30 days TTL (2592000000 ms)
     if (weatherData) {
-      // 30 days TTL (2592000000 ms) as data shouldn't change
       await this.cacheManager.set(cacheKey, weatherData, 2592000000);
     }
 

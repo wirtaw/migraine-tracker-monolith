@@ -15,6 +15,7 @@ describe('WeatherService', () => {
   const mockOpenMeteoClient = {
     getCurrentForecast: jest.fn(),
     fetchHistorical: jest.fn(),
+    fetchHourlyForecast: jest.fn(),
     getForecast: jest.fn(),
   };
 
@@ -195,25 +196,95 @@ describe('WeatherService', () => {
     });
   });
 
+  describe('getHourlyForecast', () => {
+    const lat = 52.52;
+    const lon = 13.41;
+    const start = new Date('2023-01-01');
+    const end = new Date('2023-01-02');
+
+    const mockHourlyForecast = [
+      {
+        datetime: '2023-01-01T00:00:00.000Z',
+        temperature: 10,
+        humidity: 60,
+        pressure: 1000,
+        windSpeed: 5,
+        clouds: 20,
+        directRadiation: 100,
+        uvi: 2,
+        description: '',
+      },
+    ];
+
+    it('should return hourly forecast from client', async () => {
+      mockOpenMeteoClient.fetchHourlyForecast.mockResolvedValue(
+        mockHourlyForecast,
+      );
+
+      const result = await service.getHourlyForecast(
+        lat,
+        lon,
+        start,
+        end,
+        'user123',
+      );
+
+      expect(result).toEqual(mockHourlyForecast);
+      expect(client.fetchHourlyForecast).toHaveBeenCalledWith(
+        lat,
+        lon,
+        start,
+        end,
+      );
+      expect(mockUserService.trackWeatherRequest).toHaveBeenCalledWith(
+        'user123',
+      );
+    });
+
+    it('should not track request if userId is missing', async () => {
+      mockOpenMeteoClient.fetchHourlyForecast.mockResolvedValue(
+        mockHourlyForecast,
+      );
+
+      const result = await service.getHourlyForecast(lat, lon, start, end);
+
+      expect(result).toEqual(mockHourlyForecast);
+      expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getForecast', () => {
     it('should return cached forecast if available', async () => {
       mockCacheManager.get.mockResolvedValue(mockForecast);
 
-      const result = await service.getForecast(52.52, 13.41);
+      const result = await service.getForecast(52.52, 13.41, 'user123');
 
       expect(result).toEqual(mockForecast);
       expect(client.getForecast).not.toHaveBeenCalled();
+      expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
     });
 
     it('should fetch and cache forecast if not in cache', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockOpenMeteoClient.getForecast.mockResolvedValue(mockForecast);
 
-      const result = await service.getForecast(52.52, 13.41);
+      const result = await service.getForecast(52.52, 13.41, 'user123');
 
       expect(result).toEqual(mockForecast);
       expect(client.getForecast).toHaveBeenCalledWith(52.52, 13.41);
+      expect(mockUserService.trackWeatherRequest).toHaveBeenCalledWith(
+        'user123',
+      );
       expect(cacheManager.set).toHaveBeenCalled();
+    });
+
+    it('should not track request if userId is missing', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockOpenMeteoClient.getForecast.mockResolvedValue(mockForecast);
+
+      await service.getForecast(52.52, 13.41);
+
+      expect(mockUserService.trackWeatherRequest).not.toHaveBeenCalled();
     });
   });
 });
