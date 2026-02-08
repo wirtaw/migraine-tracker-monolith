@@ -287,6 +287,7 @@ export class OpenMeteoClient {
         'weather_code',
         'cloud_cover',
         'surface_pressure',
+        'uv_index',
       ],
       daily: [
         'weather_code',
@@ -327,6 +328,7 @@ export class OpenMeteoClient {
         weatherCode: hourly.variables(2)!.valuesArray()!,
         cloudCover: hourly.variables(3)!.valuesArray()!,
         surfacePressure: hourly.variables(4)!.valuesArray()!,
+        uvIndex: hourly.variables(5)!.valuesArray()!,
       };
 
       // Map Daily Data
@@ -353,6 +355,7 @@ export class OpenMeteoClient {
           weatherCode: hourlyData.weatherCode[i],
           cloudCover: hourlyData?.cloudCover[i],
           surfacePressure: hourlyData.surfacePressure[i],
+          uvIndex: hourlyData.uvIndex[i],
         })),
         daily: dailyData.time.map((time, i) => ({
           date: time,

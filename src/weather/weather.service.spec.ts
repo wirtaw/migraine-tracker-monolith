@@ -32,7 +32,17 @@ describe('WeatherService', () => {
     latitude: 52.52,
     longitude: 13.41,
     timezone: 'UTC',
-    hourly: [],
+    hourly: [
+      {
+        time: new Date('1970-01-01T00:00:00.000Z'),
+        temperature: 10,
+        humidity: 60,
+        weatherCode: 1,
+        cloudCover: 20,
+        surfacePressure: 1000,
+        uvIndex: 3,
+      },
+    ],
     daily: [],
   };
 

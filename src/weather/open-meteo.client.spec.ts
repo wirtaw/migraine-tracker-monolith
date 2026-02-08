@@ -329,6 +329,7 @@ describe('OpenMeteoClient', () => {
         2: { valuesArray: () => new Float32Array([1]) }, // weather_code
         3: { valuesArray: () => new Float32Array([20]) }, // cloud_cover
         4: { valuesArray: () => new Float32Array([1000]) }, // surface_pressure
+        5: { valuesArray: () => new Float32Array([3]) }, // uv_index
       };
 
       const mockDailyVariables: Record<
@@ -376,6 +377,7 @@ describe('OpenMeteoClient', () => {
             weatherCode: 1,
             cloudCover: 20,
             surfacePressure: 1000,
+            uvIndex: 3,
           },
         ],
         daily: [

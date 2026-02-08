@@ -48,6 +48,7 @@ export interface IHourlyForecast {
   weatherCode: number;
   surfacePressure: number;
   cloudCover: number;
+  uvIndex: number;
 }
 
 export interface IDailyForecast {
