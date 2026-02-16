@@ -12,6 +12,7 @@ import {
   UsePipes,
   ValidationPipe,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +30,7 @@ import { ISummaryResponse } from './interfaces/summary.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { DateTime } from 'luxon';
 
 @ApiTags('locations')
 @ApiBearerAuth('JWT-auth')
@@ -88,6 +90,44 @@ export class LocationsController {
   ): Promise<ISummaryResponse> {
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.locationsService.getSummary(query, userId);
+  }
+
+  @Roles(Role.USER)
+  @Get('date-range')
+  @ApiOperation({ summary: 'Get locations by date range' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Return locations within the specified date range.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid start or end date.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'No locations found within the specified date range.',
+  })
+  async getLocationsByRange(
+    @Req() req: RequestWithUser,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<ILocation[] | []> {
+    // TODO cover with tests
+    const start = DateTime.fromFormat(startDate, 'yyyy-MM-dd');
+    const end = DateTime.fromFormat(endDate, 'yyyy-MM-dd');
+
+    if (!start.isValid || !end.isValid) {
+      throw new BadRequestException('Invalid start or end date');
+    }
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+
+    return this.locationsService.findByDateRange(
+      encryptionKey,
+      userId,
+      start.toJSDate(),
+      end.toJSDate(),
+    );
   }
 
   @Roles(Role.USER)

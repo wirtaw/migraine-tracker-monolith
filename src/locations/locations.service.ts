@@ -352,6 +352,30 @@ export class LocationsService {
     return null;
   }
 
+  async findByDateRange(
+    key: string,
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ILocation[] | []> {
+    // TODO cover with tests
+    const locations = await this.locationModel
+      .find({
+        userId,
+        datetimeAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      })
+      .exec();
+
+    const result = locations
+      .map((location) => this.mapToILocation(location, key))
+      .filter((item) => !!item);
+
+    return result;
+  }
+
   private mapKpiDataToSolar(
     kpiData: IKPIData,
     dateTime: DateTime,
