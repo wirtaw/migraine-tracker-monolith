@@ -1,53 +1,69 @@
 import { Injectable } from '@nestjs/common';
 import { IHourlyForecast } from '../../weather/interfaces/weather.interface';
-import { DateTime } from 'luxon';
 import { IRiskWeights } from '../interfaces/risk-forecast.interface';
+import { defaultRiskWeights } from '../constants/risks';
 
 @Injectable()
 export class RiskCalculatorService {
+  /**
+   * Calculates the migraine risk score (0-100) based on weather, solar data, and history.
+   */
   calculateRisk(
     weather: IHourlyForecast,
     solar: { kpIndex?: number },
-    lastIncidentDate?: Date,
-    customWeights?: IRiskWeights,
+    lastIncident?: Date,
+    weights: IRiskWeights = defaultRiskWeights,
   ): number {
-    const weights: IRiskWeights = {
-      weather: customWeights?.weather ?? 40,
-      solar: customWeights?.solar ?? 30,
-      history: customWeights?.history ?? 30,
-    };
+    // 1. Define Weights
+    const w = weights;
 
-    let weatherScore = 0;
-    let solarScore = 0;
-    let historyScore = 0;
+    // 2. Calculate Weather Risk (0-100)
+    let weatherRisk = 0;
+    // Pressure check (Standard sea level is ~1013 hPa)
+    if (weather.surfacePressure && weather.surfacePressure < 1000)
+      weatherRisk += 30;
 
-    if (weather.surfacePressure < 1000) weatherScore += 30;
-    if (weather.cloudCover > 80) weatherScore += 20;
-    if (weather.humidity > 70) weatherScore += 15;
-    if (weather.temperature > 30) weatherScore += 20;
-    if (weather.temperature < 10) weatherScore += 15;
+    // Cloud cover check
+    if (weather.cloudCover && weather.cloudCover > 80) weatherRisk += 20;
 
-    if (solar.kpIndex && solar.kpIndex >= 5) solarScore += 100;
-    else if (solar.kpIndex && solar.kpIndex >= 4) solarScore += 60;
-    else if (solar.kpIndex && solar.kpIndex >= 3) solarScore += 30;
+    // Humidity check
+    if (weather.humidity && weather.humidity > 70) weatherRisk += 20;
 
-    if (lastIncidentDate) {
-      const daysSince = DateTime.now().diff(
-        DateTime.fromJSDate(lastIncidentDate),
-        'days',
-      ).days;
-      if (daysSince < 1) historyScore += 80;
-      else if (daysSince < 3) historyScore += 50;
-      else if (daysSince < 7) historyScore += 30;
+    // Temperature extremes
+    if (
+      weather.temperature &&
+      (weather.temperature > 30 || weather.temperature < 10)
+    ) {
+      weatherRisk += 30;
     }
 
-    const totalRisk = Math.min(
-      (weatherScore * (weights.weather ?? 40)) / 100 +
-        (solarScore * (weights.solar ?? 30)) / 100 +
-        (historyScore * (weights.history ?? 30)) / 100,
-      100,
-    );
+    weatherRisk = Math.min(weatherRisk, 100);
 
-    return Math.round(totalRisk);
+    // 3. Calculate Solar Risk (0-100)
+    let solarRisk = 0;
+    if (solar && typeof solar.kpIndex === 'number') {
+      // Kp index ranges 0-9.
+      solarRisk = (solar.kpIndex / 9) * 100;
+    }
+
+    // 4. Calculate History Risk (0-100)
+    // Linear decay over 72 hours from the last incident
+    let historyRisk = 0;
+    if (lastIncident) {
+      const now = new Date();
+      const diffMs = now.getTime() - lastIncident.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffHours >= 0 && diffHours <= 72) {
+        historyRisk = 100 * (1 - diffHours / 72);
+      }
+    }
+
+    // 5. Weighted Total
+    const totalRisk =
+      weatherRisk * w.weather + solarRisk * w.solar + historyRisk * w.history;
+
+    // Cap at 100 and round
+    return Math.min(Math.round(totalRisk), 100);
   }
 }

@@ -22,6 +22,7 @@ import { IGeophysicalWeatherData } from '../../solar/interfaces/radiation.interf
 import { IIncident } from '../../incidents/interfaces/incident.interface';
 import { IncidentTypeEnum } from '../../incidents/enums/incident-type.enum';
 import { NotificationTypeEnum } from '../enums/notification-type.enum';
+import { IRiskWeights } from '../interfaces/risk-forecast.interface';
 
 type MockRule = Partial<PredictionRule> & {
   id?: string;
@@ -264,6 +265,7 @@ describe('PredictionsService', () => {
         52.52,
         13.41,
         'test-key',
+        { weather: 0.4, solar: 0.3, history: 0.3 },
       );
 
       expect(result).toBeDefined();
@@ -287,7 +289,11 @@ describe('PredictionsService', () => {
         .spyOn(riskCalculator, 'calculateRisk')
         .mockReturnValue(60);
 
-      const customWeights = { weather: 50, solar: 30, history: 20 };
+      const customWeights: IRiskWeights = {
+        weather: 0.4,
+        solar: 0.3,
+        history: 0.3,
+      };
 
       await service.getRiskForecast(
         'user123',
@@ -297,10 +303,37 @@ describe('PredictionsService', () => {
         customWeights,
       );
 
-      expect(calculateRiskSpy).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Object),
-        expect.any(Date),
+      expect(calculateRiskSpy).toHaveBeenCalledTimes(2);
+
+      expect(calculateRiskSpy).toHaveBeenNthCalledWith(
+        1,
+        {
+          cloudCover: 50,
+          humidity: 60,
+          surfacePressure: 1013,
+          temperature: 22,
+          time: new Date('2026-02-10T12:00:00.000Z'),
+          uvIndex: 5,
+          weatherCode: 0,
+        },
+        { kpIndex: mockSolarData.kIndex },
+        mockIncidents[0].datetimeAt,
+        customWeights,
+      );
+
+      expect(calculateRiskSpy).toHaveBeenNthCalledWith(
+        2,
+        {
+          time: new Date('2026-02-10T13:00:00Z'),
+          temperature: 23,
+          humidity: 58,
+          surfacePressure: 1012,
+          cloudCover: 45,
+          uvIndex: 6,
+          weatherCode: 0,
+        },
+        { kpIndex: mockSolarData.kIndex },
+        mockIncidents[0].datetimeAt,
         customWeights,
       );
     });
@@ -320,6 +353,7 @@ describe('PredictionsService', () => {
         52.52,
         13.41,
         'test-key',
+        { weather: 0.4, solar: 0.3, history: 0.3 },
       );
 
       expect(result).toBeDefined();
@@ -343,7 +377,13 @@ describe('PredictionsService', () => {
       const longitude = 13.41;
       const encryptionKey = 'test-key';
 
-      await service.getRiskForecast(userId, latitude, longitude, encryptionKey);
+      await service.getRiskForecast(
+        userId,
+        latitude,
+        longitude,
+        encryptionKey,
+        { weather: 0.4, solar: 0.3, history: 0.3 },
+      );
 
       expect(weatherSpy).toHaveBeenCalledWith(latitude, longitude, userId);
       expect(solarSpy).toHaveBeenCalledWith(expect.any(String), userId);

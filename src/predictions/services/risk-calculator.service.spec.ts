@@ -90,7 +90,7 @@ describe('RiskCalculatorService', () => {
     it('should increase history score for recent incident', () => {
       const now = new Date();
       const recentIncident = new Date(now.getTime() - 12 * 60 * 60 * 1000); // 12 hours ago
-      const oldIncident = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+      const oldIncident = new Date(now.getTime() - 48 * 60 * 60 * 1000); // 48 hours ago
 
       const recentRisk = service.calculateRisk(baseWeather, {}, recentIncident);
       const oldRisk = service.calculateRisk(baseWeather, {}, oldIncident);
@@ -109,17 +109,19 @@ describe('RiskCalculatorService', () => {
         solar,
         undefined,
       );
+
       const highSolarWeight = service.calculateRisk(
         highSolarWeather,
         solar,
         undefined,
-        { weather: 10, solar: 80, history: 10 },
+        { weather: 0.1, solar: 0.8, history: 0.1 },
       );
+
       const lowSolarWeight = service.calculateRisk(
         highSolarWeather,
         solar,
         undefined,
-        { weather: 80, solar: 10, history: 10 },
+        { weather: 0.8, solar: 0.1, history: 0.1 },
       );
 
       expect(highSolarWeight).toBeGreaterThan(defaultWeights);

@@ -19,7 +19,7 @@ export interface IRiskForecast {
 }
 
 export interface IRiskWeights {
-  weather?: number;
-  solar?: number;
-  history?: number;
+  weather: number;
+  solar: number;
+  history: number;
 }

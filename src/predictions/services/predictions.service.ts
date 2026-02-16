@@ -13,7 +13,10 @@ import {
   Notification,
   NotificationDocument,
 } from '../schemas/notification.schema';
-import { IRiskForecast } from '../interfaces/risk-forecast.interface';
+import {
+  IRiskForecast,
+  IRiskWeights,
+} from '../interfaces/risk-forecast.interface';
 
 interface CreatePredictionRuleDto {
   name: string;
@@ -44,7 +47,7 @@ export class PredictionsService {
     latitude: number,
     longitude: number,
     encryptionKey: string,
-    customWeights?: { weather?: number; solar?: number; history?: number },
+    customWeights: IRiskWeights | undefined,
   ): Promise<IRiskForecast> {
     const [weatherForecast, solarForecast] = await Promise.all([
       this.weatherService.getForecast(latitude, longitude, userId),
@@ -58,6 +61,29 @@ export class PredictionsService {
       encryptionKey,
       userId,
     );
+
+    if (incidents.length === 0) {
+      return {
+        dailyRisk: 0,
+        hourlyRisk: [],
+        factors: {
+          weather: {
+            temperature: weatherForecast.hourly[0].temperature,
+            pressure: weatherForecast.hourly[0].surfacePressure,
+            humidity: weatherForecast.hourly[0].humidity,
+            uvIndex: weatherForecast.hourly[0].uvIndex,
+          },
+          solar: {
+            kpIndex: solarForecast.kIndex,
+            aIndex: solarForecast.aIndex,
+          },
+          history: {
+            lastIncidentDate: undefined,
+          },
+        },
+      };
+    }
+
     const lastIncident = incidents.sort(
       (a, b) => b.datetimeAt.getTime() - a.datetimeAt.getTime(),
     )[0];
@@ -67,7 +93,7 @@ export class PredictionsService {
       risk: this.riskCalculator.calculateRisk(
         hourly,
         { kpIndex: solarForecast.kIndex },
-        lastIncident?.datetimeAt,
+        lastIncident.datetimeAt,
         customWeights,
       ),
     }));
@@ -101,8 +127,7 @@ export class PredictionsService {
     userId: string,
     dto: CreatePredictionRuleDto,
   ): Promise<PredictionRule> {
-    const rule = new this.ruleModel({ ...dto, userId });
-    return rule.save();
+    return this.ruleModel.create({ ...dto, userId });
   }
 
   async getNotifications(userId: string): Promise<Notification[]> {
