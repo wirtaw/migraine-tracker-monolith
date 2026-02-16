@@ -9,7 +9,6 @@ import { NotificationTypeEnum } from '../enums/notification-type.enum';
 import { OperatorEnum } from '../enums/operator.enum';
 import { IUser } from '../../users/interfaces/user.interface';
 import { Role } from '../../auth/enums/roles.enum';
-import { defaultRiskWeights } from '../constants/risks';
 
 const symmetricKey = 'test-secret-key-long';
 const userId = 'user123';
@@ -122,7 +121,7 @@ describe('PredictionsController', () => {
         40.7128,
         -74.006,
         symmetricKey,
-        defaultRiskWeights,
+        undefined,
       );
       expect(result).toEqual(mockRiskForecast);
     });
@@ -143,7 +142,7 @@ describe('PredictionsController', () => {
         52.52,
         13.41,
         symmetricKey,
-        defaultRiskWeights,
+        undefined,
       );
       expect(result).toEqual(mockRiskForecast);
     });
