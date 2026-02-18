@@ -12,6 +12,7 @@ import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { WeatherService } from '../weather/weather.service';
 import { SolarWeatherService } from '../solar/solar-weather.service';
+import { GetSummaryQueryDto } from './dto/summary.dto';
 
 const userId = 'user123';
 const latitudeValue = 40.7128;
@@ -453,6 +454,95 @@ describe('LocationsService', () => {
       await expect(
         service.remove(mockLocation._id.toHexString(), 'otherUser'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByDateRange', () => {
+    it('should return an array of decrypted locations for user and date range', async () => {
+      const startDate = new Date('2023-01-01T00:00:00Z');
+      const endDate = new Date('2023-01-02T23:59:59Z');
+      const result = await service.findByDateRange(
+        symmetricKey,
+        userId,
+        startDate,
+        endDate,
+      );
+
+      expect(mockLocationModel.find).toHaveBeenCalledWith({
+        userId,
+        datetimeAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].latitude).toBe(latitudeValue);
+      expect(result[0].longitude).toBe(longitudeValue);
+      expect(result[0].datetimeAt).toEqual(new Date(locationDateTime));
+    });
+
+    it('should return empty array for unknown user ', async () => {
+      const startDate = new Date('2023-01-01T00:00:00Z');
+      const endDate = new Date('2023-01-02T23:59:59Z');
+      const result = await service.findByDateRange(
+        symmetricKey,
+        'unknownUser',
+        startDate,
+        endDate,
+      );
+      expect(mockLocationModel.find).toHaveBeenCalledWith({
+        userId: 'unknownUser',
+        datetimeAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      });
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('getSummary', () => {
+    it('should return a mapped summary object', async () => {
+      const urlStation = 'http://example.com/station123';
+      const query: GetSummaryQueryDto = {
+        longitude: longitudeValue,
+        latitude: latitudeValue,
+        isoDate: '2023-01-01',
+        id: mockLocation._id.toHexString(),
+        incidentId: '1',
+      };
+
+      mockWeatherService.getHourlyForecast.mockResolvedValue([
+        {
+          time: '2023-01-01T12:00:00Z',
+          temperature: 25,
+          condition: 'Sunny',
+        },
+      ]);
+
+      mockSolarWeatherService.getClosestStation.mockResolvedValue({
+        stationId: 'station123',
+        title: 'Test Station',
+        url: urlStation,
+      });
+
+      mockSolarWeatherService.getRadiationData.mockResolvedValue([
+        {
+          time: '2023-01-01T12:00:00Z',
+          radiation: 500,
+        },
+      ]);
+
+      const result = await service.getSummary(query, userId);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockLocation._id.toString(),
+          userId,
+          latitude: latitudeValue,
+          longitude: longitudeValue,
+        }),
+      );
     });
   });
 });

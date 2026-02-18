@@ -358,7 +358,6 @@ export class LocationsService {
     startDate: Date,
     endDate: Date,
   ): Promise<ILocation[] | []> {
-    // TODO cover with tests
     const locations = await this.locationModel
       .find({
         userId,
