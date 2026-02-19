@@ -69,17 +69,51 @@ export class CreateSleepDto {
   @IsString()
   userId!: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  rate!: number;
+  rate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesTotal?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesDeep?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesRem?: number;
+
+  @IsOptional()
+  @IsNumber()
+  timesWakeUp?: number;
 
   @IsOptional()
   @IsString()
   notes?: string;
 
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string;
+
   @IsNotEmpty()
   @IsDateString()
-  startedAt!: string;
+  datetimeAt!: string;
+}
+
+export class CreateWaterDto {
+  @IsNotEmpty()
+  @IsString()
+  userId!: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  ml!: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 
   @IsNotEmpty()
   @IsDateString()

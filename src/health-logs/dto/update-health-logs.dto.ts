@@ -11,6 +11,7 @@ import {
   CreateHeightDto,
   CreateBloodPressureDto,
   CreateSleepDto,
+  CreateWaterDto,
 } from './create-health-logs.dto';
 
 export class UpdateWeightDto extends PartialType(CreateWeightDto) {
@@ -62,19 +63,49 @@ export class UpdateBloodPressureDto extends PartialType(
 }
 
 export class UpdateSleepDto extends PartialType(CreateSleepDto) {
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   rate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesTotal?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesDeep?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minutesRem?: number;
+
+  @IsOptional()
+  @IsNumber()
+  timesWakeUp?: number;
 
   @IsOptional()
   @IsString()
   notes?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsDateString()
   startedAt?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
+  @IsDateString()
+  datetimeAt?: string;
+}
+
+export class UpdateWaterDto extends PartialType(CreateWaterDto) {
+  @IsOptional()
+  @IsNumber()
+  ml?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
   @IsDateString()
   datetimeAt?: string;
 }

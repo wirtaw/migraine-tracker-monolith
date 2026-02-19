@@ -26,8 +26,20 @@ export interface IBloodPressure {
 export interface ISleep {
   id: string;
   userId: string;
-  rate: number;
+  rate: number | undefined;
+  minutesTotal: number | undefined;
+  minutesDeep: number | undefined;
+  minutesRem: number | undefined;
+  timesWakeUp: number | undefined;
   notes: string | undefined;
-  startedAt: Date;
+  startedAt: Date | undefined;
+  datetimeAt: Date;
+}
+
+export interface IWater {
+  id: string;
+  userId: string;
+  ml: number;
+  notes: string | undefined;
   datetimeAt: Date;
 }

@@ -11,6 +11,8 @@ import {
   BloodPressureSchema,
   Sleep,
   SleepSchema,
+  Water,
+  WaterSchema,
 } from './schemas/health-logs.schema';
 import { AuthModule } from '../auth/auth.module';
 
@@ -21,6 +23,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: Height.name, schema: HeightSchema },
       { name: BloodPressure.name, schema: BloodPressureSchema },
       { name: Sleep.name, schema: SleepSchema },
+      { name: Water.name, schema: WaterSchema },
     ]),
     AuthModule,
   ],

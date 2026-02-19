@@ -8,18 +8,21 @@ import {
   Height,
   BloodPressure,
   Sleep,
+  Water,
 } from './schemas/health-logs.schema';
 import {
   CreateWeightDto,
   CreateHeightDto,
   CreateBloodPressureDto,
   CreateSleepDto,
+  CreateWaterDto,
 } from './dto/create-health-logs.dto';
 import {
   UpdateWeightDto,
   UpdateHeightDto,
   UpdateBloodPressureDto,
   UpdateSleepDto,
+  UpdateWaterDto,
 } from './dto/update-health-logs.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
@@ -46,6 +49,9 @@ const sleepRateValue = 7;
 const updatedSleepRate = 8;
 const startedAtValue = '2023-01-01T00:00:00.000Z';
 const updatedStartedAt = '2023-01-02T00:00:00.000Z';
+
+const waterMlValue = 250;
+const updatedWaterMlValue = 500;
 
 const mockWeight: HydratedDocument<Weight> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
@@ -81,12 +87,21 @@ const mockSleep: HydratedDocument<Sleep> = {
   datetimeAt: `enc(${logDateTime})`,
 } as never;
 
+const mockWater: HydratedDocument<Water> = {
+  _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3e'),
+  userId,
+  ml: `enc(${waterMlValue})`,
+  notes: noteValue ? `enc(${noteValue})` : '',
+  datetimeAt: `enc(${logDateTime})`,
+} as never;
+
 type MockDoc<T> = Partial<T> & { id?: string; _id?: Types.ObjectId };
 
 const mockWeights: MockDoc<Weight>[] = [mockWeight];
 const mockHeights: MockDoc<Height>[] = [mockHeight];
 const mockBloodPressures: MockDoc<BloodPressure>[] = [mockBloodPressure];
 const mockSleeps: MockDoc<Sleep>[] = [mockSleep];
+const mockWaters: MockDoc<Water>[] = [mockWater];
 
 type MockModel<T> = jest.Mock & {
   find: jest.Mock;
@@ -170,6 +185,7 @@ describe('HealthLogsService', () => {
   const mockHeightModel = createMockModel(mockHeights);
   const mockBloodPressureModel = createMockModel(mockBloodPressures);
   const mockSleepModel = createMockModel(mockSleeps);
+  const mockWaterModel = createMockModel(mockWaters);
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -182,6 +198,7 @@ describe('HealthLogsService', () => {
           useValue: mockBloodPressureModel,
         },
         { provide: getModelToken(Sleep.name), useValue: mockSleepModel },
+        { provide: getModelToken(Water.name), useValue: mockWaterModel },
         {
           provide: EncryptionService,
           useValue: mockEncryptionService,
@@ -817,6 +834,10 @@ describe('HealthLogsService', () => {
         const createDto: CreateSleepDto = {
           userId,
           rate: 6,
+          minutesTotal: 480,
+          minutesDeep: 60,
+          minutesRem: 90,
+          timesWakeUp: 1,
           notes: noteValue,
           startedAt: startedAtValue,
           datetimeAt: logDateTime,
@@ -826,6 +847,10 @@ describe('HealthLogsService', () => {
         expect(mockSleepModel).toHaveBeenCalledWith(
           expect.objectContaining({
             rate: `enc(${createDto.rate})`,
+            minutesTotal: `enc(${createDto.minutesTotal})`,
+            minutesDeep: `enc(${createDto.minutesDeep})`,
+            minutesRem: `enc(${createDto.minutesRem})`,
+            timesWakeUp: `enc(${createDto.timesWakeUp})`,
             notes: `enc(${createDto.notes})`,
             startedAt: `enc(${createDto.startedAt})`,
             datetimeAt: `enc(${createDto.datetimeAt})`,
@@ -904,6 +929,10 @@ describe('HealthLogsService', () => {
       it('should update and return the updated sleep log (all fields)', async () => {
         const updateDto: UpdateSleepDto = {
           rate: updatedSleepRate,
+          minutesTotal: 500,
+          minutesDeep: 70,
+          minutesRem: 100,
+          timesWakeUp: 2,
           notes: updatedNote,
           startedAt: updatedStartedAt,
           datetimeAt: updatedDateTime,
@@ -920,6 +949,10 @@ describe('HealthLogsService', () => {
           mockSleep._id.toHexString(),
           expect.objectContaining({
             rate: `enc(${updateDto.rate})`,
+            minutesTotal: `enc(${updateDto.minutesTotal})`,
+            minutesDeep: `enc(${updateDto.minutesDeep})`,
+            minutesRem: `enc(${updateDto.minutesRem})`,
+            timesWakeUp: `enc(${updateDto.timesWakeUp})`,
             notes: `enc(${updateDto.notes})`,
             startedAt: `enc(${new Date(updateDto.startedAt!).toISOString()})`,
             datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
@@ -1003,6 +1036,168 @@ describe('HealthLogsService', () => {
         await expect(
           service.removeSleep(mockSleep._id.toHexString(), userId),
         ).rejects.toThrow(NotFoundException);
+      });
+    });
+  });
+
+  // ===========================================================================
+  // WATER TESTS
+  // ===========================================================================
+  describe('Water logs', () => {
+    describe('Water logs - create', () => {
+      it('should create and return a water log', async () => {
+        const createDto: CreateWaterDto = {
+          userId,
+          ml: waterMlValue,
+          notes: noteValue,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createWater(createDto, symmetricKey);
+
+        expect(mockWaterModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ml: `enc(${createDto.ml})`,
+            notes: `enc(${createDto.notes})`,
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.ml).toBe(waterMlValue);
+      });
+
+      it('should create and return a water log without notes', async () => {
+        const createDto: CreateWaterDto = {
+          userId,
+          ml: 300,
+          datetimeAt: logDateTime,
+        };
+        const result = await service.createWater(createDto, symmetricKey);
+
+        expect(mockWaterModel).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ml: `enc(${createDto.ml})`,
+            notes: '',
+            datetimeAt: `enc(${createDto.datetimeAt})`,
+          }),
+        );
+        expect(result.ml).toBe(300);
+        expect(result.notes).toBeUndefined();
+      });
+    });
+
+    describe('Water logs - find', () => {
+      it('should return a single water log', async () => {
+        const result = await service.findOneWater(
+          mockWater._id.toHexString(),
+          symmetricKey,
+          userId,
+        );
+        expect(result.ml).toBe(waterMlValue);
+      });
+
+      it('should throw NotFoundException if water log not found', async () => {
+        await expect(
+          service.findOneWater('nonExistentId', symmetricKey, userId),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch on findOne', async () => {
+        await expect(
+          service.findOneWater(
+            mockWater._id.toHexString(),
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Water logs - findAll', () => {
+      it('should return an array of water logs filtered by userId', async () => {
+        const result = await service.findAllWaters(symmetricKey, userId);
+        expect(mockWaterModel.find).toHaveBeenCalledWith({ userId });
+        expect(result).toHaveLength(1);
+        expect(result[0].ml).toBe(waterMlValue);
+      });
+
+      it('should return empty array for unknown user', async () => {
+        const result = await service.findAllWaters(symmetricKey, otherUserId);
+        expect(mockWaterModel.find).toHaveBeenCalledWith({
+          userId: otherUserId,
+        });
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('Water logs - update', () => {
+      it('should update and return the updated water log (all fields)', async () => {
+        const updateDto: UpdateWaterDto = {
+          ml: updatedWaterMlValue,
+          notes: updatedNote,
+          datetimeAt: updatedDateTime,
+        };
+
+        const result = await service.updateWater(
+          mockWater._id.toHexString(),
+          updateDto,
+          symmetricKey,
+          userId,
+        );
+
+        expect(mockWaterModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          mockWater._id.toHexString(),
+          expect.objectContaining({
+            ml: `enc(${updateDto.ml})`,
+            notes: `enc(${updateDto.notes})`,
+            datetimeAt: `enc(${new Date(updateDto.datetimeAt!).toISOString()})`,
+          }),
+          { new: true },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            ml: updatedWaterMlValue,
+            notes: updatedNote,
+            datetimeAt: new Date(updatedDateTime),
+          }),
+        );
+      });
+
+      it('should throw NotFoundException if water log not found during update', async () => {
+        mockWaterModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => null });
+        await expect(
+          service.updateWater(
+            'nonExistentId',
+            { ml: 500 },
+            symmetricKey,
+            userId,
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw ForbiddenException if user mismatch during update water log', async () => {
+        mockWaterModel.findById = jest
+          .fn()
+          .mockReturnValue({ exec: () => mockWater });
+        await expect(
+          service.updateWater(
+            mockWater._id.toHexString(),
+            { ml: 500 },
+            symmetricKey,
+            otherUserId,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Water logs - delete', () => {
+      it('should remove a water log', async () => {
+        await service.removeWater(mockWater._id.toHexString(), userId);
+        expect(mockWaterModel.deleteOne).toHaveBeenCalledWith({
+          _id: mockWater._id.toHexString(),
+          userId,
+        });
       });
     });
   });

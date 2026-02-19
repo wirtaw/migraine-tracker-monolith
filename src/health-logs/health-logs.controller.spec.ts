@@ -7,18 +7,21 @@ import {
   CreateHeightDto,
   CreateBloodPressureDto,
   CreateSleepDto,
+  CreateWaterDto,
 } from './dto/create-health-logs.dto';
 import {
   UpdateWeightDto,
   UpdateHeightDto,
   UpdateBloodPressureDto,
   UpdateSleepDto,
+  UpdateWaterDto,
 } from './dto/update-health-logs.dto';
 import {
   IWeight,
   IHeight,
   IBloodPressure,
   ISleep,
+  IWater,
 } from './interfaces/health-logs.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
@@ -53,9 +56,21 @@ const mockISleep: ISleep = {
   id: '60c72b2f9b1d8e001c8e4d3d',
   userId: 'user123',
   rate: 7,
+  minutesTotal: 480,
+  minutesDeep: 60,
+  minutesRem: 90,
+  timesWakeUp: 1,
   notes: 'Good sleep',
   startedAt: new Date('2023-01-01T00:00:00Z'),
   datetimeAt: new Date('2023-01-01T08:00:00Z'),
+};
+
+const mockIWater: IWater = {
+  id: '60c72b2f9b1d8e001c8e4d3e',
+  userId: 'user123',
+  ml: 250,
+  notes: 'First water log',
+  datetimeAt: new Date('2023-01-01T10:00:00Z'),
 };
 
 const mockHealthLogsService = {
@@ -82,6 +97,11 @@ const mockHealthLogsService = {
   findOneSleep: jest.fn().mockResolvedValue(mockISleep),
   updateSleep: jest.fn().mockResolvedValue(mockISleep),
   removeSleep: jest.fn().mockResolvedValue(undefined),
+  createWater: jest.fn().mockResolvedValue(mockIWater),
+  findAllWaters: jest.fn().mockResolvedValue([mockIWater]),
+  findOneWater: jest.fn().mockResolvedValue(mockIWater),
+  updateWater: jest.fn().mockResolvedValue(mockIWater),
+  removeWater: jest.fn().mockResolvedValue(undefined),
 };
 
 const symmetricKey = 'test-secret-key-long';
@@ -486,6 +506,58 @@ describe('HealthLogsController', () => {
       await expect(controller.removeSleep(id, mockRequest)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  // --- Water Tests ---
+  describe('Water logs', () => {
+    it('should create a water log', async () => {
+      const createDto: CreateWaterDto = {
+        userId: 'user123',
+        ml: 250,
+        notes: 'Test',
+        datetimeAt: new Date().toISOString(),
+      };
+      const result = await controller.createWater(createDto, mockRequest);
+      expect(service.createWater).toHaveBeenCalledWith(createDto, symmetricKey);
+      expect(result).toEqual(mockIWater);
+    });
+
+    it('should find all water logs', async () => {
+      const result = await controller.findAllWaters(mockRequest);
+      expect(service.findAllWaters).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual([mockIWater]);
+    });
+
+    it('should find one water log', async () => {
+      const id = mockIWater.id;
+      const result = await controller.findOneWater(id, mockRequest);
+      expect(service.findOneWater).toHaveBeenCalledWith(
+        id,
+        symmetricKey,
+        userId,
+      );
+      expect(result).toEqual(mockIWater);
+    });
+
+    it('should update a water log', async () => {
+      const id = mockIWater.id;
+      const updateDto: UpdateWaterDto = { ml: 500 };
+      const result = await controller.updateWater(id, updateDto, mockRequest);
+      expect(service.updateWater).toHaveBeenCalledWith(
+        id,
+        updateDto,
+        symmetricKey,
+        userId,
+      );
+      expect(result).toEqual(mockIWater);
+    });
+
+    it('should remove a water log', async () => {
+      const id = mockIWater.id;
+      const result = await controller.removeWater(id, mockRequest);
+      expect(service.removeWater).toHaveBeenCalledWith(id, userId);
+      expect(result).toBeUndefined();
     });
   });
 });

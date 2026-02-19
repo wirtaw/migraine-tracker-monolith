@@ -15,24 +15,29 @@ import {
   BloodPressureDocument,
   Sleep,
   SleepDocument,
+  Water,
+  WaterDocument,
 } from './schemas/health-logs.schema';
 import {
   CreateWeightDto,
   CreateHeightDto,
   CreateBloodPressureDto,
   CreateSleepDto,
+  CreateWaterDto,
 } from './dto/create-health-logs.dto';
 import {
   UpdateWeightDto,
   UpdateHeightDto,
   UpdateBloodPressureDto,
   UpdateSleepDto,
+  UpdateWaterDto,
 } from './dto/update-health-logs.dto';
 import {
   IWeight,
   IHeight,
   IBloodPressure,
   ISleep,
+  IWater,
 } from './interfaces/health-logs.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 
@@ -44,6 +49,7 @@ export class HealthLogsService {
     @InjectModel(BloodPressure.name)
     private bloodPressureModel: Model<BloodPressureDocument>,
     @InjectModel(Sleep.name) private sleepModel: Model<SleepDocument>,
+    @InjectModel(Water.name) private waterModel: Model<WaterDocument>,
     private readonly encryptionService: EncryptionService,
   ) {}
 
@@ -397,20 +403,53 @@ export class HealthLogsService {
     const bufferKey = this.getKey(key);
     const createdSleep = new this.sleepModel({
       ...createSleepDto,
-      rate: this.encryptionService.encryptSensitiveData(
-        createSleepDto.rate.toString(),
-        bufferKey,
-      ),
+      rate:
+        createSleepDto.rate !== undefined
+          ? this.encryptionService.encryptSensitiveData(
+              createSleepDto.rate.toString(),
+              bufferKey,
+            )
+          : undefined,
+      minutesTotal:
+        createSleepDto.minutesTotal !== undefined
+          ? this.encryptionService.encryptSensitiveData(
+              createSleepDto.minutesTotal.toString(),
+              bufferKey,
+            )
+          : undefined,
+      minutesDeep:
+        createSleepDto.minutesDeep !== undefined
+          ? this.encryptionService.encryptSensitiveData(
+              createSleepDto.minutesDeep.toString(),
+              bufferKey,
+            )
+          : undefined,
+      minutesRem:
+        createSleepDto.minutesRem !== undefined
+          ? this.encryptionService.encryptSensitiveData(
+              createSleepDto.minutesRem.toString(),
+              bufferKey,
+            )
+          : undefined,
+      timesWakeUp:
+        createSleepDto.timesWakeUp !== undefined
+          ? this.encryptionService.encryptSensitiveData(
+              createSleepDto.timesWakeUp.toString(),
+              bufferKey,
+            )
+          : undefined,
       notes: createSleepDto.notes
         ? this.encryptionService.encryptSensitiveData(
             createSleepDto.notes,
             bufferKey,
           )
         : '',
-      startedAt: this.encryptionService.encryptSensitiveData(
-        createSleepDto.startedAt,
-        bufferKey,
-      ),
+      startedAt: createSleepDto.startedAt
+        ? this.encryptionService.encryptSensitiveData(
+            createSleepDto.startedAt,
+            bufferKey,
+          )
+        : undefined,
       datetimeAt: this.encryptionService.encryptSensitiveData(
         createSleepDto.datetimeAt,
         bufferKey,
@@ -461,6 +500,31 @@ export class HealthLogsService {
         bufferKey,
       );
     }
+    if (updateSleepDto.minutesTotal !== undefined) {
+      encryptedUpdate.minutesTotal =
+        this.encryptionService.encryptSensitiveData(
+          updateSleepDto.minutesTotal.toString(),
+          bufferKey,
+        );
+    }
+    if (updateSleepDto.minutesDeep !== undefined) {
+      encryptedUpdate.minutesDeep = this.encryptionService.encryptSensitiveData(
+        updateSleepDto.minutesDeep.toString(),
+        bufferKey,
+      );
+    }
+    if (updateSleepDto.minutesRem !== undefined) {
+      encryptedUpdate.minutesRem = this.encryptionService.encryptSensitiveData(
+        updateSleepDto.minutesRem.toString(),
+        bufferKey,
+      );
+    }
+    if (updateSleepDto.timesWakeUp !== undefined) {
+      encryptedUpdate.timesWakeUp = this.encryptionService.encryptSensitiveData(
+        updateSleepDto.timesWakeUp.toString(),
+        bufferKey,
+      );
+    }
     if (updateSleepDto.notes !== undefined && updateSleepDto.notes !== '') {
       encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
         updateSleepDto.notes,
@@ -494,6 +558,104 @@ export class HealthLogsService {
     const result = await this.sleepModel.deleteOne({ _id: id, userId }).exec();
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Sleep log with ID "${id}" not found`);
+    }
+  }
+
+  // Water
+  async createWater(
+    createWaterDto: CreateWaterDto,
+    key: string,
+  ): Promise<IWater> {
+    const bufferKey = this.getKey(key);
+    const createdWater = new this.waterModel({
+      ...createWaterDto,
+      ml: this.encryptionService.encryptSensitiveData(
+        createWaterDto.ml.toString(),
+        bufferKey,
+      ),
+      notes: createWaterDto.notes
+        ? this.encryptionService.encryptSensitiveData(
+            createWaterDto.notes,
+            bufferKey,
+          )
+        : '',
+      datetimeAt: this.encryptionService.encryptSensitiveData(
+        createWaterDto.datetimeAt,
+        bufferKey,
+      ),
+    });
+    const savedWater = await createdWater.save();
+    return this.mapToIWater(savedWater, key);
+  }
+
+  async findAllWaters(key: string, userId: string): Promise<IWater[]> {
+    const waters = await this.waterModel.find({ userId }).exec();
+    return waters
+      .map((water) => this.mapToIWater(water, key))
+      .filter((item) => !!item);
+  }
+
+  async findOneWater(id: string, key: string, userId: string): Promise<IWater> {
+    const water = await this.waterModel.findById(id).exec();
+    if (!water) {
+      throw new NotFoundException(`Water log with ID "${id}" not found`);
+    }
+    if (water.userId !== userId) {
+      throw new ForbiddenException(`Access denied to water log "${id}"`);
+    }
+    return this.mapToIWater(water, key);
+  }
+
+  async updateWater(
+    id: string,
+    updateWaterDto: UpdateWaterDto,
+    key: string,
+    userId: string,
+  ): Promise<IWater> {
+    const water = await this.waterModel.findById(id).exec();
+    if (!water) {
+      throw new NotFoundException(`Water log with ID "${id}" not found`);
+    }
+    if (water.userId !== userId) {
+      throw new ForbiddenException(`Access denied to water log "${id}"`);
+    }
+
+    const bufferKey = this.getKey(key);
+    const encryptedUpdate: Partial<Water> = {};
+
+    if (updateWaterDto.ml !== undefined) {
+      encryptedUpdate.ml = this.encryptionService.encryptSensitiveData(
+        updateWaterDto.ml.toString(),
+        bufferKey,
+      );
+    }
+    if (updateWaterDto.notes !== undefined && updateWaterDto.notes !== '') {
+      encryptedUpdate.notes = this.encryptionService.encryptSensitiveData(
+        updateWaterDto.notes,
+        bufferKey,
+      );
+    }
+    if (updateWaterDto.datetimeAt !== undefined) {
+      encryptedUpdate.datetimeAt = this.encryptionService.encryptSensitiveData(
+        new Date(updateWaterDto.datetimeAt).toISOString(),
+        bufferKey,
+      );
+    }
+
+    const updatedWater = await this.waterModel
+      .findByIdAndUpdate(id, encryptedUpdate, { new: true })
+      .exec();
+
+    if (!updatedWater) {
+      throw new NotFoundException(`Water log with ID "${id}" not found`);
+    }
+    return this.mapToIWater(updatedWater, key);
+  }
+
+  async removeWater(id: string, userId: string): Promise<void> {
+    const result = await this.waterModel.deleteOne({ _id: id, userId }).exec();
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Water log with ID "${id}" not found`);
     }
   }
 
@@ -590,22 +752,86 @@ export class HealthLogsService {
     return {
       id: (sleepDoc._id as Types.ObjectId).toString(),
       userId: sleepDoc.userId,
-      rate: parseInt(
-        this.encryptionService.decryptSensitiveData(sleepDoc.rate, bufferKey),
-        10,
-      ),
+      rate: sleepDoc.rate
+        ? parseInt(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.rate,
+              bufferKey,
+            ),
+            10,
+          )
+        : undefined,
+      minutesTotal: sleepDoc.minutesTotal
+        ? parseInt(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.minutesTotal,
+              bufferKey,
+            ),
+            10,
+          )
+        : undefined,
+      minutesDeep: sleepDoc.minutesDeep
+        ? parseInt(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.minutesDeep,
+              bufferKey,
+            ),
+            10,
+          )
+        : undefined,
+      minutesRem: sleepDoc.minutesRem
+        ? parseInt(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.minutesRem,
+              bufferKey,
+            ),
+            10,
+          )
+        : undefined,
+      timesWakeUp: sleepDoc.timesWakeUp
+        ? parseInt(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.timesWakeUp,
+              bufferKey,
+            ),
+            10,
+          )
+        : undefined,
       notes: sleepDoc.notes
         ? this.encryptionService.decryptSensitiveData(sleepDoc.notes, bufferKey)
         : undefined,
-      startedAt: new Date(
-        this.encryptionService.decryptSensitiveData(
-          sleepDoc.startedAt,
-          bufferKey,
-        ),
-      ),
+      startedAt: sleepDoc.startedAt
+        ? new Date(
+            this.encryptionService.decryptSensitiveData(
+              sleepDoc.startedAt,
+              bufferKey,
+            ),
+          )
+        : undefined,
       datetimeAt: new Date(
         this.encryptionService.decryptSensitiveData(
           sleepDoc.datetimeAt,
+          bufferKey,
+        ),
+      ),
+    };
+  }
+
+  private mapToIWater(waterDoc: WaterDocument, key: string): IWater {
+    const bufferKey = this.getKey(key);
+    return {
+      id: (waterDoc._id as Types.ObjectId).toString(),
+      userId: waterDoc.userId,
+      ml: parseInt(
+        this.encryptionService.decryptSensitiveData(waterDoc.ml, bufferKey),
+        10,
+      ),
+      notes: waterDoc.notes
+        ? this.encryptionService.decryptSensitiveData(waterDoc.notes, bufferKey)
+        : undefined,
+      datetimeAt: new Date(
+        this.encryptionService.decryptSensitiveData(
+          waterDoc.datetimeAt,
           bufferKey,
         ),
       ),

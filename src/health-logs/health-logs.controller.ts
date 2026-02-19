@@ -25,18 +25,21 @@ import {
   CreateHeightDto,
   CreateBloodPressureDto,
   CreateSleepDto,
+  CreateWaterDto,
 } from './dto/create-health-logs.dto';
 import {
   UpdateWeightDto,
   UpdateHeightDto,
   UpdateBloodPressureDto,
   UpdateSleepDto,
+  UpdateWaterDto,
 } from './dto/update-health-logs.dto';
 import {
   IWeight,
   IHeight,
   IBloodPressure,
   ISleep,
+  IWater,
 } from './interfaces/health-logs.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
@@ -503,5 +506,117 @@ export class HealthLogsController {
   ): Promise<void> {
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.healthLogsService.removeSleep(id, userId);
+  }
+
+  // Water
+  @Roles(Role.USER)
+  @Post('water')
+  @ApiOperation({ summary: 'Create a new water log' })
+  @ApiBody({
+    type: CreateWaterDto,
+    description: 'Data for creating a new water log',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The water log has been successfully created.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async createWater(
+    @Body() createWaterDto: CreateWaterDto,
+    @Req() req: RequestWithUser,
+  ): Promise<IWater | null> {
+    const encryptionKey = req?.session?.key || '';
+    return this.healthLogsService.createWater(createWaterDto, encryptionKey);
+  }
+
+  @Roles(Role.USER)
+  @Get('waters')
+  @ApiOperation({ summary: 'Get list of water logs' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The water logs list',
+  })
+  async findAllWaters(@Req() req: RequestWithUser): Promise<IWater[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findAllWaters(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
+  @Get('water/:id')
+  @ApiOperation({ summary: 'Find water log by ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The water log has been found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The water log not found.',
+  })
+  async findOneWater(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<IWater | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.findOneWater(id, encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
+  @Patch('water/:id')
+  @ApiOperation({ summary: 'Update the water log' })
+  @ApiBody({
+    type: UpdateWaterDto,
+    description: 'Data for updating a water log',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The water log has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The water log not found.',
+  })
+  async updateWater(
+    @Param('id') id: string,
+    @Body() updateWaterDto: UpdateWaterDto,
+    @Req() req: RequestWithUser,
+  ): Promise<IWater | null> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.updateWater(
+      id,
+      updateWaterDto,
+      encryptionKey,
+      userId,
+    );
+  }
+
+  @Roles(Role.USER)
+  @Delete('water/:id')
+  @ApiOperation({ summary: 'Remove the water log' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'The water log has been successfully deleted.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'The water log not found.',
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeWater(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.healthLogsService.removeWater(id, userId);
   }
 }
