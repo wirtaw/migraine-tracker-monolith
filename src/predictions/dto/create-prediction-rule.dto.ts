@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsNumber,
   IsOptional,
+  IsBoolean,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -54,6 +55,6 @@ export class CreatePredictionRuleDto {
 
   @ApiProperty({ required: false, default: true })
   @IsOptional()
-  @IsString()
+  @IsBoolean()
   isEnabled?: boolean;
 }

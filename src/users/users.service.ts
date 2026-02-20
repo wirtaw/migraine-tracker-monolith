@@ -93,6 +93,16 @@ export class UserService {
     return this.mapToIUser(user, user.encryptedSymmetricKey);
   }
 
+  async findOneByExternal(supabaseId: string): Promise<IUser> {
+    const user = await this.userModel.findOne({ supabaseId }).exec();
+    if (!user) {
+      throw new NotFoundException(
+        `User with External ID "${supabaseId}" not found`,
+      );
+    }
+    return this.mapToIUser(user, user.encryptedSymmetricKey);
+  }
+
   async update(
     userId: string,
     updateUserDto: UpdateUserDto,

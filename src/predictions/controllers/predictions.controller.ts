@@ -35,6 +35,7 @@ export class PredictionsController {
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['getRiskForecast']>> {
     const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
     let latitude: number;
     let longitude: number;
 
@@ -42,13 +43,13 @@ export class PredictionsController {
       latitude = dto.latitude;
       longitude = dto.longitude;
     } else {
-      const user: IUser = await this.userService.findOne(req.session.userId);
+      const user: IUser = await this.userService.findOneByExternal(userId);
       latitude = parseFloat(user.latitude);
       longitude = parseFloat(user.longitude);
     }
 
     return this.predictionsService.getRiskForecast(
-      req.session.userId,
+      userId,
       latitude,
       longitude,
       encryptionKey,
@@ -63,7 +64,8 @@ export class PredictionsController {
     @Body() dto: CreatePredictionRuleDto,
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['createRule']>> {
-    return this.predictionsService.createRule(req.session.userId, dto);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.createRule(userId, dto);
   }
 
   @Roles(Role.USER)
@@ -72,7 +74,8 @@ export class PredictionsController {
   async getRules(
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['getRules']>> {
-    return this.predictionsService.getRules(req.session.userId);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.getRules(userId);
   }
 
   @Roles(Role.USER)
@@ -83,7 +86,8 @@ export class PredictionsController {
     @Body() dto: UpdatePredictionRuleDto,
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['updateRule']>> {
-    return this.predictionsService.updateRule(req.session.userId, id, dto);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.updateRule(userId, id, dto);
   }
 
   @Roles(Role.USER)
@@ -93,7 +97,8 @@ export class PredictionsController {
     @Param('id') id: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    return this.predictionsService.deleteRule(req.session.userId, id);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.deleteRule(userId, id);
   }
 
   @Roles(Role.USER)
@@ -102,7 +107,8 @@ export class PredictionsController {
   async getNotifications(
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['getNotifications']>> {
-    return this.predictionsService.getNotifications(req.session.userId);
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.getNotifications(userId);
   }
 
   @Roles(Role.USER)
@@ -112,9 +118,7 @@ export class PredictionsController {
     @Param('id') id: string,
     @Req() req: RequestWithUser,
   ): Promise<ReturnType<PredictionsService['markNotificationAsRead']>> {
-    return this.predictionsService.markNotificationAsRead(
-      req.session.userId,
-      id,
-    );
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.predictionsService.markNotificationAsRead(userId, id);
   }
 }

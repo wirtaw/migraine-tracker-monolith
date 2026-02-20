@@ -478,26 +478,34 @@ describe('PredictionsService', () => {
     it('should update a rule successfully', async () => {
       const dto = { name: 'Updated Rule', isEnabled: false };
       const updatedRuleData = { ...mockRules[0], ...dto };
-      
-      const mockExec = jest.fn().mockResolvedValue(updatedRuleData);
-      mockRuleModel.findOneAndUpdate = jest.fn().mockReturnValue({ exec: mockExec });
 
-      const result = await service.updateRule('user123', '60c72b2f9b1d8e001c8e4d3a', dto);
+      const mockExec = jest.fn().mockResolvedValue(updatedRuleData);
+      mockRuleModel.findOneAndUpdate = jest
+        .fn()
+        .mockReturnValue({ exec: mockExec });
+
+      const result = await service.updateRule(
+        'user123',
+        '60c72b2f9b1d8e001c8e4d3a',
+        dto,
+      );
 
       expect(mockRuleModel.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: '60c72b2f9b1d8e001c8e4d3a', userId: 'user123' },
         { $set: dto },
-        { new: true }
+        { new: true },
       );
       expect(result).toEqual(updatedRuleData);
     });
 
     it('should throw NotFoundException if rule is not found', async () => {
       const mockExec = jest.fn().mockResolvedValue(null);
-      mockRuleModel.findOneAndUpdate = jest.fn().mockReturnValue({ exec: mockExec });
+      mockRuleModel.findOneAndUpdate = jest
+        .fn()
+        .mockReturnValue({ exec: mockExec });
 
       await expect(
-        service.updateRule('user123', 'nonexistent', { name: 'Test' })
+        service.updateRule('user123', 'nonexistent', { name: 'Test' }),
       ).rejects.toThrow('Prediction rule not found');
     });
   });
@@ -511,7 +519,7 @@ describe('PredictionsService', () => {
 
       expect(mockRuleModel.deleteOne).toHaveBeenCalledWith({
         _id: '60c72b2f9b1d8e001c8e4d3a',
-        userId: 'user123'
+        userId: 'user123',
       });
     });
 
@@ -520,7 +528,7 @@ describe('PredictionsService', () => {
       mockRuleModel.deleteOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       await expect(
-        service.deleteRule('user123', 'nonexistent')
+        service.deleteRule('user123', 'nonexistent'),
       ).rejects.toThrow('Prediction rule not found');
     });
   });
