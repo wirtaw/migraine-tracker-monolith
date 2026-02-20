@@ -133,12 +133,12 @@ describe('PredictionsController', () => {
       jest
         .spyOn(service, 'getRiskForecast')
         .mockResolvedValue(mockRiskForecast);
-      jest.spyOn(userService, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(userService, 'findOneByExternal').mockResolvedValue(mockUser);
 
       const result = await controller.getRiskForecast({}, mockRequest);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(userService.findOne).toHaveBeenCalledWith(userId);
+      expect(userService.findOneByExternal).toHaveBeenCalledWith(userId);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.getRiskForecast).toHaveBeenCalledWith(
         userId,
