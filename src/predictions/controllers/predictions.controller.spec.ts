@@ -48,6 +48,8 @@ describe('PredictionsController', () => {
           useValue: {
             getRiskForecast: jest.fn(),
             createRule: jest.fn(),
+            updateRule: jest.fn(),
+            deleteRule: jest.fn(),
             getRules: jest.fn(),
             getNotifications: jest.fn(),
             markNotificationAsRead: jest.fn(),
@@ -242,6 +244,42 @@ describe('PredictionsController', () => {
       const result = await controller.getRules(mockRequest);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('updateRule', () => {
+    it('should update a prediction rule', async () => {
+      const ruleId = 'rule123';
+      const dto = { name: 'Updated Rule Name' };
+      const mockRule = {
+        userId,
+        name: 'Updated Rule Name',
+        conditions: [],
+        alertMessage: 'Alert 1',
+        isEnabled: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest.spyOn(service, 'updateRule').mockResolvedValue(mockRule as any);
+
+      const result = await controller.updateRule(ruleId, dto, mockRequest);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.updateRule).toHaveBeenCalledWith(userId, ruleId, dto);
+      expect(result).toEqual(mockRule);
+    });
+  });
+
+  describe('deleteRule', () => {
+    it('should delete a prediction rule', async () => {
+      const ruleId = 'rule123';
+      jest.spyOn(service, 'deleteRule').mockResolvedValue(undefined as any);
+
+      await controller.deleteRule(ruleId, mockRequest);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.deleteRule).toHaveBeenCalledWith(userId, ruleId);
     });
   });
 

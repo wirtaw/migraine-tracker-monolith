@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { WeatherService } from '../../weather/weather.service';
@@ -17,6 +17,7 @@ import {
   IRiskForecast,
   IRiskWeights,
 } from '../interfaces/risk-forecast.interface';
+import { UpdatePredictionRuleDto } from '../dto/update-prediction-rule.dto';
 
 interface CreatePredictionRuleDto {
   name: string;
@@ -139,6 +140,32 @@ export class PredictionsService {
 
   async getRules(userId: string): Promise<PredictionRule[]> {
     return this.ruleModel.find({ userId }).exec();
+  }
+
+  async updateRule(
+    userId: string,
+    ruleId: string,
+    dto: UpdatePredictionRuleDto,
+  ): Promise<PredictionRule> {
+    const updatedRule = await this.ruleModel
+      .findOneAndUpdate({ _id: ruleId, userId }, { $set: dto }, { new: true })
+      .exec();
+
+    if (!updatedRule) {
+      throw new NotFoundException('Prediction rule not found');
+    }
+
+    return updatedRule;
+  }
+
+  async deleteRule(userId: string, ruleId: string): Promise<void> {
+    const result = await this.ruleModel
+      .deleteOne({ _id: ruleId, userId })
+      .exec();
+
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('Prediction rule not found');
+    }
   }
 
   async markNotificationAsRead(
