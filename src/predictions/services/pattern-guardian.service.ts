@@ -31,7 +31,7 @@ export class PatternGuardianService {
   ) {}
 
   // Every 6 hours ('0 */6 * * *')
-  @Cron('*/10 * * * *') // TODO: change to */10 * * * * for testing
+  @Cron('0 */6 * * *') // TODO: change to */10 * * * * for testing
   async evaluateRules(): Promise<void> {
     const enabledRules = await this.ruleModel.find({ isEnabled: true }).exec();
     if (enabledRules.length === 0) return;
