@@ -59,7 +59,7 @@ describe('PredictionsController', () => {
         {
           provide: UserService,
           useValue: {
-            findOne: jest.fn(),
+            findOneByExternal: jest.fn(),
           },
         },
       ],
