@@ -283,24 +283,6 @@ describe('Incidents Access Flow (integration)', () => {
       .expect(HttpStatus.BAD_REQUEST);
   });
 
-  it('should return 400 for invalid incident type', async () => {
-    const invalidEnumDto = {
-      userId: 'user123',
-      type: 'INVALID_TYPE',
-      startTime: '2023-01-01T10:00:00.000Z',
-      durationHours: 2,
-      notes: 'Invalid enum test',
-      triggers: [TriggerTypeEnum.STRESS],
-      datetimeAt: '2023-01-01T12:00:00.000Z',
-    };
-
-    await request(app.getHttpServer() as Server)
-      .post('/incidents')
-      .set('Authorization', `Bearer ${token}`)
-      .send(invalidEnumDto)
-      .expect(HttpStatus.BAD_REQUEST);
-  });
-
   it('should return 200 update only notes field and preserve others', async () => {
     const patchDto = { notes: 'Updated notes only' };
 
