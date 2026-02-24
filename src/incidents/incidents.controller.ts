@@ -85,6 +85,19 @@ export class IncidentsController {
   }
 
   @Roles(Role.USER)
+  @Get('types')
+  @ApiOperation({ summary: 'Get list of incident types for a user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The incident types list',
+  })
+  async getTypes(@Req() req: RequestWithUser): Promise<string[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.incidentsService.getIncidentTypes(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find incident by ID' })
   @ApiResponse({

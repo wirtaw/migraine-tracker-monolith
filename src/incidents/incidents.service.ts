@@ -69,7 +69,7 @@ export class IncidentsService {
     const incidents = await this.findAll(key, userId);
 
     const stats: IIncidentStats = {
-      byType: {} as Record<IncidentTypeEnum, number>,
+      byType: {} as Record<string, number>,
       byTrigger: {} as Record<TriggerTypeEnum, number>,
       byTime: {
         dailyCounts: {},
@@ -233,6 +233,19 @@ export class IncidentsService {
     }
   }
 
+  async getIncidentTypes(key: string, userId: string): Promise<string[]> {
+    const incidents = await this.incidentModel.find({ userId }).exec();
+
+    const result = incidents
+      .map((incident) => this.mapToIIncident(incident, key))
+      .filter((item) => !!item);
+    const userIncidentTypes = new Set(result.map((incident) => incident.type));
+
+    return Array.from(
+      new Set([...userIncidentTypes, ...Object.values(IncidentTypeEnum)]),
+    );
+  }
+
   private mapToIIncident(
     incidentDoc: IncidentDocument,
     key: string,
@@ -247,18 +260,6 @@ export class IncidentsService {
     };
 
     const decryptedType = decrypt(incidentDoc.type, 'incidentType');
-
-    const matchedKey = Object.entries(IncidentTypeEnum).find(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      ([key, value]) => key === decryptedType || value === decryptedType,
-    );
-
-    if (!matchedKey) {
-      Logger.error(`Invalid incident type: ${decryptedType}`);
-      throw new Error(`Invalid incident type: ${decryptedType}`);
-    }
-
-    const incidentType = matchedKey[1] as IncidentTypeEnum;
 
     let decryptedTriggers: TriggerTypeEnum[] | undefined = undefined;
 
@@ -291,7 +292,7 @@ export class IncidentsService {
     return {
       id: incidentDoc?._id?.toString() ?? '',
       userId: incidentDoc.userId,
-      type: incidentType,
+      type: decryptedType,
       startTime: new Date(decrypt(String(incidentDoc.startTime), 'startTime')),
       durationHours: parseFloat(
         decrypt(String(incidentDoc.durationHours), 'durationHours'),

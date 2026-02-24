@@ -16,8 +16,8 @@ export class CreateIncidentDto {
   userId!: string;
 
   @IsNotEmpty()
-  @IsEnum(IncidentTypeEnum)
-  type!: IncidentTypeEnum;
+  @IsString()
+  type!: string | IncidentTypeEnum;
 
   @IsNotEmpty()
   @IsDateString()

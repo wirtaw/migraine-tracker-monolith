@@ -60,6 +60,8 @@ const mockStats: IIncidentStats = {
   },
 };
 
+const mockIncidentTypes = Object.values(IncidentTypeEnum);
+
 const mockIncidentsService = {
   create: jest.fn().mockResolvedValue(mockIIncident),
   findAll: jest.fn().mockResolvedValue(mockIIncidents),
@@ -67,6 +69,7 @@ const mockIncidentsService = {
   findOne: jest.fn().mockResolvedValue(mockIIncident),
   update: jest.fn().mockResolvedValue(mockIIncident),
   remove: jest.fn().mockResolvedValue(undefined),
+  getIncidentTypes: jest.fn().mockResolvedValue(mockIncidentTypes),
 };
 const userId = 'user-123';
 
@@ -370,6 +373,35 @@ describe('IncidentsController', () => {
         mockIIncident.id,
         'unknown-userId',
       );
+    });
+  });
+
+  describe('getTypes', () => {
+    it('should return an array of incident types', async () => {
+      const getTypesSpy = jest.spyOn(service, 'getIncidentTypes');
+      const result = await controller.getTypes(mockRequest);
+
+      expect(getTypesSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual(mockIncidentTypes);
+    });
+
+    it('should return empty if no user', async () => {
+      const id = 'nonExistentId';
+      const getTypesSpy = jest.spyOn(service, 'getIncidentTypes');
+      mockRequest = {
+        session: {
+          userId: id,
+          key: symmetricKey,
+        },
+      } as RequestWithUser;
+
+      jest
+        .spyOn(mockIncidentsService, 'getIncidentTypes')
+        .mockResolvedValue([]);
+
+      const result = await controller.getTypes(mockRequest);
+      expect(getTypesSpy).toHaveBeenCalledWith(symmetricKey, id);
+      expect(result).toEqual([]);
     });
   });
 });

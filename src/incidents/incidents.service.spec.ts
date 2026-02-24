@@ -24,11 +24,13 @@ const triggersCreate: TriggerTypeEnum[] = [
   TriggerTypeEnum.LACK_OF_SLEEP,
 ];
 const noteValue = 'Started after stress';
+const migraineAttack = 'Migraine attack';
+const auraEpisode = 'Aura episode';
 
 const mockIncident: HydratedDocument<Incident> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
   userId: 'user123',
-  type: `enc(MIGRAINE_ATTACK)`,
+  type: `enc(${migraineAttack})`,
   startTime: 'enc(2023-01-01T10:00:00Z)',
   durationHours: 'enc(2)',
   notes: `enc(${noteValue})`,
@@ -43,22 +45,7 @@ const mockIncident: HydratedDocument<Incident> = {
 const mockUpdatedIncident: HydratedDocument<Incident> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
   userId: 'user123',
-  type: `enc(AURA_EPISODE)`,
-  startTime: 'enc(2025-10-21T00:00:00.000Z)',
-  durationHours: 'enc(1)',
-  notes: `enc(${noteValue})`,
-  triggers: `enc(${JSON.stringify(triggersCreate)})`,
-  createdAt: new Date('2023-01-01T10:00:00Z'),
-  datetimeAt: `enc(${incidentDateTime})`,
-  toObject: function () {
-    return this;
-  },
-} as never;
-
-const mockWInvalidTypeIncident: HydratedDocument<Incident> = {
-  _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d33'),
-  userId: 'user123',
-  type: `enc(FAILED)`,
+  type: `enc(${auraEpisode})`,
   startTime: 'enc(2025-10-21T00:00:00.000Z)',
   durationHours: 'enc(1)',
   notes: `enc(${noteValue})`,
@@ -73,7 +60,7 @@ const mockWInvalidTypeIncident: HydratedDocument<Incident> = {
 const mockWInvalidTriggerIncident: HydratedDocument<Incident> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d34'),
   userId: 'user123',
-  type: `enc(AURA_EPISODE)`,
+  type: `enc(${auraEpisode})`,
   startTime: 'enc(2025-10-21T00:00:00.000Z)',
   durationHours: 'enc(1)',
   notes: `enc(${noteValue})`,
@@ -88,7 +75,7 @@ const mockWInvalidTriggerIncident: HydratedDocument<Incident> = {
 const mockWInvalidBrokenIncident: HydratedDocument<Incident> = {
   _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d34'),
   userId: 'user123',
-  type: `enc(AURA_EPISODE)`,
+  type: `enc(${auraEpisode})`,
   startTime: 'enc(2025-10-21T00:00:00.000Z)',
   durationHours: 'enc(1)',
   notes: `enc(${noteValue})`,
@@ -110,7 +97,7 @@ const mockIncidents: MockIncident[] = [
     _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3a'),
     id: '60c72b2f9b1d8e001c8e4d3a',
     userId: 'user123',
-    type: `enc(MIGRAINE_ATTACK)`,
+    type: `enc(${migraineAttack})`,
     startTime: `enc(2023-01-01T10:00:00Z)`,
     durationHours: `enc(2)`,
     notes: `enc(${noteValue})`,
@@ -122,7 +109,7 @@ const mockIncidents: MockIncident[] = [
     _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d3b'),
     id: '60c72b2f9b1d8e001c8e4d3b',
     userId: 'user123',
-    type: `enc(AURA_EPISODE)`,
+    type: `enc(${auraEpisode})`,
     startTime: `enc(2023-01-02T10:00:00.000Z)`,
     durationHours: `enc(4)`,
     notes: `enc(Visual aura)`,
@@ -285,7 +272,7 @@ describe('IncidentsService', () => {
       const durationHours = 2;
       const createDto: CreateIncidentDto = {
         userId: 'user123',
-        type: IncidentTypeEnum.MIGRAINE_ATTACK,
+        type: migraineAttack,
         startTime: incidentStartDateTime,
         durationHours: durationHours,
         notes: noteValue,
@@ -301,7 +288,7 @@ describe('IncidentsService', () => {
 
       expect(calledWithPayload).toEqual(
         expect.objectContaining({
-          type: `enc(${IncidentTypeEnum.MIGRAINE_ATTACK})`,
+          type: `enc(${migraineAttack})`,
           startTime: `enc(${incidentStartDateTime})`,
           durationHours: `enc(${durationHours})`,
           notes: `enc(${noteValue})`,
@@ -346,7 +333,82 @@ describe('IncidentsService', () => {
         expect.objectContaining({
           id: mockIncident._id.toString(),
           userId: createDto.userId,
-          type: createDto.type,
+          type: migraineAttack,
+          startTime: new Date(createDto.startTime),
+          durationHours: createDto.durationHours,
+          notes: createDto.notes,
+          triggers: createDto.triggers,
+          datetimeAt: new Date(createDto.datetimeAt),
+        }),
+      );
+    });
+
+    it('should create with custom type and return an incident', async () => {
+      const incidentStartDateTime = '2023-01-01T10:00:00.000Z';
+      const durationHours = 2;
+      const createDto: CreateIncidentDto = {
+        userId: 'user123',
+        type: 'CUSTOM_TYPE',
+        startTime: incidentStartDateTime,
+        durationHours: durationHours,
+        notes: noteValue,
+        triggers: triggersCreate,
+        datetimeAt: incidentDateTime,
+      };
+
+      const result = await service.create(createDto, symmetricKey);
+
+      const mockConstructor = mockIncidentModel as unknown as jest.Mock;
+      const calls = mockConstructor.mock.calls as unknown[][];
+      const calledWithPayload = calls[0][0];
+
+      expect(calledWithPayload).toEqual(
+        expect.objectContaining({
+          type: `enc(CUSTOM_TYPE)`,
+          startTime: `enc(${incidentStartDateTime})`,
+          durationHours: `enc(${durationHours})`,
+          notes: `enc(${noteValue})`,
+          triggers: `enc(${JSON.stringify(triggersCreate)})`,
+          userId: `${createDto?.userId}`,
+          datetimeAt: `enc(${incidentDateTime})`,
+        }),
+      );
+      expect(mockDocumentInstance.save).toHaveBeenCalled();
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.type.toString(),
+        bufferKey,
+      );
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.startTime,
+        bufferKey,
+      );
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.durationHours.toString(),
+        bufferKey,
+      );
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.notes,
+        bufferKey,
+      );
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        JSON.stringify(createDto.triggers),
+        bufferKey,
+      );
+
+      expect(encryptionService.encryptSensitiveData).toHaveBeenCalledWith(
+        createDto.datetimeAt,
+        bufferKey,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockIncident._id.toString(),
+          userId: createDto.userId,
           startTime: new Date(createDto.startTime),
           durationHours: createDto.durationHours,
           notes: createDto.notes,
@@ -372,7 +434,7 @@ describe('IncidentsService', () => {
         {
           id: mockIncidents[0]._id!.toString(),
           userId: mockIncidents[0].userId,
-          type: IncidentTypeEnum.MIGRAINE_ATTACK,
+          type: mockIncidents[0].type!.replace(/^enc\((.*)\)$/, '$1'),
           startTime: new Date('2023-01-01T10:00:00Z'),
           durationHours: 2,
           notes: noteValue,
@@ -383,7 +445,7 @@ describe('IncidentsService', () => {
         {
           id: mockIncidents[1]._id!.toString(),
           userId: mockIncidents[1].userId,
-          type: IncidentTypeEnum.AURA_EPISODE,
+          type: mockIncidents[1].type!.replace(/^enc\((.*)\)$/, '$1'),
           startTime: new Date('2023-01-02T10:00:00.000Z'),
           durationHours: 4,
           notes: 'Visual aura',
@@ -418,7 +480,7 @@ describe('IncidentsService', () => {
       expect(result).toEqual({
         id: mockIncidents[0]._id!.toString(),
         userId: mockIncidents[0].userId,
-        type: IncidentTypeEnum.MIGRAINE_ATTACK,
+        type: mockIncidents[0].type!.replace(/^enc\((.*)\)$/, '$1'),
         startTime: new Date('2023-01-01T10:00:00Z'),
         durationHours: 2,
         notes: noteValue,
@@ -426,20 +488,6 @@ describe('IncidentsService', () => {
         createdAt: mockIncidents[0].createdAt,
         datetimeAt: new Date(incidentDateTime),
       });
-    });
-
-    it('should throw Error if incident has invalid type', async () => {
-      mockIncidentModel.findById = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockWInvalidTypeIncident),
-      });
-
-      await expect(
-        service.findOne(
-          mockWInvalidTypeIncident._id.toHexString(),
-          symmetricKey,
-          mockIncidents[0].userId!,
-        ),
-      ).rejects.toThrow(Error);
     });
 
     it('should throw Error if incident has invalid trigger', async () => {
@@ -858,8 +906,8 @@ describe('IncidentsService', () => {
 
       expect(result).toEqual({
         byType: {
-          [IncidentTypeEnum.MIGRAINE_ATTACK]: 1,
-          [IncidentTypeEnum.AURA_EPISODE]: 1,
+          [migraineAttack]: 1,
+          [auraEpisode]: 1,
         },
         byTrigger: {
           [TriggerTypeEnum.STRESS]: 1,
@@ -928,6 +976,33 @@ describe('IncidentsService', () => {
 
       expect(result.byTime.totalDurationHours).toBe(2.56);
       expect(result.byTime.averageDurationHours).toBe(2.56);
+    });
+  });
+
+  describe('getIncidentTypes', () => {
+    it('should return an array types of incidents', async () => {
+      const result = await service.getIncidentTypes(
+        symmetricKey,
+        mockIncidents[0].userId!,
+      );
+
+      expect(mockIncidentModel.find).toHaveBeenCalledWith({
+        userId: 'user123',
+      });
+
+      expect(result).toEqual([
+        ...mockIncidents.map((i) => i.type!.replace(/^enc\((.*)\)$/, '$1')),
+        ...Object.values(IncidentTypeEnum),
+      ]);
+    });
+
+    it('should return empty array of incidents for unknown userId', async () => {
+      const userId = 'unknown-user-id';
+      const result = await service.findAll(symmetricKey, userId);
+
+      expect(mockIncidentModel.find).toHaveBeenCalledWith({ userId });
+
+      expect(result).toEqual([]);
     });
   });
 });
