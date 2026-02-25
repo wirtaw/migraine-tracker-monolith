@@ -12,5 +12,6 @@ import { AuthModule } from '../auth/auth.module';
   ],
   controllers: [TriggersController],
   providers: [TriggersService],
+  exports: [TriggersService],
 })
 export class TriggersModule {}

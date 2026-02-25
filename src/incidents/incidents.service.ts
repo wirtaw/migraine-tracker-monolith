@@ -70,7 +70,7 @@ export class IncidentsService {
 
     const stats: IIncidentStats = {
       byType: {} as Record<string, number>,
-      byTrigger: {} as Record<TriggerTypeEnum, number>,
+      byTrigger: {} as Record<string, number>,
       byTime: {
         dailyCounts: {},
         totalDurationHours: 0,
@@ -246,6 +246,26 @@ export class IncidentsService {
     );
   }
 
+  async getIncidentTriggers(key: string, userId: string): Promise<string[]> {
+    const incidents = await this.incidentModel.find({ userId }).exec();
+
+    const result = incidents
+      .map((incident) => this.mapToIIncident(incident, key))
+      .filter((item) => !!item);
+    const userIncidentTriggers = new Set<string>();
+    result.forEach((incident) => {
+      if (incident.triggers) {
+        incident.triggers.forEach((trigger) =>
+          userIncidentTriggers.add(trigger),
+        );
+      }
+    });
+
+    return Array.from(
+      new Set([...userIncidentTriggers, ...Object.values(TriggerTypeEnum)]),
+    );
+  }
+
   private mapToIIncident(
     incidentDoc: IncidentDocument,
     key: string,
@@ -261,7 +281,7 @@ export class IncidentsService {
 
     const decryptedType = decrypt(incidentDoc.type, 'incidentType');
 
-    let decryptedTriggers: TriggerTypeEnum[] | undefined = undefined;
+    let decryptedTriggers: string[] | undefined = undefined;
 
     if (incidentDoc.triggers) {
       try {
@@ -270,19 +290,9 @@ export class IncidentsService {
           decrypt(incidentDoc.triggers ?? '[]', 'triggers'),
         );
 
-        decryptedTriggers = decryptedTriggersData.map((triggerItem: string) => {
-          const matchedTriggerKey = Object.entries(TriggerTypeEnum).find(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-            ([key, value]) => key === triggerItem || value === triggerItem,
-          );
-
-          if (!matchedTriggerKey) {
-            Logger.error(`Invalid incident trigger: ${decryptedType}`);
-            throw new Error(`Invalid incident trigger: ${decryptedType}`);
-          }
-
-          return matchedTriggerKey[1] as TriggerTypeEnum;
-        });
+        decryptedTriggers = decryptedTriggersData.map(
+          (triggerItem: string) => triggerItem,
+        );
       } catch {
         Logger.error(`Invalid incident triggers: ${incidentDoc.triggers}`);
         throw new Error(`Invalid incident triggers: ${incidentDoc.triggers}`);

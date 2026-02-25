@@ -19,10 +19,7 @@ import { EncryptionService } from '../auth/encryption/encryption.service';
 
 const incidentDateTime = '2023-01-01T12:00:00.000Z';
 const incidentNextDateTime = '2023-01-01T12:00:00.000Z';
-const triggersCreate: TriggerTypeEnum[] = [
-  TriggerTypeEnum.STRESS,
-  TriggerTypeEnum.LACK_OF_SLEEP,
-];
+const triggersCreate: string[] = ['trigger1', 'trigger2'];
 const noteValue = 'Started after stress';
 const migraineAttack = 'Migraine attack';
 const auraEpisode = 'Aura episode';
@@ -65,21 +62,6 @@ const mockWInvalidTriggerIncident: HydratedDocument<Incident> = {
   durationHours: 'enc(1)',
   notes: `enc(${noteValue})`,
   triggers: `enc(25, 47, "")`,
-  createdAt: new Date('2023-01-01T10:00:00Z'),
-  datetimeAt: `enc(${incidentDateTime})`,
-  toObject: function () {
-    return this;
-  },
-} as never;
-
-const mockWInvalidBrokenIncident: HydratedDocument<Incident> = {
-  _id: new Types.ObjectId('60c72b2f9b1d8e001c8e4d34'),
-  userId: 'user123',
-  type: `enc(${auraEpisode})`,
-  startTime: 'enc(2025-10-21T00:00:00.000Z)',
-  durationHours: 'enc(1)',
-  notes: `enc(${noteValue})`,
-  triggers: `enc(["Failed"])`,
   createdAt: new Date('2023-01-01T10:00:00Z'),
   datetimeAt: `enc(${incidentDateTime})`,
   toObject: function () {
@@ -504,20 +486,6 @@ describe('IncidentsService', () => {
       ).rejects.toThrow(Error);
     });
 
-    it('should throw Error if incident has wrong key trigger', async () => {
-      mockIncidentModel.findById = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockWInvalidBrokenIncident),
-      });
-
-      await expect(
-        service.findOne(
-          mockWInvalidBrokenIncident._id.toHexString(),
-          symmetricKey,
-          mockIncidents[0].userId!,
-        ),
-      ).rejects.toThrow(Error);
-    });
-
     it('should throw NotFoundException if incident not found', async () => {
       await expect(
         service.findOne(
@@ -910,8 +878,8 @@ describe('IncidentsService', () => {
           [auraEpisode]: 1,
         },
         byTrigger: {
-          [TriggerTypeEnum.STRESS]: 1,
-          [TriggerTypeEnum.LACK_OF_SLEEP]: 1,
+          [triggersCreate[0]]: 1,
+          [triggersCreate[1]]: 1,
           [TriggerTypeEnum.WEATHER]: 1,
         },
         byTime: {
@@ -998,11 +966,41 @@ describe('IncidentsService', () => {
 
     it('should return empty array of incidents for unknown userId', async () => {
       const userId = 'unknown-user-id';
-      const result = await service.findAll(symmetricKey, userId);
+      const result = await service.getIncidentTypes(symmetricKey, userId);
 
       expect(mockIncidentModel.find).toHaveBeenCalledWith({ userId });
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(Object.values(IncidentTypeEnum));
+    });
+  });
+
+  describe('getIncidentTriggers', () => {
+    it('should return an array of incident triggers', async () => {
+      const result = await service.getIncidentTriggers(
+        symmetricKey,
+        mockIncidents[0].userId!,
+      );
+
+      expect(mockIncidentModel.find).toHaveBeenCalledWith({
+        userId: 'user123',
+      });
+
+      expect(result).toEqual([
+        ...new Set([
+          ...triggersCreate,
+          TriggerTypeEnum.WEATHER,
+          ...Object.values(TriggerTypeEnum),
+        ]),
+      ]);
+    });
+
+    it('should return empty array of incident triggers for unknown userId', async () => {
+      const userId = 'unknown-user-id';
+      const result = await service.getIncidentTriggers(symmetricKey, userId);
+
+      expect(mockIncidentModel.find).toHaveBeenCalledWith({ userId });
+
+      expect(result).toEqual(Object.values(TriggerTypeEnum));
     });
   });
 });

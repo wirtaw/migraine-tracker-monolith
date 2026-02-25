@@ -14,6 +14,7 @@ import { EncryptionService } from '../auth/encryption/encryption.service';
 import { IncidentDocument, Incident } from './schemas/incident.schema';
 
 import { IIncidentStats } from './interfaces/incident-stats.interface';
+import { TriggersService } from '../triggers/triggers.service';
 
 const mockIIncident: IIncident = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -61,6 +62,7 @@ const mockStats: IIncidentStats = {
 };
 
 const mockIncidentTypes = Object.values(IncidentTypeEnum);
+const mockIncidentTriggers = Object.values(TriggerTypeEnum);
 
 const mockIncidentsService = {
   create: jest.fn().mockResolvedValue(mockIIncident),
@@ -70,6 +72,7 @@ const mockIncidentsService = {
   update: jest.fn().mockResolvedValue(mockIIncident),
   remove: jest.fn().mockResolvedValue(undefined),
   getIncidentTypes: jest.fn().mockResolvedValue(mockIncidentTypes),
+  getIncidentTriggers: jest.fn().mockResolvedValue(mockIncidentTriggers),
 };
 const userId = 'user-123';
 
@@ -102,6 +105,27 @@ describe('IncidentsController', () => {
         {
           provide: IncidentsService,
           useValue: mockIncidentsService,
+        },
+        {
+          provide: TriggersService,
+          useValue: {
+            findAll: jest.fn().mockResolvedValue([
+              {
+                id: 'trigger1',
+                userId,
+                type: TriggerTypeEnum.STRESS,
+                note: 'Stress trigger',
+                datetimeAt: new Date('2023-01-01T09:00:00Z'),
+              },
+              {
+                id: 'trigger2',
+                userId,
+                type: TriggerTypeEnum.LACK_OF_SLEEP,
+                note: 'Lack of sleep trigger',
+                datetimeAt: new Date('2023-01-01T08:00:00Z'),
+              },
+            ]),
+          },
         },
         {
           provide: EncryptionService,
@@ -402,6 +426,38 @@ describe('IncidentsController', () => {
       const result = await controller.getTypes(mockRequest);
       expect(getTypesSpy).toHaveBeenCalledWith(symmetricKey, id);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getTriggers', () => {
+    it('should return an array of incident triggers', async () => {
+      const getTriggersSpy = jest.spyOn(service, 'getIncidentTriggers');
+      const result = await controller.getTriggers(mockRequest);
+
+      expect(getTriggersSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual(mockIncidentTriggers);
+    });
+
+    it('should return empty if no user', async () => {
+      const id = 'nonExistentId';
+      const getTriggersSpy = jest.spyOn(service, 'getIncidentTriggers');
+      mockRequest = {
+        session: {
+          userId: id,
+          key: symmetricKey,
+        },
+      } as RequestWithUser;
+
+      jest
+        .spyOn(mockIncidentsService, 'getIncidentTriggers')
+        .mockResolvedValue([]);
+
+      const result = await controller.getTriggers(mockRequest);
+      expect(getTriggersSpy).toHaveBeenCalledWith(symmetricKey, id);
+      expect(result).toEqual([
+        TriggerTypeEnum.STRESS,
+        TriggerTypeEnum.LACK_OF_SLEEP,
+      ]);
     });
   });
 });

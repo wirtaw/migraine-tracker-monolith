@@ -1,5 +1,3 @@
-import { TriggerTypeEnum } from '../../triggers/enums/trigger-type.enum';
-
 export interface IIncident {
   id: string;
   userId: string;
@@ -7,7 +5,7 @@ export interface IIncident {
   startTime: Date;
   durationHours: number;
   notes: string | undefined;
-  triggers: TriggerTypeEnum[] | undefined;
+  triggers: string[] | undefined;
   createdAt: Date;
   datetimeAt: Date;
 }

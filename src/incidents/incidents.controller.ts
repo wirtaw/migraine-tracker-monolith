@@ -27,12 +27,16 @@ import { IIncidentStats } from './interfaces/incident-stats.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/enums/roles.enum';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { TriggersService } from '../triggers/triggers.service';
 
 @ApiTags('incidents')
 @ApiBearerAuth('JWT-auth')
 @Controller('incidents')
 export class IncidentsController {
-  constructor(private readonly incidentsService: IncidentsService) {}
+  constructor(
+    private readonly incidentsService: IncidentsService,
+    private readonly triggersService: TriggersService,
+  ) {}
 
   @Roles(Role.USER)
   @Post()
@@ -95,6 +99,33 @@ export class IncidentsController {
     const encryptionKey = req?.session?.key || '';
     const userId = req?.user?.id || req?.session?.userId || '';
     return this.incidentsService.getIncidentTypes(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
+  @Get('triggers')
+  @ApiOperation({ summary: 'Get list of incident triggers for a user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The incident triggers list',
+  })
+  async getTriggers(@Req() req: RequestWithUser): Promise<string[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+
+    return Promise.all([
+      this.incidentsService.getIncidentTriggers(encryptionKey, userId),
+      this.triggersService
+        .findAll(encryptionKey, userId)
+        .then((triggers) => triggers.map((trigger) => trigger.type)),
+    ])
+      .then(([incidentTriggers, userTriggers]) => {
+        const allTriggers = new Set([...incidentTriggers, ...userTriggers]);
+        return Array.from(allTriggers);
+      })
+      .catch(() => {
+        // In case of any error, return an empty array to avoid breaking the endpoint
+        return [];
+      });
   }
 
   @Roles(Role.USER)
