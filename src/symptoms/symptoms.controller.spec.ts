@@ -6,6 +6,7 @@ import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { ISymptom } from './interfaces/symptom.interface';
 import { NotFoundException } from '@nestjs/common';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { SymptomsTypeEnum } from './enums/symptoms-type.enums';
 
 const mockISymptom: ISymptom = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -36,6 +37,9 @@ const mockSymptomsService = {
   findOne: jest.fn().mockResolvedValue(mockISymptom),
   update: jest.fn().mockResolvedValue(mockISymptom),
   remove: jest.fn().mockResolvedValue(undefined),
+  getSymptomTypes: jest
+    .fn()
+    .mockResolvedValue(Array.from(new Set(Object.values(SymptomsTypeEnum)))),
 };
 
 const symmetricKey = 'test-secret-key-long';
@@ -46,8 +50,11 @@ describe('SymptomsController', () => {
   let service: SymptomsService;
   let mockRequest: RequestWithUser;
   let module: TestingModule;
+  let typesSet: Set<string>;
 
   beforeEach(async () => {
+    typesSet = new Set<string>();
+    Object.values(SymptomsTypeEnum).forEach((type) => typesSet.add(type));
     module = await Test.createTestingModule({
       controllers: [SymptomsController],
       providers: [
@@ -205,6 +212,15 @@ describe('SymptomsController', () => {
         NotFoundException,
       );
       expect(removeSpy).toHaveBeenCalledWith(id, userId);
+    });
+  });
+
+  describe('getTypes', () => {
+    it('should return an array of symptom types', async () => {
+      const getSymptomTypesSpy = jest.spyOn(service, 'getSymptomTypes');
+      const result = await controller.getSymptomTypes(mockRequest);
+      expect(getSymptomTypesSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual(Array.from(typesSet));
     });
   });
 });

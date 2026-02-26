@@ -71,6 +71,19 @@ export class SymptomsController {
   }
 
   @Roles(Role.USER)
+  @Get('types')
+  @ApiOperation({ summary: 'Get list of symptom types' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The symptom types list',
+  })
+  async getSymptomTypes(@Req() req: RequestWithUser): Promise<string[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.symptomsService.getSymptomTypes(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find symptom by ID' })
   @ApiResponse({

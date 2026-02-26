@@ -8,6 +8,7 @@ import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { SymptomsTypeEnum } from './enums/symptoms-type.enums';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -71,6 +72,7 @@ describe('SymptomsService', () => {
   let mockDocumentInstance: SymptomDocument;
   let encryptionService: EncryptionService;
   let module: TestingModule;
+  let typesSet: Set<string>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -90,6 +92,10 @@ describe('SymptomsService', () => {
   };
 
   beforeEach(async () => {
+    typesSet = new Set<string>();
+    Object.values(SymptomsTypeEnum).forEach((type) => typesSet.add(type));
+    typesSet.add(typeValue);
+
     mockDocumentInstance = {
       ...mockSymptom,
       save: jest.fn().mockResolvedValue(mockSymptom),
@@ -421,6 +427,19 @@ describe('SymptomsService', () => {
       await expect(
         service.remove(mockSymptom._id.toHexString(), 'otherUser'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getSymptomTypes', () => {
+    it('should return an array of decrypted symptoms types for user', async () => {
+      const result = await service.getSymptomTypes(
+        symmetricKey,
+        mockSymptoms[0].userId!,
+      );
+      expect(mockSymptomModel.find).toHaveBeenCalledWith({
+        userId: mockSymptoms[0].userId!,
+      });
+      expect(result).toEqual(Array.from(typesSet));
     });
   });
 });

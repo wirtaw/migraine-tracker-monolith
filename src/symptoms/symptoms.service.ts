@@ -11,6 +11,7 @@ import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
 import { ISymptom } from './interfaces/symptom.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { SymptomsTypeEnum } from './enums/symptoms-type.enums';
 
 @Injectable()
 export class SymptomsService {
@@ -133,6 +134,26 @@ export class SymptomsService {
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Symptom with ID "${id}" not found`);
     }
+  }
+
+  async getSymptomTypes(key: string, userId: string): Promise<string[]> {
+    const symptoms = await this.symptomModel.find({ userId }).exec();
+    const typesSet = new Set<string>();
+
+    const bufferKey = createHash('sha256').update(key).digest();
+
+    symptoms.forEach((symptom) => {
+      if (symptom.type) {
+        const decryptedType = this.encryptionService.decryptSensitiveData(
+          symptom.type,
+          bufferKey,
+        );
+        typesSet.add(decryptedType);
+      }
+    });
+    Object.values(SymptomsTypeEnum).forEach((type) => typesSet.add(type));
+
+    return Array.from(typesSet);
   }
 
   private mapToISymptom(symptomDoc: SymptomDocument, key: string): ISymptom {
