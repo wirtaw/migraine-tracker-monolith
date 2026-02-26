@@ -92,8 +92,7 @@ describe('SymptomsService', () => {
   };
 
   beforeEach(async () => {
-    typesSet = new Set<string>();
-    Object.values(SymptomsTypeEnum).forEach((type) => typesSet.add(type));
+    typesSet = new Set<string>(Object.values(SymptomsTypeEnum));
     typesSet.add(typeValue);
 
     mockDocumentInstance = {

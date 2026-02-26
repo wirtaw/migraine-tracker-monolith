@@ -7,6 +7,7 @@ import { IMedication } from './interfaces/medication.interface';
 import { NotFoundException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { MedicationsTitleEnum } from './enums/medications-title.enums';
 
 const mockIMedication: IMedication = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -39,6 +40,11 @@ const mockMedicationsService = {
   findOne: jest.fn().mockResolvedValue(mockIMedication),
   update: jest.fn().mockResolvedValue(mockIMedication),
   remove: jest.fn().mockResolvedValue(undefined),
+  getMedicationTitles: jest
+    .fn()
+    .mockResolvedValue(
+      Array.from(new Set(Object.values(MedicationsTitleEnum))),
+    ),
 };
 
 const symmetricKey = 'test-secret-key-long';
@@ -49,8 +55,10 @@ describe('MedicationsController', () => {
   let service: MedicationsService;
   let mockRequest: RequestWithUser;
   let module: TestingModule;
+  let titleSet: Set<string>;
 
   beforeEach(async () => {
+    titleSet = new Set<string>(Object.values(MedicationsTitleEnum));
     module = await Test.createTestingModule({
       controllers: [MedicationsController],
       providers: [
@@ -224,6 +232,16 @@ describe('MedicationsController', () => {
         NotFoundException,
       );
       expect(removeSpy).toHaveBeenCalledWith(id, userId);
+    });
+  });
+
+  describe('getMedicationTitles', () => {
+    it('should return an array of medication titles', async () => {
+      const findAllSpy = jest.spyOn(service, 'getMedicationTitles');
+      const result = await controller.getMedicationTitles(mockRequest);
+
+      expect(findAllSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual(expect.arrayContaining(Array.from(titleSet)));
     });
   });
 });

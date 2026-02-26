@@ -71,6 +71,19 @@ export class MedicationsController {
   }
 
   @Roles(Role.USER)
+  @Get('titles')
+  @ApiOperation({ summary: 'Get list of medication titles' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The medication titles list',
+  })
+  async getMedicationTitles(@Req() req: RequestWithUser): Promise<string[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.medicationsService.getMedicationTitles(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find medication by ID' })
   @ApiResponse({

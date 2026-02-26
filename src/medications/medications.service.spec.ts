@@ -8,6 +8,7 @@ import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { MedicationsTitleEnum } from './enums/medications-title.enums';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -78,6 +79,7 @@ describe('MedicationsService', () => {
   let mockDocumentInstance: MedicationDocument;
   let encryptionService: EncryptionService;
   let module: TestingModule;
+  let titleSet: Set<string>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -97,6 +99,7 @@ describe('MedicationsService', () => {
   };
 
   beforeEach(async () => {
+    titleSet = new Set<string>(Object.values(MedicationsTitleEnum));
     mockDocumentInstance = {
       ...mockMedication,
       save: jest.fn().mockResolvedValue(mockMedication),
@@ -442,6 +445,24 @@ describe('MedicationsService', () => {
       await expect(
         service.remove(mockMedication._id.toHexString(), 'otherUser'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getMedicationTitles', () => {
+    it('should return all medication titles for a user', async () => {
+      mockMedicationModel.find = jest.fn().mockReturnValue({
+        exec: () => Promise.resolve(mockMedications),
+      });
+
+      const result = await service.getMedicationTitles(
+        symmetricKey,
+        mockMedications[0].userId!,
+      );
+
+      expect(mockMedicationModel.find).toHaveBeenCalledWith({
+        userId: mockMedications[0].userId!,
+      });
+      expect(result).toEqual(expect.arrayContaining(Array.from(titleSet)));
     });
   });
 });

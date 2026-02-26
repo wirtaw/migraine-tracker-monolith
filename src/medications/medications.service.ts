@@ -11,6 +11,7 @@ import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
 import { IMedication } from './interfaces/medication.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { MedicationsTitleEnum } from './enums/medications-title.enums';
 
 @Injectable()
 export class MedicationsService {
@@ -137,6 +138,25 @@ export class MedicationsService {
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Medication with ID "${id}" not found`);
     }
+  }
+
+  async getMedicationTitles(key: string, userId: string): Promise<string[]> {
+    const medications = await this.medicationModel.find({ userId }).exec();
+    const titleSet = new Set<string>();
+    const bufferKey = createHash('sha256').update(key).digest();
+
+    medications.forEach((medication) => {
+      if (medication.title) {
+        const encryptedTitle = this.encryptionService.decryptSensitiveData(
+          medication.title,
+          bufferKey,
+        );
+        titleSet.add(encryptedTitle);
+      }
+    });
+
+    Object.values(MedicationsTitleEnum).forEach((title) => titleSet.add(title));
+    return Array.from(titleSet);
   }
 
   private mapToIMedication(
