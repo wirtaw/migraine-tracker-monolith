@@ -71,6 +71,19 @@ export class TriggersController {
   }
 
   @Roles(Role.USER)
+  @Get('types')
+  @ApiOperation({ summary: 'Get list of trigger types' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The trigger types list',
+  })
+  async getTriggerTypes(@Req() req: RequestWithUser): Promise<string[]> {
+    const encryptionKey = req?.session?.key || '';
+    const userId = req?.user?.id || req?.session?.userId || '';
+    return this.triggersService.getTriggerTypes(encryptionKey, userId);
+  }
+
+  @Roles(Role.USER)
   @Get(':id')
   @ApiOperation({ summary: 'Find trigger by ID' })
   @ApiResponse({

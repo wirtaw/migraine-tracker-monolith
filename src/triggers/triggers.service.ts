@@ -11,6 +11,7 @@ import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { ITrigger } from './interfaces/trigger.interface';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { TriggerTypeEnum } from './enums/trigger-type.enum';
 
 @Injectable()
 export class TriggersService {
@@ -122,6 +123,26 @@ export class TriggersService {
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Trigger with ID "${id}" not found`);
     }
+  }
+
+  async getTriggerTypes(key: string, userId: string): Promise<string[]> {
+    const triggers = await this.triggerModel.find({ userId }).exec();
+    const typeSet = new Set<string>();
+    const bufferKey = createHash('sha256').update(key).digest();
+
+    triggers.forEach((trigger) => {
+      if (trigger.type) {
+        const encryptedType = this.encryptionService.decryptSensitiveData(
+          trigger.type,
+          bufferKey,
+        );
+        typeSet.add(encryptedType);
+      }
+    });
+
+    Object.values(TriggerTypeEnum).forEach((type) => typeSet.add(type));
+
+    return Array.from(typeSet);
   }
 
   private mapToITrigger(triggerDoc: TriggerDocument, key: string): ITrigger {

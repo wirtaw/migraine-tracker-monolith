@@ -8,6 +8,7 @@ import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
+import { TriggerTypeEnum } from './enums/trigger-type.enum';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -65,6 +66,7 @@ describe('TriggersService', () => {
   let mockTriggerModel: jest.Mocked<Model<TriggerDocument>>;
   let encryptionService: EncryptionService;
   let module: TestingModule;
+  let triggerTypeSet: Set<string>;
 
   const symmetricKey = crypto.randomBytes(32).toString('hex');
   const bufferKey = crypto.createHash('sha256').update(symmetricKey).digest();
@@ -84,6 +86,7 @@ describe('TriggersService', () => {
   };
 
   beforeEach(async () => {
+    triggerTypeSet = new Set<string>(Object.values(TriggerTypeEnum));
     const mockDocumentInstance = {
       ...mockTrigger,
       save: jest.fn().mockResolvedValue(mockTrigger),
@@ -437,6 +440,23 @@ describe('TriggersService', () => {
       await expect(
         service.remove('nonExistentId', mockTriggers[0].userId!),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getTriggerTypes', () => {
+    it('should return a list of unique trigger types', async () => {
+      const result = await service.getTriggerTypes(
+        symmetricKey,
+        mockTriggers[0].userId!,
+      );
+
+      expect(mockTriggerModel.find).toHaveBeenCalledWith({
+        userId: mockTriggers[0].userId!,
+      });
+
+      const expectedTypes = new Set<string>([typeValue, ...triggerTypeSet]);
+
+      expect(new Set(result)).toEqual(expectedTypes);
     });
   });
 });

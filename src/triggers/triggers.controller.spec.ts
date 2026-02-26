@@ -7,6 +7,7 @@ import { ITrigger } from './interfaces/trigger.interface';
 import { NotFoundException } from '@nestjs/common';
 import { EncryptionService } from '../auth/encryption/encryption.service';
 import { RequestWithUser } from '../auth/interfaces/auth.user.interface';
+import { TriggerTypeEnum } from './enums/trigger-type.enum';
 
 const mockITrigger: ITrigger = {
   id: '60c72b2f9b1d8e001c8e4d3a',
@@ -35,6 +36,9 @@ const mockTriggersService = {
   findOne: jest.fn().mockResolvedValue(mockITrigger),
   update: jest.fn().mockResolvedValue(mockITrigger),
   remove: jest.fn().mockResolvedValue(undefined),
+  getTriggerTypes: jest
+    .fn()
+    .mockResolvedValue(Array.from(new Set(Object.values(TriggerTypeEnum)))),
 };
 
 const symmetricKey = 'test-secret-key-long';
@@ -45,8 +49,10 @@ describe('TriggersController', () => {
   let service: TriggersService;
   let mockRequest: RequestWithUser;
   let module: TestingModule;
+  let triggerTypeSet: Set<string>;
 
   beforeEach(async () => {
+    triggerTypeSet = new Set<string>(Object.values(TriggerTypeEnum));
     module = await Test.createTestingModule({
       controllers: [TriggersController],
       providers: [
@@ -210,6 +216,16 @@ describe('TriggersController', () => {
         NotFoundException,
       );
       expect(removeSpy).toHaveBeenCalledWith(id, userId);
+    });
+  });
+
+  describe('getTriggerTypes', () => {
+    it('should return an array of trigger types', async () => {
+      const getTriggerTypesSpy = jest.spyOn(service, 'getTriggerTypes');
+      const result = await controller.getTriggerTypes(mockRequest);
+
+      expect(getTriggerTypesSpy).toHaveBeenCalledWith(symmetricKey, userId);
+      expect(result).toEqual([...triggerTypeSet]);
     });
   });
 });
