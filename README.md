@@ -17,6 +17,8 @@ This repository serves as the core engine for the [Migraine Tracker Dashboard](h
 * **🔐 Secure & Private:** Implements **Supabase Auth** with robust Role-Based Access Control (RBAC) and data encryption to ensure user health data remains strictly confidential.
 * **📊 Comprehensive Tracking:** Dedicated modules for tracking `Incidents` (migraines), `Triggers`, `Medications`, and daily `Health Logs`.
 
+Full documentation [here](https://wirtaw.github.io/migraine-tracker-docs/)
+
 ## 🏗 Architecture Overview
 
 The app follows a monolithic, highly modular NestJS architecture. Key domains include:
