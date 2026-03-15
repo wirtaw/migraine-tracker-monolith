@@ -67,6 +67,7 @@ describe('DataManagementController', () => {
   describe('getSchema', () => {
     it('should get schema', () => {
       const result: JsonSchema = controller.getSchema();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.getSchema).toHaveBeenCalledTimes(1);
       expect(result).toStrictEqual(schema);
     });
@@ -87,6 +88,7 @@ describe('DataManagementController', () => {
 
       const result: DataValidationResponse = controller.validateFile(file);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.validateImportData).toHaveBeenCalledTimes(1);
       expect(result).toStrictEqual(validationResponse);
     });
