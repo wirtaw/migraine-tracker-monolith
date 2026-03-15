@@ -13,7 +13,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DataValidationResponse } from './interface/validation.interface';
 import type { Express } from 'express';
 import 'multer';
-import { ErrorExceptionLogging } from 'src/utils/error.exception';
+import { ErrorExceptionLogging } from '../utils/error.exception';
 
 @Controller('data-management')
 export class DataManagementController {

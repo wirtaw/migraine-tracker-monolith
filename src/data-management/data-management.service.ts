@@ -7,17 +7,17 @@ import {
   JsonSchema,
 } from './utils/dto-to-json-schema';
 import { CreateIncidentDto } from '../incidents/dto/create-incident.dto';
-import { CreateTriggerDto } from 'src/triggers/dto/create-trigger.dto';
-import { CreateSymptomDto } from 'src/symptoms/dto/create-symptom.dto';
-import { CreateMedicationDto } from 'src/medications/dto/create-medication.dto';
-import { CreateLocationDto } from 'src/locations/dto/create-locations.dto';
+import { CreateTriggerDto } from '../triggers/dto/create-trigger.dto';
+import { CreateSymptomDto } from '../symptoms/dto/create-symptom.dto';
+import { CreateMedicationDto } from '../medications/dto/create-medication.dto';
+import { CreateLocationDto } from '../locations/dto/create-locations.dto';
 import {
   CreateWaterDto,
   CreateBloodPressureDto,
   CreateHeightDto,
   CreateSleepDto,
   CreateWeightDto,
-} from 'src/health-logs/dto/create-health-logs.dto';
+} from '../health-logs/dto/create-health-logs.dto';
 import { DataValidationResponse } from './interface/validation.interface';
 
 @Injectable()
