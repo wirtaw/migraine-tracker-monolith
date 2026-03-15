@@ -71,11 +71,11 @@ export class CreateSleepDto {
 
   @IsOptional()
   @IsNumber()
-  rate?: number;
+  rate!: number;
 
   @IsOptional()
   @IsNumber()
-  minutesTotal?: number;
+  minutesTotal!: number;
 
   @IsOptional()
   @IsNumber()

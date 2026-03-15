@@ -863,6 +863,7 @@ describe('HealthLogsService', () => {
         const createDto: CreateSleepDto = {
           userId,
           rate: 5,
+          minutesTotal: 480,
           startedAt: startedAtValue,
           datetimeAt: logDateTime,
         };
@@ -871,6 +872,7 @@ describe('HealthLogsService', () => {
         expect(mockSleepModel).toHaveBeenCalledWith(
           expect.objectContaining({
             rate: `enc(${createDto.rate})`,
+            minutesTotal: `enc(${createDto.minutesTotal})`,
             notes: '',
             startedAt: `enc(${createDto.startedAt})`,
             datetimeAt: `enc(${createDto.datetimeAt})`,

@@ -432,6 +432,7 @@ describe('HealthLogsController', () => {
         userId: 'user123',
         rate: 8,
         notes: 'Test',
+        minutesTotal: 480,
         startedAt: new Date().toISOString(),
         datetimeAt: new Date().toISOString(),
       };
