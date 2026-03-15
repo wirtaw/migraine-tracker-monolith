@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-class ForecastDto {
+export class ForecastDto {
   @IsOptional()
   @IsString()
   description?: string;
@@ -47,7 +47,7 @@ class ForecastDto {
   datetime!: string;
 }
 
-class SolarDto {
+export class SolarDto {
   @IsOptional()
   @IsNumber()
   kIndex?: number;
@@ -65,7 +65,7 @@ class SolarDto {
   datetime!: string;
 }
 
-class SolarRadiationDto {
+export class SolarRadiationDto {
   @IsOptional()
   @IsNumber()
   uviIndex?: number;

@@ -10,7 +10,12 @@ import { CreateIncidentDto } from '../incidents/dto/create-incident.dto';
 import { CreateTriggerDto } from '../triggers/dto/create-trigger.dto';
 import { CreateSymptomDto } from '../symptoms/dto/create-symptom.dto';
 import { CreateMedicationDto } from '../medications/dto/create-medication.dto';
-import { CreateLocationDto } from '../locations/dto/create-locations.dto';
+import {
+  CreateLocationDto,
+  ForecastDto,
+  SolarDto,
+  SolarRadiationDto,
+} from '../locations/dto/create-locations.dto';
 import {
   CreateWaterDto,
   CreateBloodPressureDto,
@@ -119,7 +124,7 @@ export class DataManagementService {
       ? medicationObjectSchema.required
       : [];
     requiredSet = new Set<string>(existingRequired);
-    ['userId', 'type', 'dosage', 'datetimeAt'].forEach((r) =>
+    ['userId', 'title', 'dosage', 'datetimeAt'].forEach((r) =>
       requiredSet.add(r),
     );
     medicationObjectSchema.required = Array.from(requiredSet);
@@ -140,12 +145,58 @@ export class DataManagementService {
       format: 'date-time',
     } as JsonSchema;
 
-    existingRequired = Array.isArray(locationObjectSchema.required)
-      ? locationObjectSchema.required
+    // Location forecast
+    const forecastObjectSchema = dtoToJsonSchema(
+      ForecastDto as ClassType<unknown>,
+    );
+    forecastObjectSchema.properties = forecastObjectSchema.properties ?? {};
+
+    existingRequired = Array.isArray(forecastObjectSchema.required)
+      ? forecastObjectSchema.required
       : [];
     requiredSet = new Set<string>(existingRequired);
-    ['userId', 'datetimeAt'].forEach((r) => requiredSet.add(r));
-    locationObjectSchema.required = Array.from(requiredSet);
+    ['datetime'].forEach((r) => requiredSet.add(r));
+    forecastObjectSchema.required = Array.from(requiredSet);
+
+    locationObjectSchema.properties.forecast = {
+      type: 'array',
+      items: forecastObjectSchema,
+    };
+
+    // Location solar
+    const solarObjectSchema = dtoToJsonSchema(SolarDto as ClassType<unknown>);
+    solarObjectSchema.properties = solarObjectSchema.properties ?? {};
+
+    existingRequired = Array.isArray(solarObjectSchema.required)
+      ? solarObjectSchema.required
+      : [];
+    requiredSet = new Set<string>(existingRequired);
+    ['datetime'].forEach((r) => requiredSet.add(r));
+    solarObjectSchema.required = Array.from(requiredSet);
+
+    locationObjectSchema.properties.solar = {
+      type: 'array',
+      items: solarObjectSchema,
+    };
+
+    // Location solar radiation
+    const solarRadidationObjectSchema = dtoToJsonSchema(
+      SolarRadiationDto as ClassType<unknown>,
+    );
+    solarRadidationObjectSchema.properties =
+      solarRadidationObjectSchema.properties ?? {};
+
+    existingRequired = Array.isArray(solarRadidationObjectSchema.required)
+      ? solarRadidationObjectSchema.required
+      : [];
+    requiredSet = new Set<string>(existingRequired);
+    ['date'].forEach((r) => requiredSet.add(r));
+    solarRadidationObjectSchema.required = Array.from(requiredSet);
+
+    locationObjectSchema.properties.solarRadiation = {
+      type: 'array',
+      items: solarRadidationObjectSchema,
+    };
 
     const locationsSchema: JsonSchema = {
       type: 'array',
