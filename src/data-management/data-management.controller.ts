@@ -14,6 +14,7 @@ import { DataValidationResponse } from './interface/validation.interface';
 import type { Express } from 'express';
 import 'multer';
 import { ErrorExceptionLogging } from '../utils/error.exception';
+import { JsonSchema } from './utils/dto-to-json-schema';
 
 @Controller('data-management')
 export class DataManagementController {
@@ -21,7 +22,7 @@ export class DataManagementController {
 
   @Roles(Role.USER)
   @Get('schema')
-  getSchema(): object {
+  getSchema(): JsonSchema {
     return this.dataManagementService.getSchema();
   }
 
