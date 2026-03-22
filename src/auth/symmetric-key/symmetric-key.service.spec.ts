@@ -5,13 +5,28 @@ import { of, throwError } from 'rxjs';
 import { createHmac } from 'node:crypto';
 import { InternalServerErrorException } from '@nestjs/common';
 import { SymmetricKeyService } from './symmetric-key.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('SymmetricKeyService with HMAC', () => {
   let service: SymmetricKeyService;
   let module: TestingModule;
+  const workerUrl = 'http://test-worker.com';
+  const headerKey = 'aabbccddeeff00112233445566778899';
 
   const mockHttpService = {
     get: jest.fn(),
+  };
+
+  const mockConfigService = {
+    get: jest.fn().mockImplementation((key: string) => {
+      if (key === 'app.cloudflare.workerUrl') {
+        return workerUrl;
+      } else if (key === 'app.cloudflare.headerKey') {
+        return headerKey;
+      }
+
+      return '';
+    }),
   };
 
   beforeEach(async () => {
@@ -22,26 +37,37 @@ describe('SymmetricKeyService with HMAC', () => {
           provide: HttpService,
           useValue: mockHttpService,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
     service = module.get<SymmetricKeyService>(SymmetricKeyService);
 
     jest.clearAllMocks();
-    process.env.CLOUDFLARE_WORKER_URL = 'http://test-worker.com';
-    process.env.CLOUDFLARE_WORKER_HEADER_KEY =
-      'aabbccddeeff00112233445566778899';
     service['cachedKey'] = null;
   });
 
   afterEach(async () => {
+    jest.clearAllMocks();
     if (module) {
       await module.close();
     }
   });
 
   it('should throw error if CLOUDFLARE_WORKER_URL or CLOUDFLARE_WORKER_HEADER_KEY is missing', async () => {
-    delete process.env.CLOUDFLARE_WORKER_URL;
+    mockConfigService.get.mockImplementationOnce((key: string) => {
+      if (key === 'app.cloudflare.workerUrl') {
+        return '';
+      } else if (key === 'app.cloudflare.headerKey') {
+        return headerKey;
+      }
+
+      return '';
+    });
+
     expect(mockHttpService.get).not.toHaveBeenCalled();
     await expect(
       service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY'),
@@ -51,7 +77,6 @@ describe('SymmetricKeyService with HMAC', () => {
   it("should fetch and return the 'JWT_SYMMETRIC_KEY_ENCRYPTION_KEY' key from the worker URL with valid HMAC headers", async () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
-    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
 
     mockHttpService.get.mockReturnValueOnce(
       of({
@@ -71,7 +96,7 @@ describe('SymmetricKeyService with HMAC', () => {
     >;
     const [url, config] = call;
 
-    expect(url).toBe(process.env.CLOUDFLARE_WORKER_URL);
+    expect(url).toBe(workerUrl);
     if (!config?.headers) {
       throw new Error('Missing headers in Axios config');
     }
@@ -105,7 +130,6 @@ describe('SymmetricKeyService with HMAC', () => {
   it("should fetch and return the 'JWT_SECRET' key from the worker URL with valid HMAC headers", async () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
-    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
 
     mockHttpService.get.mockReturnValueOnce(
       of({
@@ -125,7 +149,7 @@ describe('SymmetricKeyService with HMAC', () => {
     >;
     const [url, config] = call;
 
-    expect(url).toBe(process.env.CLOUDFLARE_WORKER_URL);
+    expect(url).toBe(workerUrl);
     if (!config?.headers) {
       throw new Error('Missing headers in Axios config');
     }
@@ -145,8 +169,6 @@ describe('SymmetricKeyService with HMAC', () => {
   });
 
   it('should throw error if body return unknown body value', async () => {
-    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY!;
-
     mockHttpService.get.mockReturnValueOnce(
       of({ data: { OTHER_DATA: 'test' } }),
     );
@@ -161,7 +183,7 @@ describe('SymmetricKeyService with HMAC', () => {
     >;
     const [url, config] = call;
 
-    expect(url).toBe(process.env.CLOUDFLARE_WORKER_URL);
+    expect(url).toBe(workerUrl);
     if (!config?.headers) {
       throw new Error('Missing headers in Axios config');
     }

@@ -6,6 +6,10 @@ export interface AppConfig {
   responseTimeoutSeconds: number;
   logLevels: { [key: string]: number };
   corsOrigins: string[];
+  cloudflare: {
+    workerUrl: string;
+    headerKey: string;
+  };
 }
 
 export enum Environment {
@@ -73,4 +77,8 @@ export default (): AppConfig => ({
         'http://localhost:5173',
         'https://migrane-tracker-dashboard.sliplane.app',
       ],
+  cloudflare: {
+    workerUrl: process.env.CLOUDFLARE_WORKER_URL || '',
+    headerKey: process.env.CLOUDFLARE_WORKER_HEADER_KEY || '',
+  },
 });

@@ -5,13 +5,13 @@ import { JwtService } from '../jwt.service';
 import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
 import { UserPayloadWithKey } from '../interfaces/auth.user.interface';
 import { Role } from '../enums/roles.enum';
-
-process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
-process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
+import { ConfigService } from '@nestjs/config';
 
 describe('JwtService (integration)', () => {
   let jwtService: JwtService;
   let module: TestingModule;
+  const workerUrl = 'http://test-worker.com';
+  const headerKey = 'aabbccddeeff00112233445566778899';
 
   const mockHttpService = {
     get: jest.fn().mockReturnValue(
@@ -25,6 +25,18 @@ describe('JwtService (integration)', () => {
     ),
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockImplementation((key: string) => {
+      if (key === 'app.cloudflare.workerUrl') {
+        return workerUrl;
+      } else if (key === 'app.cloudflare.headerKey') {
+        return headerKey;
+      }
+
+      return '';
+    }),
+  };
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
@@ -34,6 +46,10 @@ describe('JwtService (integration)', () => {
           provide: HttpService,
           useValue: mockHttpService,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
@@ -41,6 +57,7 @@ describe('JwtService (integration)', () => {
   });
 
   afterEach(async () => {
+    jest.clearAllMocks();
     if (module) {
       await module.close();
     }

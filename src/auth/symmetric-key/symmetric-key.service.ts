@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import crypto from 'node:crypto';
 import { AxiosResponse } from 'axios';
 import { ErrorExceptionLogging } from '../../utils/error.exception';
+import { ConfigService } from '@nestjs/config';
 
 interface IWorkerKeys {
   JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: string;
@@ -20,7 +21,10 @@ export class SymmetricKeyService {
   private lastFetched = 0;
   private ttl = 1 * 60 * 1000;
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private configService: ConfigService,
+  ) {}
 
   private async generateHmacSignature(
     timestamp: string,
@@ -66,8 +70,12 @@ export class SymmetricKeyService {
       return this.cachedKey.JWT_SECRET;
     }
 
-    const workerUrl = process.env.CLOUDFLARE_WORKER_URL;
-    const headerKey = process.env.CLOUDFLARE_WORKER_HEADER_KEY;
+    const workerUrl = this.configService.get<string>(
+      'app.cloudflare.workerUrl',
+    );
+    const headerKey = this.configService.get<string>(
+      'app.cloudflare.headerKey',
+    );
 
     if (!workerUrl || !headerKey) {
       throw new InternalServerErrorException('Invalid workerUrl or headerKey');
@@ -119,9 +127,15 @@ export class SymmetricKeyService {
 
       return jwtEncryptionKey;
     } catch (error) {
-      Logger.warn(`CLOUDFLARE_WORKER_URL ${process.env.CLOUDFLARE_WORKER_URL}`);
       Logger.warn(
-        `CLOUDFLARE_WORKER_HEADER_KEY ${process.env.CLOUDFLARE_WORKER_HEADER_KEY}`,
+        `CLOUDFLARE_WORKER_URL ${this.configService.get<string>(
+          'app.cloudflare.workerUrl',
+        )}`,
+      );
+      Logger.warn(
+        `CLOUDFLARE_WORKER_HEADER_KEY ${this.configService.get<string>(
+          'app.cloudflare.headerKey',
+        )}`,
       );
       ErrorExceptionLogging(error, SymmetricKeyService.name);
       throw error;
