@@ -1,7 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { DateTime } from 'luxon';
@@ -12,7 +10,6 @@ import { GFZ_LINE_REGEX } from '../weather/weather.constants';
 @Injectable()
 export class GfzClient {
   constructor(
-    private readonly http: HttpService,
     private readonly config: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
@@ -86,8 +83,12 @@ export class GfzClient {
     const url = `${baseUrl}/kp_index/${endpoint}`;
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string | undefined;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.text()) as string | undefined;
       const processedData = this.processKPI(data, date);
 
       if (processedData) {

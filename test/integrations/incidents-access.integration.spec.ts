@@ -4,8 +4,6 @@ import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import type { Server } from 'node:http';
 import { Connection, Model } from 'mongoose';
-import { of } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { AppModule } from '../../src/app.module';
 import { JwtService } from '../../src/auth/jwt.service';
@@ -22,13 +20,13 @@ import {
 } from '../../src/incidents/schemas/incident.schema';
 import { IIncident } from '../../src/incidents/interfaces/incident.interface';
 import { isObjectIdOrString } from '../helper/index';
+import { mockGlobalFetch } from '../helper/fetch-mock';
 
 describe('Incidents Access Flow (integration)', () => {
   let app: INestApplication;
   let jwtService: JwtService;
   let connection: Connection;
   let incidentModel: Model<IncidentDocument>;
-  let mockHttpService;
   const email = 'accessUser@example.com';
   const password = 'StrongPass123!';
   let token: string;
@@ -82,24 +80,19 @@ describe('Incidents Access Flow (integration)', () => {
   };
 
   beforeAll(async () => {
-    mockHttpService = {
-      get: jest.fn().mockReturnValue(
-        of({
-          data: {
-            JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
-              '0123456789abcdef0123456789abcdef',
-            JWT_SECRET: 'mocked_jwt_secret',
-          },
-        }),
-      ),
-    };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef',
+        JWT_SECRET: 'mocked_jwt_secret',
+      },
+    });
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
-      .overrideProvider(HttpService)
-      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -116,6 +109,10 @@ describe('Incidents Access Flow (integration)', () => {
   afterAll(async () => {
     await connection.dropDatabase();
     await app.close();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should register and login user to get token', async () => {

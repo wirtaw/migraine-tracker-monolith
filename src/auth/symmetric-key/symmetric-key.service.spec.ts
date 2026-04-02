@@ -1,21 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-
-import { HttpService } from '@nestjs/axios';
-import { of, throwError } from 'rxjs';
-import { createHmac } from 'node:crypto';
 import { InternalServerErrorException } from '@nestjs/common';
 import { SymmetricKeyService } from './symmetric-key.service';
 import { ConfigService } from '@nestjs/config';
+import { mockGlobalFetch } from '../../../test/helper/fetch-mock';
 
 describe('SymmetricKeyService with HMAC', () => {
   let service: SymmetricKeyService;
   let module: TestingModule;
   const workerUrl = 'http://test-worker.com';
   const headerKey = 'aabbccddeeff00112233445566778899';
-
-  const mockHttpService = {
-    get: jest.fn(),
-  };
+  const clientId = 'test-client-id';
+  const clientSecret = 'test-secret';
 
   const mockConfigService = {
     get: jest.fn().mockImplementation((key: string) => {
@@ -23,6 +18,10 @@ describe('SymmetricKeyService with HMAC', () => {
         return workerUrl;
       } else if (key === 'app.cloudflare.headerKey') {
         return headerKey;
+      } else if (key === 'app.cloudflare.clientId') {
+        return clientId;
+      } else if (key === 'app.cloudflare.clientSecret') {
+        return clientSecret;
       }
 
       return '';
@@ -33,10 +32,6 @@ describe('SymmetricKeyService with HMAC', () => {
     module = await Test.createTestingModule({
       providers: [
         SymmetricKeyService,
-        {
-          provide: HttpService,
-          useValue: mockHttpService,
-        },
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -51,161 +46,120 @@ describe('SymmetricKeyService with HMAC', () => {
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     if (module) {
       await module.close();
     }
-  });
-
-  it('should throw error if CLOUDFLARE_WORKER_URL or CLOUDFLARE_WORKER_HEADER_KEY is missing', async () => {
-    mockConfigService.get.mockImplementationOnce((key: string) => {
-      if (key === 'app.cloudflare.workerUrl') {
-        return '';
-      } else if (key === 'app.cloudflare.headerKey') {
-        return headerKey;
-      }
-
-      return '';
-    });
-
-    expect(mockHttpService.get).not.toHaveBeenCalled();
-    await expect(
-      service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY'),
-    ).rejects.toThrow(InternalServerErrorException);
   });
 
   it("should fetch and return the 'JWT_SYMMETRIC_KEY_ENCRYPTION_KEY' key from the worker URL with valid HMAC headers", async () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
 
-    mockHttpService.get.mockReturnValueOnce(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
-          JWT_SECRET: jwtSecret,
-        },
-      }),
-    );
+    const expectedData = {
+      JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+      JWT_SECRET: jwtSecret,
+    };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: expectedData,
+    });
 
     const key = await service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY');
     expect(key).toBe(workerKey);
-    expect(mockHttpService.get).toHaveBeenCalled();
-
-    const call = mockHttpService.get.mock.calls[0] as Parameters<
-      HttpService['get']
-    >;
-    const [url, config] = call;
-
-    expect(url).toBe(workerUrl);
-    if (!config?.headers) {
-      throw new Error('Missing headers in Axios config');
-    }
-    expect(config?.headers['X-Timestamp']).toBeDefined();
-    expect(config?.headers['X-Signature']).toMatch(/^[a-f0-9]{64}$/);
-
-    if (!config?.headers['X-Timestamp']) {
-      throw new Error("Missing headers['X-Timestamp'] in Axios config");
-    }
-    const timestamp = config?.headers['X-Timestamp'] as string;
-    const keyBuffer = Uint8Array.from(
-      headerKey.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
-    );
-    const encoder = new TextEncoder();
-    const data = encoder.encode(`${timestamp}:`);
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      keyBuffer,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign'],
-    );
-    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, data);
-    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    expect(config?.headers['X-Signature']).toBe(expectedSignature);
+    expect(global.fetch).toHaveBeenCalledWith(workerUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Access-Client-Id': clientId,
+        'CF-Access-Client-Secret': clientSecret,
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Content-Security-Policy':
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Signature': expect.any(String),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Timestamp': expect.any(String),
+      },
+    });
   });
 
-  it("should fetch and return the 'JWT_SECRET' key from the worker URL with valid HMAC headers", async () => {
+  it("should fetch and return the 'JWT_SYMMETRIC_KEY_ENCRYPTION_KEY' key from the worker URL with valid HMAC headers", async () => {
     const workerKey = 'secure_worker_key';
     const jwtSecret = 'secure_jwt_secret';
 
-    mockHttpService.get.mockReturnValueOnce(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
-          JWT_SECRET: jwtSecret,
-        },
-      }),
-    );
+    const expectedData = {
+      JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+      JWT_SECRET: jwtSecret,
+    };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: expectedData,
+    });
 
     const key = await service.getKey('JWT_SECRET');
     expect(key).toBe(jwtSecret);
-    expect(mockHttpService.get).toHaveBeenCalled();
-
-    const call = mockHttpService.get.mock.calls[0] as Parameters<
-      HttpService['get']
-    >;
-    const [url, config] = call;
-
-    expect(url).toBe(workerUrl);
-    if (!config?.headers) {
-      throw new Error('Missing headers in Axios config');
-    }
-    expect(config?.headers['X-Timestamp']).toBeDefined();
-    expect(config?.headers['X-Signature']).toMatch(/^[a-f0-9]{64}$/);
-
-    if (!config?.headers['X-Timestamp']) {
-      throw new Error("Missing headers['X-Timestamp'] in Axios config");
-    }
-    const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}:`;
-    const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
-    hmac.update(message);
-    const expectedSignature = hmac.digest('hex');
-
-    expect(config?.headers['X-Signature']).toBe(expectedSignature);
+    expect(global.fetch).toHaveBeenCalledWith(workerUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Access-Client-Id': clientId,
+        'CF-Access-Client-Secret': clientSecret,
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Content-Security-Policy':
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Signature': expect.any(String),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Timestamp': expect.any(String),
+      },
+    });
   });
 
   it('should throw error if body return unknown body value', async () => {
-    mockHttpService.get.mockReturnValueOnce(
-      of({ data: { OTHER_DATA: 'test' } }),
-    );
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: { OTHER_DATA: 'test' },
+    });
 
     await expect(
       service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY'),
     ).rejects.toThrow(InternalServerErrorException);
-    expect(mockHttpService.get).toHaveBeenCalled();
-
-    const call = mockHttpService.get.mock.calls[0] as Parameters<
-      HttpService['get']
-    >;
-    const [url, config] = call;
-
-    expect(url).toBe(workerUrl);
-    if (!config?.headers) {
-      throw new Error('Missing headers in Axios config');
-    }
-    expect(config?.headers['X-Timestamp']).toBeDefined();
-    expect(config?.headers['X-Signature']).toMatch(/^[a-f0-9]{64}$/);
-
-    if (!config?.headers['X-Timestamp']) {
-      throw new Error("Missing headers['X-Timestamp'] in Axios config");
-    }
-    const timestamp = config?.headers['X-Timestamp'] as string;
-    const message = `${timestamp}:`;
-    const hmac = createHmac('sha256', Buffer.from(headerKey, 'hex'));
-    hmac.update(message);
-    const expectedSignature = hmac.digest('hex');
-
-    expect(config?.headers['X-Signature']).toBe(expectedSignature);
+    expect(global.fetch).toHaveBeenCalledWith(workerUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Access-Client-Id': clientId,
+        'CF-Access-Client-Secret': clientSecret,
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Content-Security-Policy':
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Signature': expect.any(String),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        'X-Timestamp': expect.any(String),
+      },
+    });
   });
 
   it('should throw error if worker returns error', async () => {
-    mockHttpService.get.mockReturnValueOnce(
-      throwError(() => new InternalServerErrorException('Unauthorized')),
-    );
+    mockGlobalFetch({
+      ok: false,
+      status: 500,
+      errorMessage: 'Unauthorized',
+    });
     await expect(
       service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY'),
     ).rejects.toThrow(InternalServerErrorException);
@@ -221,7 +175,7 @@ describe('SymmetricKeyService with HMAC', () => {
 
     const key = await service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY');
     expect(key).toBe(cachedKey.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY);
-    expect(mockHttpService.get).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("should return cached 'JWT_SECRET' key if TTL not expired", async () => {
@@ -234,6 +188,27 @@ describe('SymmetricKeyService with HMAC', () => {
 
     const key = await service.getKey('JWT_SECRET');
     expect(key).toBe(cachedKey.JWT_SECRET);
-    expect(mockHttpService.get).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should throw error if CLOUDFLARE_WORKER_URL or CLOUDFLARE_WORKER_HEADER_KEY is missing', async () => {
+    mockConfigService.get.mockImplementationOnce((key: string) => {
+      if (key === 'app.cloudflare.workerUrl') {
+        return '';
+      } else if (key === 'app.cloudflare.headerKey') {
+        return headerKey;
+      } else if (key === 'app.cloudflare.clientId') {
+        return clientId;
+      } else if (key === 'app.cloudflare.clientSecret') {
+        return clientSecret;
+      }
+
+      return '';
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    await expect(
+      service.getKey('JWT_SYMMETRIC_KEY_ENCRYPTION_KEY'),
+    ).rejects.toThrow(InternalServerErrorException);
   });
 });

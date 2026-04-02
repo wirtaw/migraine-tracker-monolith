@@ -1,7 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import {
@@ -14,7 +12,6 @@ import { DateTime } from 'luxon';
 @Injectable()
 export class NoaaClient {
   constructor(
-    private readonly http: HttpService,
     private readonly config: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
@@ -120,8 +117,12 @@ export class NoaaClient {
     const url = `${baseUrl}/products/noaa-planetary-k-index.json`;
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string[] | undefined;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.json()) as string[] | undefined;
       const dt = DateTime.now();
       const processedData = this.processPlanetaryKIndex(data, dt);
       if (processedData) {
@@ -196,8 +197,12 @@ export class NoaaClient {
       const baseUrl = this.config.get<string>('integration.apis.noaa');
       const url = `${baseUrl}/products/noaa-planetary-k-index.json`;
       try {
-        const response = await firstValueFrom(this.http.get(url));
-        const data = response.data as string[] | undefined;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = (await response.json()) as string[] | undefined;
         const processedData = this.processPlanetaryKIndex(data, dt);
         if (processedData) {
           const result: IGeophysicalWeatherData = {
@@ -245,8 +250,12 @@ export class NoaaClient {
     const url = `${baseUrl}/text/3-day-forecast.txt`;
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string | undefined;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.text()) as string | undefined;
       const result = this.process3DayForecast(data);
       if (result) {
         await this.cacheManager.set(cacheKey, result, 3600000);

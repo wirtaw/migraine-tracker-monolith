@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus } from '@nestjs/common';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { HttpService } from '@nestjs/axios';
 import { AppModule } from '../src/app.module';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
@@ -12,7 +11,7 @@ import type { Server } from 'http';
 import type { AuthResponse } from '../src/auth/interfaces/auth.user.interface';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { Role } from '../src/auth/enums/roles.enum';
-import { of } from 'rxjs';
+import { mockGlobalFetch } from './helper/fetch-mock';
 
 process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
 process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
@@ -68,25 +67,12 @@ describe('Auth E2E', () => {
     },
   };
 
-  const mockHttpService = {
-    get: jest.fn().mockReturnValue(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
-          JWT_SECRET: jwtSecret,
-        },
-      }),
-    ),
-  };
-
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
-      .overrideProvider(HttpService)
-      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -96,11 +82,23 @@ describe('Auth E2E', () => {
     userModel = moduleFixture.get<Model<UserDocument>>(
       getModelToken(User.name),
     );
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
   });
 
   afterAll(async () => {
     await connection.dropDatabase();
     await app.close();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('POST /auth/register', () => {

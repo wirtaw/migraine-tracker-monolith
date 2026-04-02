@@ -9,6 +9,8 @@ export interface AppConfig {
   cloudflare: {
     workerUrl: string;
     headerKey: string;
+    clientId: string;
+    clientSecret: string;
   };
 }
 
@@ -80,5 +82,7 @@ export default (): AppConfig => ({
   cloudflare: {
     workerUrl: process.env.CLOUDFLARE_WORKER_URL || '',
     headerKey: process.env.CLOUDFLARE_WORKER_HEADER_KEY || '',
+    clientId: process.env.CLOUDFLARE_ACCESS_CLIENT_ID || '',
+    clientSecret: process.env.CLOUDFLARE_ACCESS_CLIENT_SECRET || '',
   },
 });

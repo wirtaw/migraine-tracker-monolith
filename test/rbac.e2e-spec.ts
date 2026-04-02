@@ -5,8 +5,7 @@ import { AppModule } from '../src/app.module';
 import { SupabaseService } from '../src/auth/supabase/supabase.service';
 import { Role } from '../src/auth/enums/roles.enum';
 import type { Server } from 'http';
-import { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
+import { mockGlobalFetch } from './helper/fetch-mock';
 
 process.env.CLOUDFLARE_WORKER_URL = 'worker-service-url';
 process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'worker-service-header';
@@ -55,25 +54,12 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
     },
   };
 
-  const mockHttpService = {
-    get: jest.fn().mockReturnValue(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
-          JWT_SECRET: jwtSecret,
-        },
-      }),
-    ),
-  };
-
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
-      .overrideProvider(HttpService)
-      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -84,7 +70,19 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
     await app.close();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should allow access to public endpoint without token', async () => {
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
     const res = await request(app.getHttpServer() as Server)
       .get('/test/public')
       .expect(HttpStatus.OK);
@@ -93,12 +91,28 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should deny access to private endpoint without token', async () => {
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
     await request(app.getHttpServer() as Server)
       .get('/test/private')
       .expect(HttpStatus.UNAUTHORIZED);
   });
 
   it('should allow access to private endpoint with valid user token', async () => {
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
     const res = await request(app.getHttpServer() as Server)
       .get('/test/private')
       .set('Authorization', `Bearer ${userToken}`)
@@ -108,6 +122,14 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should deny access to admin endpoint with user role', async () => {
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
     await request(app.getHttpServer() as Server)
       .get('/test/admin')
       .set('Authorization', `Bearer ${userToken}`)
@@ -115,6 +137,14 @@ describe('RBAC + SupabaseAuthGuard E2E', () => {
   });
 
   it('should allow access to admin endpoint with admin role', async () => {
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: workerKey,
+        JWT_SECRET: jwtSecret,
+      },
+    });
     const res = await request(app.getHttpServer() as Server)
       .get('/test/admin')
       .set('Authorization', `Bearer ${adminToken}`)
