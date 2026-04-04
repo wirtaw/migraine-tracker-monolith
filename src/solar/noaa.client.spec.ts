@@ -5,9 +5,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DateTime } from 'luxon';
 import {
   IGeophysicalWeatherData,
+  INoaaRadiationResponse,
   NextWeather,
 } from './interfaces/radiation.interface';
 import { mockGlobalFetch } from '../../test/helper/fetch-mock';
+import { generateMockData, getMockNoaaRadiationData } from './mocks';
 
 describe('NoaaClient', () => {
   let service: NoaaClient;
@@ -20,33 +22,6 @@ describe('NoaaClient', () => {
   const mockCacheManager = {
     get: jest.fn(),
     set: jest.fn(),
-  };
-
-  // Helper to generate dynamic mock data based on the provided structure
-  const generateMockData = (
-    baseDate: DateTime,
-    beforeDays: number = -1,
-  ): string[][] => {
-    const header = ['time_tag', 'Kp', 'a_running', 'station_count'];
-    const data = [];
-
-    // Generate data for 3 days: yesterday, today, tomorrow
-    for (let i = beforeDays; i <= 1; i++) {
-      const date = baseDate.plus({ days: i });
-      const dateStr = date.toFormat('yyyy-MM-dd');
-
-      // 8 entries per day (every 3 hours)
-      for (let j = 0; j < 24; j += 3) {
-        const timeStr = `${dateStr} ${j.toString().padStart(2, '0')}:00:00.000`;
-        // Mock values similar to the example
-        const kp = (1 + Math.random() * 4).toFixed(2);
-        const aRunning = Math.floor(Math.random() * 20).toString();
-        const stationCount = '8';
-        data.push([timeStr, kp, aRunning, stationCount]);
-      }
-    }
-
-    return [header, ...data];
   };
 
   beforeEach(async () => {
@@ -192,13 +167,13 @@ describe('NoaaClient', () => {
       const mockData = generateMockData(DateTime.now(), -10);
 
       const data = mockData.filter((item) =>
-        item[0].includes(dt.toFormat('yyyy-MM-dd')),
+        item.time_tag.includes(dt.toFormat('yyyy-MM-dd')),
       );
 
       const expected: IGeophysicalWeatherData = {
         solarFlux: 0,
-        aIndex: parseInt(data[data.length - 1][2], 10),
-        kIndex: parseFloat(data[data.length - 1][1]),
+        aIndex: data[data.length - 1].a_running,
+        kIndex: data[data.length - 1].Kp,
         pastWeather: { level: '' },
         nextWeather: {
           kpIndex: {
@@ -305,26 +280,27 @@ describe('NoaaClient', () => {
       const dt = DateTime.now();
       expect(service.processPlanetaryKIndex(undefined, dt)).toBeUndefined();
       expect(
-        service.processPlanetaryKIndex([] as string[], dt),
+        service.processPlanetaryKIndex([] as unknown as undefined, dt),
       ).toBeUndefined();
     });
 
     it('should process valid data correctly', () => {
       const dt = DateTime.now();
       const todayStr = dt.toFormat('yyyy-MM-dd');
-      const mockData: unknown[] = [
-        ['header'],
-        [`${todayStr} 00:00:00.000`, '3.00', '15', '8'],
-        ['2000-01-01 00:00:00.000', '1.00', '5', '8'], // Different date
-      ];
 
-      const result = service.processPlanetaryKIndex(mockData as string[], dt);
+      const result = service.processPlanetaryKIndex(
+        getMockNoaaRadiationData(todayStr)
+          .data as unknown as INoaaRadiationResponse,
+        dt,
+      );
 
       expect(result).toBeDefined();
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(4);
       expect(result![0]).toEqual({
-        Kp: 3.0,
-        aRunning: 15,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        Kp: expect.any(Number),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        aRunning: expect.any(Number),
         date: `${todayStr} 00:00:00.000`,
       });
     });
@@ -345,7 +321,10 @@ describe('NoaaClient', () => {
         null, // This will cause error when accessing item[0]
       ];
 
-      const result = service.processPlanetaryKIndex(mockData as string[], dt);
+      const result = service.processPlanetaryKIndex(
+        mockData as unknown as INoaaRadiationResponse,
+        dt,
+      );
       expect(result).toBeUndefined();
     });
   });

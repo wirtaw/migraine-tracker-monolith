@@ -102,3 +102,14 @@ export interface IGeophysicalWeatherData {
   pastWeather: { level: string };
   nextWeather: NextWeather;
 }
+
+export interface INoaaRadiationItem {
+  time_tag: string;
+  Kp: number;
+  a_running: number;
+  station_count: number;
+}
+
+export interface INoaaRadiationResponse {
+  data: INoaaRadiationItem[];
+}

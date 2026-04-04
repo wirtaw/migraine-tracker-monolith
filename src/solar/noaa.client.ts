@@ -6,6 +6,7 @@ import {
   IPlanetaryKindexDataItem,
   IGeophysicalWeatherData,
   NextWeather,
+  INoaaRadiationResponse,
 } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
 
@@ -17,7 +18,7 @@ export class NoaaClient {
   ) {}
 
   processPlanetaryKIndex = (
-    items: string[] | undefined,
+    items: INoaaRadiationResponse | undefined,
     dt: DateTime,
   ): IPlanetaryKindexDataItem[] | undefined => {
     if (!items || !Array.isArray(items) || !items.length) {
@@ -26,16 +27,33 @@ export class NoaaClient {
 
     try {
       const result = [];
+      const currentDateStr = dt.toFormat('yyyy-MM-dd');
+      const found = items.filter(({ time_tag }) =>
+        (time_tag as string).includes(currentDateStr),
+      );
 
-      for (const item of items) {
-        if (item[0].includes(dt.toFormat('yyyy-MM-dd'))) {
-          result.push({
-            Kp: parseFloat(item[1]),
-            aRunning: parseInt(item[2], 10),
-            date: item[0],
-          });
-        }
+      if (!found) {
+        Logger.warn(
+          `No data found for date ${currentDateStr} in planetary K-index response.`,
+        );
+        return undefined;
       }
+
+      for (const item of found) {
+        result.push({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          Kp: item.Kp,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          aRunning: item.a_running,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          date: item.time_tag,
+        } as IPlanetaryKindexDataItem);
+      }
+
+      Logger.debug('Processing planetary K-index data for date:', {
+        date: dt.toISODate(),
+        result,
+      });
 
       return result;
     } catch (error) {
@@ -111,6 +129,9 @@ export class NoaaClient {
     const cached =
       await this.cacheManager.get<IGeophysicalWeatherData>(cacheKey);
     if (cached) {
+      Logger.debug('Returning cached NOAA geophysical weather data', {
+        cacheKey,
+      });
       return cached;
     }
     const baseUrl = this.config.get<string>('integration.apis.noaa');
@@ -122,7 +143,9 @@ export class NoaaClient {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = (await response.json()) as string[] | undefined;
+      const data = (await response.json()) as
+        | INoaaRadiationResponse
+        | undefined;
       const dt = DateTime.now();
       const processedData = this.processPlanetaryKIndex(data, dt);
       if (processedData) {
@@ -188,6 +211,9 @@ export class NoaaClient {
     const cached =
       await this.cacheManager.get<IGeophysicalWeatherData>(cacheKey);
     if (cached) {
+      Logger.debug('Returning cached NOAA geophysical weather data for date:', {
+        cacheKey,
+      });
       return cached;
     }
 
@@ -202,7 +228,9 @@ export class NoaaClient {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = (await response.json()) as string[] | undefined;
+        const data = (await response.json()) as
+          | INoaaRadiationResponse
+          | undefined;
         const processedData = this.processPlanetaryKIndex(data, dt);
         if (processedData) {
           const result: IGeophysicalWeatherData = {
