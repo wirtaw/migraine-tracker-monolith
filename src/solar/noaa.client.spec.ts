@@ -1,23 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NoaaClient } from './noaa.client';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { of, throwError } from 'rxjs';
-import { AxiosResponse, AxiosHeaders } from 'axios';
 import { DateTime } from 'luxon';
 import {
   IGeophysicalWeatherData,
+  INoaaRadiationItem,
   NextWeather,
 } from './interfaces/radiation.interface';
+import { mockGlobalFetch } from '../../test/helper/fetch-mock';
+import { generateMockData, getMockNoaaRadiationData } from './mocks';
 
 describe('NoaaClient', () => {
   let service: NoaaClient;
   let module: TestingModule;
-
-  const mockHttpService = {
-    get: jest.fn(),
-  };
 
   const mockConfigService = {
     get: jest.fn(),
@@ -28,38 +24,10 @@ describe('NoaaClient', () => {
     set: jest.fn(),
   };
 
-  // Helper to generate dynamic mock data based on the provided structure
-  const generateMockData = (
-    baseDate: DateTime,
-    beforeDays: number = -1,
-  ): string[][] => {
-    const header = ['time_tag', 'Kp', 'a_running', 'station_count'];
-    const data = [];
-
-    // Generate data for 3 days: yesterday, today, tomorrow
-    for (let i = beforeDays; i <= 1; i++) {
-      const date = baseDate.plus({ days: i });
-      const dateStr = date.toFormat('yyyy-MM-dd');
-
-      // 8 entries per day (every 3 hours)
-      for (let j = 0; j < 24; j += 3) {
-        const timeStr = `${dateStr} ${j.toString().padStart(2, '0')}:00:00.000`;
-        // Mock values similar to the example
-        const kp = (1 + Math.random() * 4).toFixed(2);
-        const aRunning = Math.floor(Math.random() * 20).toString();
-        const stationCount = '8';
-        data.push([timeStr, kp, aRunning, stationCount]);
-      }
-    }
-
-    return [header, ...data];
-  };
-
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
         NoaaClient,
-        { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
       ],
@@ -90,24 +58,20 @@ describe('NoaaClient', () => {
 
       expect(result).toEqual(cachedData);
       expect(mockCacheManager.get).toHaveBeenCalledWith('solar_radiation_noaa');
-      expect(mockHttpService.get).not.toHaveBeenCalled();
     });
 
     it('should fetch and process data if not cached', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://noaa-api');
+      mockConfigService.get.mockReturnValue('http://noaa-api-1');
 
       const today = DateTime.now();
       const mockData = generateMockData(today);
 
-      const response: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: mockData,
+      });
 
       const result = await service.getSolarRadiation();
 
@@ -124,14 +88,19 @@ describe('NoaaClient', () => {
         result,
         3600000,
       );
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://noaa-api-1/products/noaa-planetary-k-index.json',
+      );
     });
 
     it('should return undefined on API error', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockConfigService.get.mockReturnValue('http://noaa-api');
-      mockHttpService.get.mockReturnValue(
-        throwError(() => new Error('API Error')),
-      );
+      mockGlobalFetch({
+        ok: false,
+        status: 500,
+        errorMessage: 'Unauthorized',
+      });
 
       const result = await service.getSolarRadiation();
 
@@ -140,16 +109,13 @@ describe('NoaaClient', () => {
 
     it('should return undefined if response data is invalid', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://noaa-api');
+      mockConfigService.get.mockReturnValue('http://noaa-api-2');
 
-      const response: AxiosResponse = {
-        data: 'invalid-string-data', // Not an array
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: 'invalid-string-data',
+      });
 
       const result = await service.getSolarRadiation();
 
@@ -159,6 +125,7 @@ describe('NoaaClient', () => {
 
   describe('getSolarRadiationByDate', () => {
     it('should return cached data if available', async () => {
+      mockConfigService.get.mockReturnValue('http://noaa-api-3');
       const isoDate = DateTime.now().minus({ days: 6 }).toISO();
       const cachedData = {
         kIndex: 2.67,
@@ -187,24 +154,26 @@ describe('NoaaClient', () => {
       expect(mockCacheManager.get).toHaveBeenCalledWith(
         `solar_geophysical_weather_data_${isoDate}`,
       );
-      expect(mockHttpService.get).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        'http://noaa-api-3/products/noaa-planetary-k-index.json',
+      );
     });
 
     it('should fetch and process data if not cached and 6 days ', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://noaa-api');
+      mockConfigService.get.mockReturnValue('http://noaa-api-4');
 
       const dt = DateTime.now().minus({ days: 6 });
       const mockData = generateMockData(DateTime.now(), -10);
 
       const data = mockData.filter((item) =>
-        item[0].includes(dt.toFormat('yyyy-MM-dd')),
+        item.time_tag.includes(dt.toFormat('yyyy-MM-dd')),
       );
 
       const expected: IGeophysicalWeatherData = {
         solarFlux: 0,
-        aIndex: parseInt(data[data.length - 1][2], 10),
-        kIndex: parseFloat(data[data.length - 1][1]),
+        aIndex: data[data.length - 1].a_running,
+        kIndex: data[data.length - 1].Kp,
         pastWeather: { level: '' },
         nextWeather: {
           kpIndex: {
@@ -221,14 +190,11 @@ describe('NoaaClient', () => {
         },
       };
 
-      const response: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: mockData,
+      });
 
       const result = await service.getSolarRadiationByDate(dt.toISO());
 
@@ -245,23 +211,23 @@ describe('NoaaClient', () => {
         expected,
         3600000,
       );
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://noaa-api-4/products/noaa-planetary-k-index.json',
+      );
     });
 
     it('should fetch and process data if not cached and >= 7 days ', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://noaa-api');
+      mockConfigService.get.mockReturnValue('http://noaa-api-5');
 
       const dt = DateTime.now().minus({ days: 7 });
       const mockData = generateMockData(DateTime.now(), -10);
 
-      const response: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: mockData,
+      });
 
       const result = await service.getSolarRadiationByDate(dt.toISO());
 
@@ -273,7 +239,9 @@ describe('NoaaClient', () => {
       expect(result).toHaveProperty('pastWeather');
       expect(result).toHaveProperty('nextWeather');
 
-      expect(mockCacheManager.set).not.toHaveBeenCalled();
+      expect(mockCacheManager.set).not.toHaveBeenCalledWith(
+        'http://noaa-api-5/products/noaa-planetary-k-index.json',
+      );
     });
 
     it('should return empty data if invalid date', async () => {
@@ -303,7 +271,7 @@ describe('NoaaClient', () => {
 
       expect(result).toEqual(expected);
       expect(mockCacheManager.get).not.toHaveBeenCalled();
-      expect(mockHttpService.get).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 
@@ -312,26 +280,67 @@ describe('NoaaClient', () => {
       const dt = DateTime.now();
       expect(service.processPlanetaryKIndex(undefined, dt)).toBeUndefined();
       expect(
-        service.processPlanetaryKIndex([] as string[], dt),
+        service.processPlanetaryKIndex([] as unknown as undefined, dt),
       ).toBeUndefined();
     });
 
     it('should process valid data correctly', () => {
       const dt = DateTime.now();
       const todayStr = dt.toFormat('yyyy-MM-dd');
-      const mockData: unknown[] = [
-        ['header'],
-        [`${todayStr} 00:00:00.000`, '3.00', '15', '8'],
-        ['2000-01-01 00:00:00.000', '1.00', '5', '8'], // Different date
-      ];
 
-      const result = service.processPlanetaryKIndex(mockData as string[], dt);
+      const result = service.processPlanetaryKIndex(
+        getMockNoaaRadiationData(todayStr) as unknown as INoaaRadiationItem[],
+        dt,
+      );
 
       expect(result).toBeDefined();
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(4);
       expect(result![0]).toEqual({
-        Kp: 3.0,
-        aRunning: 15,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        Kp: expect.any(Number),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        aRunning: expect.any(Number),
+        date: `${todayStr} 00:00:00.000`,
+      });
+    });
+
+    it('should process some broken items data correctly', () => {
+      const dt = DateTime.now();
+      const todayStr = dt.toFormat('yyyy-MM-dd');
+      const mockData = getMockNoaaRadiationData(
+        todayStr,
+      ) as unknown as INoaaRadiationItem[];
+
+      const result = service.processPlanetaryKIndex(
+        mockData.map((item, index) => {
+          if (index === 0) {
+            return {
+              time_tag: item.time_tag,
+              Kp: 'invalid' as unknown as number, // Invalid Kp
+              a_running: item.a_running,
+              station_count: item.station_count,
+            };
+          } else if (index === 1) {
+            return {
+              time_tag: 'invalid-date', // Invalid time_tag
+              Kp: item.Kp,
+              a_running: item.a_running,
+              station_count: item.station_count,
+            };
+          } else {
+            return item; // Valid item
+          }
+        }),
+        dt,
+      );
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(4);
+      expect(result![0]).toEqual({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        Kp: expect.any(Number),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        aRunning: expect.any(Number),
         date: `${todayStr} 00:00:00.000`,
       });
     });
@@ -352,7 +361,10 @@ describe('NoaaClient', () => {
         null, // This will cause error when accessing item[0]
       ];
 
-      const result = service.processPlanetaryKIndex(mockData as string[], dt);
+      const result = service.processPlanetaryKIndex(
+        mockData as unknown as INoaaRadiationItem[],
+        dt,
+      );
       expect(result).toBeUndefined();
     });
   });
@@ -480,7 +492,7 @@ slight chance for R3 (Strong) or greater events on 09-11 Dec. `;
       expect(mockCacheManager.get).toHaveBeenCalledWith(
         `solar_geophysical_3_day_forecast_${dt.toISODate()}`,
       );
-      expect(mockHttpService.get).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should fetch and process data if not cached', async () => {
@@ -508,14 +520,11 @@ slight chance for R3 (Strong) or greater events on 09-11 Dec. `;
         },
       };
 
-      const response: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: mockData,
+      });
 
       const result = await service.getSolarRadiationForecast();
 

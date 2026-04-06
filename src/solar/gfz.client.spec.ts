@@ -1,14 +1,11 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GfzClient } from './gfz.client';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { of } from 'rxjs';
-import { AxiosResponse, AxiosHeaders } from 'axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DateTime } from 'luxon';
 import { IKPIData } from './interfaces/radiation.interface';
 import { GFZ_LINE_REGEX } from '../weather/weather.constants';
+import { mockGlobalFetch } from '../../test/helper/fetch-mock';
 
 const KP_TO_AP_MAP: Record<number, number> = {
   0: 0,
@@ -132,12 +129,7 @@ function generateMockSolarFlux(
 
 describe('GfzClient', () => {
   let client: GfzClient;
-  let httpService: HttpService;
   let module: TestingModule;
-
-  const mockHttpService = {
-    get: jest.fn(),
-  };
 
   const mockConfigService = {
     get: jest.fn().mockReturnValue('https://api.gfz-potsdam.de'),
@@ -195,18 +187,16 @@ ${generateMockSolarFlux(currentDate)}`;
     module = await Test.createTestingModule({
       providers: [
         GfzClient,
-        { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
       ],
     }).compile();
 
     client = module.get<GfzClient>(GfzClient);
-    httpService = module.get<HttpService>(HttpService);
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     if (module) {
       await module.close();
     }
@@ -219,20 +209,18 @@ ${generateMockSolarFlux(currentDate)}`;
   describe('getKpIndex', () => {
     it('should fetch Kp index data', async () => {
       const mockData = mockGfzData(DateTime.now().minus({ days: 7 }));
-      const mockResponse: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
+        data: mockData,
+        stringifyData: false,
+      });
 
-      mockHttpService.get.mockReturnValue(of(mockResponse));
       mockCacheManager.get.mockResolvedValue(null);
 
       const result = await client.getKpIndex();
 
-      expect(httpService.get).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenCalledWith(
         'https://api.gfz-potsdam.de/kp_index/Kp_ap_Ap_SN_F107_nowcast.txt',
       );
       expect(result).toBeDefined();
@@ -320,48 +308,43 @@ ${generateMockSolarFlux(currentDate)}`;
 
     it('should return undefined if not get today date', async () => {
       const mockData = mockGfzData(DateTime.now().plus({ days: 1 }));
-      const mockResponse: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
+        data: mockData,
+      });
 
-      mockHttpService.get.mockReturnValue(of(mockResponse));
       mockCacheManager.get.mockResolvedValue(null);
 
       const result = await client.getKpIndex();
 
-      expect(httpService.get).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenCalledWith(
         'https://api.gfz-potsdam.de/kp_index/Kp_ap_Ap_SN_F107_nowcast.txt',
       );
       expect(result).toBeUndefined();
     });
 
     it('should undefined data if GFZ return undefined', async () => {
-      const mockResponse: AxiosResponse = {
-        data: undefined,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-
-      mockHttpService.get.mockReturnValue(of(mockResponse));
+        data: undefined,
+      });
       mockCacheManager.get.mockResolvedValue(null);
 
       const result = await client.getKpIndex();
 
-      expect(httpService.get).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenCalledWith(
         'https://api.gfz-potsdam.de/kp_index/Kp_ap_Ap_SN_F107_nowcast.txt',
       );
       expect(result).toBeUndefined();
     });
 
     it('should return null on error', async () => {
-      mockHttpService.get.mockImplementation(() => {
-        throw new Error('API Error');
+      mockGlobalFetch({
+        ok: false,
+        status: 500,
+        errorMessage: 'Unauthorized',
       });
       mockCacheManager.get.mockResolvedValue(null);
 

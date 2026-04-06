@@ -3,10 +3,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 import crypto from 'node:crypto';
-import { AxiosResponse } from 'axios';
 import { ErrorExceptionLogging } from '../../utils/error.exception';
 import { ConfigService } from '@nestjs/config';
 
@@ -21,10 +18,7 @@ export class SymmetricKeyService {
   private lastFetched = 0;
   private ttl = 1 * 60 * 1000;
 
-  constructor(
-    private readonly httpService: HttpService,
-    private configService: ConfigService,
-  ) {}
+  constructor(private configService: ConfigService) {}
 
   private async generateHmacSignature(
     timestamp: string,
@@ -76,9 +70,15 @@ export class SymmetricKeyService {
     const headerKey = this.configService.get<string>(
       'app.cloudflare.headerKey',
     );
+    const clientId = this.configService.get<string>('app.cloudflare.clientId');
+    const clientSecret = this.configService.get<string>(
+      'app.cloudflare.clientSecret',
+    );
 
-    if (!workerUrl || !headerKey) {
-      throw new InternalServerErrorException('Invalid workerUrl or headerKey');
+    if (!workerUrl || !headerKey || !clientId || !clientSecret) {
+      throw new InternalServerErrorException(
+        'Invalid workerUrl or headerKey or clientId or clientSecret configuration',
+      );
     }
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -96,28 +96,30 @@ export class SymmetricKeyService {
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'Content-Security-Policy':
           "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;",
-        'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID || '',
-        'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET || '',
+        'CF-Access-Client-Id': clientId,
+        'CF-Access-Client-Secret': clientSecret,
       };
 
-      const response = await firstValueFrom<AxiosResponse<IWorkerKeys>>(
-        this.httpService.get(workerUrl, {
-          headers,
-        }),
-      );
-      if (
-        !response?.data?.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY ||
-        !response?.data?.JWT_SECRET
-      ) {
-        Logger.warn(
-          `Invalid response from worker ${JSON.stringify(response.data)}`,
+      const response = await fetch(workerUrl, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new InternalServerErrorException(
+          `HTTP error! status: ${response.status}`,
         );
+      }
+
+      const data = (await response.json()) as IWorkerKeys | undefined;
+
+      if (!data?.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY || !data?.JWT_SECRET) {
+        Logger.warn(`Invalid response from worker ${JSON.stringify(data)}`);
         throw new InternalServerErrorException('Invalid response from worker');
       }
 
-      const jwtEncryptionKey = response.data.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY;
-      const jwtSecret = response.data.JWT_SECRET;
-      this.cachedKey = response.data;
+      const jwtEncryptionKey = data.JWT_SYMMETRIC_KEY_ENCRYPTION_KEY;
+      const jwtSecret = data.JWT_SECRET;
+      this.cachedKey = data;
       this.lastFetched = now;
 
       if (keyName === 'JWT_SECRET') {

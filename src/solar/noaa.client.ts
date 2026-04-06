@@ -1,26 +1,65 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import {
   IPlanetaryKindexDataItem,
   IGeophysicalWeatherData,
   NextWeather,
+  INoaaRadiationItem,
 } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
 
 @Injectable()
 export class NoaaClient {
   constructor(
-    private readonly http: HttpService,
     private readonly config: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
+  private isValidNoaaItem(item: INoaaRadiationItem, index: number): boolean {
+    if (!item) {
+      Logger.warn(
+        `[NOAA Validation] Item at index ${index} is null or undefined.`,
+      );
+      return false;
+    }
+
+    const errors: string[] = [];
+
+    if (!item.time_tag || typeof item.time_tag !== 'string') {
+      errors.push(`Invalid 'time_tag' (${item.time_tag})`);
+    }
+
+    if (
+      typeof item.Kp !== 'number' ||
+      isNaN(item.Kp) ||
+      item.Kp < 0 ||
+      item.Kp > 9
+    ) {
+      errors.push(`Invalid 'Kp' (${item.Kp})`);
+    }
+
+    if (
+      typeof item.a_running !== 'number' ||
+      isNaN(item.a_running) ||
+      item.a_running < 0
+    ) {
+      errors.push(`Invalid 'a_running' (${item.a_running})`);
+    }
+
+    if (errors.length > 0) {
+      Logger.warn(
+        `[NOAA Validation] Bad data at index ${index}: ${errors.join(', ')}. Payload: ${JSON.stringify(item)}`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   processPlanetaryKIndex = (
-    items: string[] | undefined,
+    items: INoaaRadiationItem[] | undefined,
     dt: DateTime,
   ): IPlanetaryKindexDataItem[] | undefined => {
     if (!items || !Array.isArray(items) || !items.length) {
@@ -29,16 +68,33 @@ export class NoaaClient {
 
     try {
       const result = [];
+      const currentDateStr = dt.toFormat('yyyy-MM-dd');
+      const validItems = items.filter((item, index) =>
+        this.isValidNoaaItem(item, index),
+      );
+      const found = validItems.filter((item) =>
+        item.time_tag.includes(currentDateStr),
+      );
 
-      for (const item of items) {
-        if (item[0].includes(dt.toFormat('yyyy-MM-dd'))) {
-          result.push({
-            Kp: parseFloat(item[1]),
-            aRunning: parseInt(item[2], 10),
-            date: item[0],
-          });
-        }
+      if (!found || found.length === 0) {
+        Logger.warn(
+          `No data found for date ${currentDateStr} in planetary K-index response.`,
+        );
+        return undefined;
       }
+
+      for (const item of found) {
+        result.push({
+          Kp: item.Kp,
+          aRunning: item.a_running,
+          date: item.time_tag,
+        } as IPlanetaryKindexDataItem);
+      }
+
+      Logger.debug('Processing planetary K-index data for date:', {
+        date: dt.toISODate(),
+        result,
+      });
 
       return result;
     } catch (error) {
@@ -114,14 +170,21 @@ export class NoaaClient {
     const cached =
       await this.cacheManager.get<IGeophysicalWeatherData>(cacheKey);
     if (cached) {
+      Logger.debug('Returning cached NOAA geophysical weather data', {
+        cacheKey,
+      });
       return cached;
     }
     const baseUrl = this.config.get<string>('integration.apis.noaa');
     const url = `${baseUrl}/products/noaa-planetary-k-index.json`;
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string[] | undefined;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.json()) as INoaaRadiationItem[] | undefined;
       const dt = DateTime.now();
       const processedData = this.processPlanetaryKIndex(data, dt);
       if (processedData) {
@@ -187,6 +250,9 @@ export class NoaaClient {
     const cached =
       await this.cacheManager.get<IGeophysicalWeatherData>(cacheKey);
     if (cached) {
+      Logger.debug('Returning cached NOAA geophysical weather data for date:', {
+        cacheKey,
+      });
       return cached;
     }
 
@@ -196,8 +262,14 @@ export class NoaaClient {
       const baseUrl = this.config.get<string>('integration.apis.noaa');
       const url = `${baseUrl}/products/noaa-planetary-k-index.json`;
       try {
-        const response = await firstValueFrom(this.http.get(url));
-        const data = response.data as string[] | undefined;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = (await response.json()) as
+          | INoaaRadiationItem[]
+          | undefined;
         const processedData = this.processPlanetaryKIndex(data, dt);
         if (processedData) {
           const result: IGeophysicalWeatherData = {
@@ -245,8 +317,12 @@ export class NoaaClient {
     const url = `${baseUrl}/text/3-day-forecast.txt`;
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string | undefined;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.text()) as string | undefined;
       const result = this.process3DayForecast(data);
       if (result) {
         await this.cacheManager.set(cacheKey, result, 3600000);

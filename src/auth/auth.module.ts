@@ -9,7 +9,6 @@ import { EncryptionService } from './encryption/encryption.service';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { SymmetricKeyService } from './symmetric-key/symmetric-key.service';
 import { SupabaseService } from './supabase/supabase.service';
-import { HttpModule } from '@nestjs/axios';
 import { JwtService } from './jwt.service';
 import { RbacGuard } from './guard/rbac.guard';
 
@@ -23,7 +22,6 @@ import { RbacGuard } from './guard/rbac.guard';
       }),
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    HttpModule,
   ],
   controllers: [AuthController],
   providers: [

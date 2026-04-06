@@ -6,8 +6,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import request from 'supertest';
-import { of } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 import { AppModule } from '../../src/app.module';
 import type { Server } from 'node:http';
 import { Connection, Model, Types } from 'mongoose';
@@ -24,12 +22,12 @@ import { SupabaseService } from '../../src/auth/supabase/supabase.service';
 import { Role } from '../../src/auth/enums/roles.enum';
 import { IIncident } from '../../src/incidents/interfaces/incident.interface';
 import { CreateIncidentDto } from '../../src/incidents/dto/create-incident.dto';
+import { mockGlobalFetch } from '../helper/fetch-mock';
 
 describe('Incidents Ownership Access (integration)', () => {
   let app: INestApplication;
   let incidentModel: Model<IncidentDocument>;
   let incidentId: string;
-  let mockHttpService;
   let connection: Connection;
   let jwtService: JwtService;
 
@@ -106,24 +104,19 @@ describe('Incidents Ownership Access (integration)', () => {
   };
 
   beforeAll(async () => {
-    mockHttpService = {
-      get: jest.fn().mockReturnValue(
-        of({
-          data: {
-            JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
-              '0123456789abcdef0123456789abcdef',
-            JWT_SECRET: 'mocked_jwt_secret',
-          },
-        }),
-      ),
-    };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef',
+        JWT_SECRET: 'mocked_jwt_secret',
+      },
+    });
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(SupabaseService)
       .useValue(mockSupabaseService)
-      .overrideProvider(HttpService)
-      .useValue(mockHttpService)
       .compile();
 
     app = moduleFixture.createNestApplication();

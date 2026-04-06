@@ -17,11 +17,11 @@ if (!process.env.CLOUDFLARE_WORKER_URL) {
 if (!process.env.CLOUDFLARE_WORKER_HEADER_KEY) {
   process.env.CLOUDFLARE_WORKER_HEADER_KEY = 'test-header-key';
 }
-if (!process.env.CF_ACCESS_CLIENT_ID) {
-  process.env.CF_ACCESS_CLIENT_ID = 'test-client-id';
+if (!process.env.CLOUDFLARE_ACCESS_CLIENT_ID) {
+  process.env.CLOUDFLARE_ACCESS_CLIENT_ID = 'test-client-id';
 }
-if (!process.env.CF_ACCESS_CLIENT_SECRET) {
-  process.env.CF_ACCESS_CLIENT_SECRET = 'test-client-secret';
+if (!process.env.CLOUDFLARE_ACCESS_CLIENT_SECRET) {
+  process.env.CLOUDFLARE_ACCESS_CLIENT_SECRET = 'test-client-secret';
 }
 
 if (!process.env.MONGODB_DB_NAME) {

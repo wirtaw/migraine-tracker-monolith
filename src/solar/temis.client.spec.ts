@@ -1,20 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TemisClient } from './temis.client';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { of, throwError } from 'rxjs';
-import { AxiosResponse, AxiosHeaders } from 'axios';
 import { IStation } from './interfaces/radiation.interface';
+import { mockGlobalFetch } from '../../test/helper/fetch-mock';
 
 describe('TemisClient', () => {
   let service: TemisClient;
   let mockData: string = '';
   let module: TestingModule;
-
-  const mockHttpService = {
-    get: jest.fn(),
-  };
 
   const mockConfigService = {
     get: jest.fn(),
@@ -61,7 +55,6 @@ describe('TemisClient', () => {
     module = await Test.createTestingModule({
       providers: [
         TemisClient,
-        { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
       ],
@@ -82,6 +75,91 @@ describe('TemisClient', () => {
   });
 
   describe('getStations', () => {
+    it('should fetch and parse stations if not cached', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockConfigService.get.mockReturnValue('http://base-url-0');
+      const html = `
+        <table>
+          <tr><td>Header</td></tr>
+          <tr>
+            <td><a href="station_url">Station 1</a></td>
+            <td>10.5</td>
+            <td>20.5</td>
+          </tr>
+        </table>
+      `;
+      mockGlobalFetch({
+        ok: true,
+        status: 200,
+        data: html,
+        stringifyData: false,
+      });
+
+      const result = await service.getStations();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        title: 'Station 1',
+        url: 'station_url',
+        longitude: 10.5,
+        latitude: 20.5,
+      });
+      expect(mockCacheManager.set).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://base-url-0/UVarchive/stations_uv.php',
+      );
+    });
+
+    it('should fetch and parse stations if not cached and missing station url', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockConfigService.get.mockReturnValue('http://base-url-1');
+      const html = `
+        <table>
+          <tr><td>Header</td></tr>
+          <tr>
+            <td><a href="">Station 1</a></td>
+            <td>10.5</td>
+            <td>20.5</td>
+          </tr>
+        </table>
+      `;
+      mockGlobalFetch({
+        ok: true,
+        status: 200,
+        data: html,
+        stringifyData: false,
+      });
+
+      const result = await service.getStations();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        title: 'Station 1',
+        url: '',
+        longitude: 10.5,
+        latitude: 20.5,
+      });
+      expect(mockCacheManager.set).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://base-url-1/UVarchive/stations_uv.php',
+      );
+    });
+
+    it('should return empty array if data is missing', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockConfigService.get.mockReturnValue('http://base-url-3');
+      mockGlobalFetch({
+        ok: true,
+        status: 200,
+        data: null,
+        stringifyData: false,
+      });
+
+      const result = await service.getStations();
+      expect(result).toEqual([]);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://base-url-3/UVarchive/stations_uv.php',
+      );
+    });
+
     it('should return cached stations if available', async () => {
       const cachedStations: IStation[] = [
         {
@@ -96,89 +174,7 @@ describe('TemisClient', () => {
       const result = await service.getStations();
       expect(result).toEqual(cachedStations);
       expect(mockCacheManager.get).toHaveBeenCalledWith('stations_temis');
-      expect(mockHttpService.get).not.toHaveBeenCalled();
-    });
-
-    it('should fetch and parse stations if not cached', async () => {
-      mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://base-url');
-      const html = `
-        <table>
-          <tr><td>Header</td></tr>
-          <tr>
-            <td><a href="station_url">Station 1</a></td>
-            <td>10.5</td>
-            <td>20.5</td>
-          </tr>
-        </table>
-      `;
-      const response: AxiosResponse = {
-        data: html,
-        status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
-
-      const result = await service.getStations();
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        title: 'Station 1',
-        url: 'station_url',
-        longitude: 10.5,
-        latitude: 20.5,
-      });
-      expect(mockCacheManager.set).toHaveBeenCalled();
-    });
-
-    it('should fetch and parse stations if not cached and missing station url', async () => {
-      mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://base-url');
-      const html = `
-        <table>
-          <tr><td>Header</td></tr>
-          <tr>
-            <td><a href="">Station 1</a></td>
-            <td>10.5</td>
-            <td>20.5</td>
-          </tr>
-        </table>
-      `;
-      const response: AxiosResponse = {
-        data: html,
-        status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
-
-      const result = await service.getStations();
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        title: 'Station 1',
-        url: '',
-        longitude: 10.5,
-        latitude: 20.5,
-      });
-      expect(mockCacheManager.set).toHaveBeenCalled();
-    });
-
-    it('should return empty array if data is missing', async () => {
-      mockCacheManager.get.mockResolvedValue(null);
-      mockConfigService.get.mockReturnValue('http://base-url');
-      const response: AxiosResponse = {
-        data: null,
-        status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
-
-      const result = await service.getStations();
-      expect(result).toEqual([]);
+      expect(global.fetch).not.toHaveBeenCalledWith('http://test.com');
     });
   });
 
@@ -342,20 +338,18 @@ describe('TemisClient', () => {
     it('should return UV data for valid coordinates', async () => {
       const station: IStation = {
         title: 'Station',
-        url: 'http://station.url',
+        url: 'http://station.url-1',
         latitude: 50,
         longitude: 10,
       };
       jest.spyOn(service, 'getClosestStation').mockResolvedValue(station);
 
-      const response: AxiosResponse = {
-        data: mockData,
+      mockGlobalFetch({
+        ok: true,
         status: 200,
-        statusText: 'OK',
-        headers: {} as unknown as AxiosHeaders,
-        config: { headers: {} as unknown as AxiosHeaders },
-      };
-      mockHttpService.get.mockReturnValue(of(response));
+        data: mockData,
+        stringifyData: false,
+      });
 
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2002-07-01'));
@@ -366,6 +360,7 @@ describe('TemisClient', () => {
       expect(result?.date).toBe('20020701');
 
       jest.useRealTimers();
+      expect(global.fetch).toHaveBeenCalledWith('http://station.url-1');
     });
 
     it('should throw error if no closest station', async () => {
@@ -396,9 +391,11 @@ describe('TemisClient', () => {
         longitude: 10,
       };
       jest.spyOn(service, 'getClosestStation').mockResolvedValue(station);
-      mockHttpService.get.mockReturnValue(
-        throwError(() => new Error('Fetch error')),
-      );
+      mockGlobalFetch({
+        ok: false,
+        status: 500,
+        errorMessage: 'Empty response',
+      });
 
       const result = await service.getUVData(50, 10);
       expect(result).toBeUndefined();

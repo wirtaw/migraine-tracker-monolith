@@ -1,29 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
 import { JwtService } from '../jwt.service';
 import { SymmetricKeyService } from '../symmetric-key/symmetric-key.service';
 import { UserPayloadWithKey } from '../interfaces/auth.user.interface';
 import { Role } from '../enums/roles.enum';
 import { ConfigService } from '@nestjs/config';
+import { mockGlobalFetch } from '../../../test/helper/fetch-mock';
 
 describe('JwtService (integration)', () => {
   let jwtService: JwtService;
   let module: TestingModule;
   const workerUrl = 'http://test-worker.com';
   const headerKey = 'aabbccddeeff00112233445566778899';
-
-  const mockHttpService = {
-    get: jest.fn().mockReturnValue(
-      of({
-        data: {
-          JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
-            'mocked-test-symmetric-secret-key-long',
-          JWT_SECRET: 'test-secret-key-long',
-        },
-      }),
-    ),
-  };
+  const clientId = 'test-client-id';
+  const clientSecret = 'test-secret';
 
   const mockConfigService = {
     get: jest.fn().mockImplementation((key: string) => {
@@ -31,6 +20,10 @@ describe('JwtService (integration)', () => {
         return workerUrl;
       } else if (key === 'app.cloudflare.headerKey') {
         return headerKey;
+      } else if (key === 'app.cloudflare.clientId') {
+        return clientId;
+      } else if (key === 'app.cloudflare.clientSecret') {
+        return clientSecret;
       }
 
       return '';
@@ -43,10 +36,6 @@ describe('JwtService (integration)', () => {
         JwtService,
         SymmetricKeyService,
         {
-          provide: HttpService,
-          useValue: mockHttpService,
-        },
-        {
           provide: ConfigService,
           useValue: mockConfigService,
         },
@@ -57,7 +46,7 @@ describe('JwtService (integration)', () => {
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     if (module) {
       await module.close();
     }
@@ -70,6 +59,15 @@ describe('JwtService (integration)', () => {
       key: 'secureKey123',
       role: Role.USER,
     };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
+          'mocked-test-symmetric-secret-key-long',
+        JWT_SECRET: 'test-secret-key-long',
+      },
+    });
 
     const token = await jwtService.signPayload(payload, '6 h');
     expect(typeof token).toBe('string');
@@ -91,6 +89,15 @@ describe('JwtService (integration)', () => {
       role: Role.USER,
       expiresIn: Math.floor(Date.now() / 1000) - 10,
     };
+    mockGlobalFetch({
+      ok: true,
+      status: 200,
+      data: {
+        JWT_SYMMETRIC_KEY_ENCRYPTION_KEY:
+          'mocked-test-symmetric-secret-key-long',
+        JWT_SECRET: 'test-secret-key-long',
+      },
+    });
 
     const expiredToken = await jwtService.signPayload(expiredPayload, '-10s');
     await new Promise((r) => setTimeout(r, 1500));

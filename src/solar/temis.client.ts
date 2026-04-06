@@ -1,9 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { IStation, IRadiationData } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
 import haversine from 'haversine';
@@ -20,7 +18,6 @@ const parseValue = (item: string): number => {
 @Injectable()
 export class TemisClient {
   constructor(
-    private readonly http: HttpService,
     private readonly config: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
@@ -33,11 +30,13 @@ export class TemisClient {
     }
     const baseUrl = this.config.get<string>('integration.apis.temis');
 
-    const response = await firstValueFrom(
-      this.http.get(`${baseUrl}/UVarchive/stations_uv.php`),
-    );
+    const response = await fetch(`${baseUrl}/UVarchive/stations_uv.php`);
 
-    const data = response.data as string | undefined;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.text()) as string | undefined;
 
     if (!data) {
       return [];
@@ -88,8 +87,12 @@ export class TemisClient {
     }
 
     try {
-      const response = await firstValueFrom(this.http.get(url));
-      const data = response.data as string;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = (await response.json()) as string | undefined;
       if (data) {
         await this.cacheManager.set(cacheKey, data, 3600000);
       }
