@@ -109,7 +109,3 @@ export interface INoaaRadiationItem {
   a_running: number;
   station_count: number;
 }
-
-export interface INoaaRadiationResponse {
-  data: INoaaRadiationItem[];
-}

@@ -92,7 +92,7 @@ export class TemisClient {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = (await response.json()) as string;
+      const data = (await response.json()) as string | undefined;
       if (data) {
         await this.cacheManager.set(cacheKey, data, 3600000);
       }

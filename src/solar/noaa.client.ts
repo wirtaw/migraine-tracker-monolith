@@ -6,7 +6,7 @@ import {
   IPlanetaryKindexDataItem,
   IGeophysicalWeatherData,
   NextWeather,
-  INoaaRadiationResponse,
+  INoaaRadiationItem,
 } from './interfaces/radiation.interface';
 import { DateTime } from 'luxon';
 
@@ -17,8 +17,49 @@ export class NoaaClient {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
+  private isValidNoaaItem(item: INoaaRadiationItem, index: number): boolean {
+    if (!item) {
+      Logger.warn(
+        `[NOAA Validation] Item at index ${index} is null or undefined.`,
+      );
+      return false;
+    }
+
+    const errors: string[] = [];
+
+    if (!item.time_tag || typeof item.time_tag !== 'string') {
+      errors.push(`Invalid 'time_tag' (${item.time_tag})`);
+    }
+
+    if (
+      typeof item.Kp !== 'number' ||
+      isNaN(item.Kp) ||
+      item.Kp < 0 ||
+      item.Kp > 9
+    ) {
+      errors.push(`Invalid 'Kp' (${item.Kp})`);
+    }
+
+    if (
+      typeof item.a_running !== 'number' ||
+      isNaN(item.a_running) ||
+      item.a_running < 0
+    ) {
+      errors.push(`Invalid 'a_running' (${item.a_running})`);
+    }
+
+    if (errors.length > 0) {
+      Logger.warn(
+        `[NOAA Validation] Bad data at index ${index}: ${errors.join(', ')}. Payload: ${JSON.stringify(item)}`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   processPlanetaryKIndex = (
-    items: INoaaRadiationResponse | undefined,
+    items: INoaaRadiationItem[] | undefined,
     dt: DateTime,
   ): IPlanetaryKindexDataItem[] | undefined => {
     if (!items || !Array.isArray(items) || !items.length) {
@@ -28,11 +69,14 @@ export class NoaaClient {
     try {
       const result = [];
       const currentDateStr = dt.toFormat('yyyy-MM-dd');
-      const found = items.filter(({ time_tag }) =>
-        (time_tag as string).includes(currentDateStr),
+      const validItems = items.filter((item, index) =>
+        this.isValidNoaaItem(item, index),
+      );
+      const found = validItems.filter((item) =>
+        item.time_tag.includes(currentDateStr),
       );
 
-      if (!found) {
+      if (!found || found.length === 0) {
         Logger.warn(
           `No data found for date ${currentDateStr} in planetary K-index response.`,
         );
@@ -41,11 +85,8 @@ export class NoaaClient {
 
       for (const item of found) {
         result.push({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           Kp: item.Kp,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           aRunning: item.a_running,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           date: item.time_tag,
         } as IPlanetaryKindexDataItem);
       }
@@ -143,9 +184,7 @@ export class NoaaClient {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = (await response.json()) as
-        | INoaaRadiationResponse
-        | undefined;
+      const data = (await response.json()) as INoaaRadiationItem[] | undefined;
       const dt = DateTime.now();
       const processedData = this.processPlanetaryKIndex(data, dt);
       if (processedData) {
@@ -229,7 +268,7 @@ export class NoaaClient {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = (await response.json()) as
-          | INoaaRadiationResponse
+          | INoaaRadiationItem[]
           | undefined;
         const processedData = this.processPlanetaryKIndex(data, dt);
         if (processedData) {

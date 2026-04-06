@@ -5,7 +5,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DateTime } from 'luxon';
 import {
   IGeophysicalWeatherData,
-  INoaaRadiationResponse,
+  INoaaRadiationItem,
   NextWeather,
 } from './interfaces/radiation.interface';
 import { mockGlobalFetch } from '../../test/helper/fetch-mock';
@@ -289,8 +289,48 @@ describe('NoaaClient', () => {
       const todayStr = dt.toFormat('yyyy-MM-dd');
 
       const result = service.processPlanetaryKIndex(
-        getMockNoaaRadiationData(todayStr)
-          .data as unknown as INoaaRadiationResponse,
+        getMockNoaaRadiationData(todayStr) as unknown as INoaaRadiationItem[],
+        dt,
+      );
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(4);
+      expect(result![0]).toEqual({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        Kp: expect.any(Number),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        aRunning: expect.any(Number),
+        date: `${todayStr} 00:00:00.000`,
+      });
+    });
+
+    it('should process some broken items data correctly', () => {
+      const dt = DateTime.now();
+      const todayStr = dt.toFormat('yyyy-MM-dd');
+      const mockData = getMockNoaaRadiationData(
+        todayStr,
+      ) as unknown as INoaaRadiationItem[];
+
+      const result = service.processPlanetaryKIndex(
+        mockData.map((item, index) => {
+          if (index === 0) {
+            return {
+              time_tag: item.time_tag,
+              Kp: 'invalid' as unknown as number, // Invalid Kp
+              a_running: item.a_running,
+              station_count: item.station_count,
+            };
+          } else if (index === 1) {
+            return {
+              time_tag: 'invalid-date', // Invalid time_tag
+              Kp: item.Kp,
+              a_running: item.a_running,
+              station_count: item.station_count,
+            };
+          } else {
+            return item; // Valid item
+          }
+        }),
         dt,
       );
 
@@ -322,7 +362,7 @@ describe('NoaaClient', () => {
       ];
 
       const result = service.processPlanetaryKIndex(
-        mockData as unknown as INoaaRadiationResponse,
+        mockData as unknown as INoaaRadiationItem[],
         dt,
       );
       expect(result).toBeUndefined();
