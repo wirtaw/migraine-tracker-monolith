@@ -41,11 +41,11 @@ export class DataManagementService {
     );
 
     incidentObjectSchema.properties = incidentObjectSchema.properties ?? {};
-    incidentObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    incidentObjectSchema.properties.id = { type: 'string' };
     incidentObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     let existingRequired = Array.isArray(incidentObjectSchema.required)
       ? incidentObjectSchema.required
@@ -66,11 +66,11 @@ export class DataManagementService {
       CreateTriggerDto as ClassType<unknown>,
     );
     triggerObjectSchema.properties = triggerObjectSchema.properties ?? {};
-    triggerObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    triggerObjectSchema.properties.id = { type: 'string' };
     triggerObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(triggerObjectSchema.required)
       ? triggerObjectSchema.required
@@ -89,11 +89,11 @@ export class DataManagementService {
       CreateSymptomDto as ClassType<unknown>,
     );
     symptomObjectSchema.properties = symptomObjectSchema.properties ?? {};
-    symptomObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    symptomObjectSchema.properties.id = { type: 'string' };
     symptomObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(symptomObjectSchema.required)
       ? symptomObjectSchema.required
@@ -114,11 +114,11 @@ export class DataManagementService {
       CreateMedicationDto as ClassType<unknown>,
     );
     medicationObjectSchema.properties = medicationObjectSchema.properties ?? {};
-    medicationObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    medicationObjectSchema.properties.id = { type: 'string' };
     medicationObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(medicationObjectSchema.required)
       ? medicationObjectSchema.required
@@ -139,11 +139,11 @@ export class DataManagementService {
       CreateLocationDto as ClassType<unknown>,
     );
     locationObjectSchema.properties = locationObjectSchema.properties ?? {};
-    locationObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    locationObjectSchema.properties.id = { type: 'string' };
     locationObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     // Location forecast
     const forecastObjectSchema = dtoToJsonSchema(
@@ -209,11 +209,11 @@ export class DataManagementService {
       CreateWeightDto as ClassType<unknown>,
     );
     weightObjectSchema.properties = weightObjectSchema.properties ?? {};
-    weightObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    weightObjectSchema.properties.id = { type: 'string' };
     weightObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(weightObjectSchema.required)
       ? weightObjectSchema.required
@@ -232,11 +232,11 @@ export class DataManagementService {
       CreateHeightDto as ClassType<unknown>,
     );
     heightObjectSchema.properties = heightObjectSchema.properties ?? {};
-    heightObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    heightObjectSchema.properties.id = { type: 'string' };
     heightObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(heightObjectSchema.required)
       ? heightObjectSchema.required
@@ -256,11 +256,11 @@ export class DataManagementService {
     );
     bloodPressureObjectSchema.properties =
       bloodPressureObjectSchema.properties ?? {};
-    bloodPressureObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    bloodPressureObjectSchema.properties.id = { type: 'string' };
     bloodPressureObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(bloodPressureObjectSchema.required)
       ? bloodPressureObjectSchema.required
@@ -281,11 +281,11 @@ export class DataManagementService {
       CreateSleepDto as ClassType<unknown>,
     );
     sleepObjectSchema.properties = sleepObjectSchema.properties ?? {};
-    sleepObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    sleepObjectSchema.properties.id = { type: 'string' };
     sleepObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(sleepObjectSchema.required)
       ? sleepObjectSchema.required
@@ -306,11 +306,11 @@ export class DataManagementService {
       CreateWaterDto as ClassType<unknown>,
     );
     waterObjectSchema.properties = waterObjectSchema.properties ?? {};
-    waterObjectSchema.properties.id = { type: 'string' } as JsonSchema;
+    waterObjectSchema.properties.id = { type: 'string' };
     waterObjectSchema.properties.createdAt = {
       type: 'string',
       format: 'date-time',
-    } as JsonSchema;
+    };
 
     existingRequired = Array.isArray(waterObjectSchema.required)
       ? waterObjectSchema.required

@@ -47,7 +47,7 @@ export class RbacGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Missing token');
 
-    let role: Role = Role.GUEST;
+    let role: Role;
     let permissions: Permission[] = [];
 
     try {

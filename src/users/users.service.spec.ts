@@ -157,10 +157,10 @@ describe('UserService', () => {
     });
     mockUserModel.aggregate = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue([]),
-    } as unknown as Aggregate<unknown[]>);
+    });
     mockUserModel.updateOne = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({}),
-    } as unknown as Query<unknown, unknown>);
+    });
 
     module = await Test.createTestingModule({
       providers: [
@@ -540,7 +540,7 @@ describe('UserService', () => {
         {
           $inc: { 'statistics.weatherApiRequests': 1 },
           $set: {
-            'statistics.lastUpdated': expect.any(Date) as unknown as Date,
+            'statistics.lastUpdated': expect.any(Date) as unknown,
           },
         },
       );
@@ -555,7 +555,7 @@ describe('UserService', () => {
         {
           $inc: { 'statistics.solarApiRequests': 1 },
           $set: {
-            'statistics.lastUpdated': expect.any(Date) as unknown as Date,
+            'statistics.lastUpdated': expect.any(Date) as unknown,
           },
         },
       );

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { createHash } from 'crypto';
 import {
   Weight,
@@ -663,7 +663,7 @@ export class HealthLogsService {
   private mapToIWeight(weightDoc: WeightDocument, key: string): IWeight {
     const bufferKey = this.getKey(key);
     return {
-      id: (weightDoc._id as Types.ObjectId).toString(),
+      id: weightDoc._id.toString(),
       userId: weightDoc.userId,
       weight: parseFloat(
         this.encryptionService.decryptSensitiveData(
@@ -689,7 +689,7 @@ export class HealthLogsService {
   private mapToIHeight(heightDoc: HeightDocument, key: string): IHeight {
     const bufferKey = this.getKey(key);
     return {
-      id: (heightDoc._id as Types.ObjectId).toString(),
+      id: heightDoc._id.toString(),
       userId: heightDoc.userId,
       height: parseFloat(
         this.encryptionService.decryptSensitiveData(
@@ -718,7 +718,7 @@ export class HealthLogsService {
   ): IBloodPressure {
     const bufferKey = this.getKey(key);
     return {
-      id: (bloodPressureDoc._id as Types.ObjectId).toString(),
+      id: bloodPressureDoc._id.toString(),
       userId: bloodPressureDoc.userId,
       systolic: parseFloat(
         this.encryptionService.decryptSensitiveData(
@@ -750,7 +750,7 @@ export class HealthLogsService {
   private mapToISleep(sleepDoc: SleepDocument, key: string): ISleep {
     const bufferKey = this.getKey(key);
     return {
-      id: (sleepDoc._id as Types.ObjectId).toString(),
+      id: sleepDoc._id.toString(),
       userId: sleepDoc.userId,
       rate: sleepDoc.rate
         ? parseInt(
@@ -820,7 +820,7 @@ export class HealthLogsService {
   private mapToIWater(waterDoc: WaterDocument, key: string): IWater {
     const bufferKey = this.getKey(key);
     return {
-      id: (waterDoc._id as Types.ObjectId).toString(),
+      id: waterDoc._id.toString(),
       userId: waterDoc.userId,
       ml: parseInt(
         this.encryptionService.decryptSensitiveData(waterDoc.ml, bufferKey),

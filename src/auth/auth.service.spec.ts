@@ -208,8 +208,11 @@ describe('AuthService', () => {
         symmetricKeyBuffer,
       );
 
-      const userPayload = (userModelConstructorSpy as unknown as jest.Mock).mock
-        .calls[0][0];
+      const userModelConstructor =
+        userModelConstructorSpy as unknown as jest.MockedFunction<
+          (data: UserInRequest) => UserDocument
+        >;
+      const userPayload = userModelConstructor.mock.calls[0][0];
 
       expect(userPayload).toEqual(expectedUserData);
 

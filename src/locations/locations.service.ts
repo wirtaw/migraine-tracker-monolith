@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { DateTime } from 'luxon';
 import { Location, LocationDocument } from './schemas/locations.schema';
 import { CreateLocationDto } from './dto/create-locations.dto';
@@ -229,9 +229,8 @@ export class LocationsService {
     }
 
     // Radiation (TEMIS)
-    let closestStation = null;
     try {
-      closestStation = await this.solarWeatherService.getClosestStation(
+      const closestStation = await this.solarWeatherService.getClosestStation(
         latitude,
         longitude,
       );
@@ -449,7 +448,7 @@ export class LocationsService {
     };
 
     return {
-      id: (locationDoc._id as Types.ObjectId).toString(),
+      id: locationDoc._id.toString(),
       userId: locationDoc.userId,
       latitude: parseFloat(decrypt(locationDoc.latitude, 'latitude')),
       longitude: parseFloat(decrypt(locationDoc.longitude, 'longitude')),

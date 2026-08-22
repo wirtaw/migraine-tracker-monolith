@@ -88,7 +88,7 @@ export class NoaaClient {
           Kp: item.Kp,
           aRunning: item.a_running,
           date: item.time_tag,
-        } as IPlanetaryKindexDataItem);
+        });
       }
 
       Logger.debug('Processing planetary K-index data for date:', {
@@ -268,8 +268,7 @@ export class NoaaClient {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = (await response.json()) as
-          | INoaaRadiationItem[]
-          | undefined;
+          INoaaRadiationItem[] | undefined;
         const processedData = this.processPlanetaryKIndex(data, dt);
         if (processedData) {
           const result: IGeophysicalWeatherData = {

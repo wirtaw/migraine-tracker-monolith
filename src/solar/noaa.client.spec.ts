@@ -279,9 +279,7 @@ describe('NoaaClient', () => {
     it('should return undefined for invalid input', () => {
       const dt = DateTime.now();
       expect(service.processPlanetaryKIndex(undefined, dt)).toBeUndefined();
-      expect(
-        service.processPlanetaryKIndex([] as unknown as undefined, dt),
-      ).toBeUndefined();
+      expect(service.processPlanetaryKIndex([], dt)).toBeUndefined();
     });
 
     it('should process valid data correctly', () => {
@@ -289,7 +287,7 @@ describe('NoaaClient', () => {
       const todayStr = dt.toFormat('yyyy-MM-dd');
 
       const result = service.processPlanetaryKIndex(
-        getMockNoaaRadiationData(todayStr) as unknown as INoaaRadiationItem[],
+        getMockNoaaRadiationData(todayStr),
         dt,
       );
 
@@ -307,9 +305,7 @@ describe('NoaaClient', () => {
     it('should process some broken items data correctly', () => {
       const dt = DateTime.now();
       const todayStr = dt.toFormat('yyyy-MM-dd');
-      const mockData = getMockNoaaRadiationData(
-        todayStr,
-      ) as unknown as INoaaRadiationItem[];
+      const mockData = getMockNoaaRadiationData(todayStr);
 
       const result = service.processPlanetaryKIndex(
         mockData.map((item, index) => {

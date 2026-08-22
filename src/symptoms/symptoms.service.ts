@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Symptom, SymptomDocument } from './schemas/symptom.schema';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
@@ -167,7 +167,7 @@ export class SymptomsService {
     };
 
     return {
-      id: (symptomDoc._id as Types.ObjectId).toString(),
+      id: symptomDoc._id.toString(),
       userId: symptomDoc.userId,
       type: decrypt(symptomDoc.type, 'type'),
       severity: parseInt(decrypt(symptomDoc.severity, 'severity'), 10),

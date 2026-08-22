@@ -9,7 +9,6 @@ import { NotificationTypeEnum } from '../enums/notification-type.enum';
 import { OperatorEnum } from '../enums/operator.enum';
 import { IUser } from '../../users/interfaces/user.interface';
 import { Role } from '../../auth/enums/roles.enum';
-import { PredictionRule } from '../schemas/prediction-rule.schema';
 
 const symmetricKey = 'test-secret-key-long';
 const userId = 'user123';
@@ -262,9 +261,7 @@ describe('PredictionsController', () => {
         updatedAt: new Date(),
       };
 
-      jest
-        .spyOn(service, 'updateRule')
-        .mockResolvedValue(mockRule as unknown as PredictionRule);
+      jest.spyOn(service, 'updateRule').mockResolvedValue(mockRule);
 
       const result = await controller.updateRule(ruleId, dto, mockRequest);
 
@@ -277,9 +274,7 @@ describe('PredictionsController', () => {
   describe('deleteRule', () => {
     it('should delete a prediction rule', async () => {
       const ruleId = 'rule123';
-      jest
-        .spyOn(service, 'deleteRule')
-        .mockResolvedValue(undefined as unknown as void);
+      jest.spyOn(service, 'deleteRule').mockResolvedValue(undefined);
 
       await controller.deleteRule(ruleId, mockRequest);
 

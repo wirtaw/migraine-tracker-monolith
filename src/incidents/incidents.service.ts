@@ -69,8 +69,8 @@ export class IncidentsService {
     const incidents = await this.findAll(key, userId);
 
     const stats: IIncidentStats = {
-      byType: {} as Record<string, number>,
-      byTrigger: {} as Record<string, number>,
+      byType: {},
+      byTrigger: {},
       byTime: {
         dailyCounts: {},
         totalDurationHours: 0,

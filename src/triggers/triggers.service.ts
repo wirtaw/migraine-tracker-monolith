@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Trigger, TriggerDocument } from './schemas/trigger.schema';
 import { CreateTriggerDto } from './dto/create-trigger.dto';
 import { UpdateTriggerDto } from './dto/update-trigger.dto';
@@ -156,7 +156,7 @@ export class TriggersService {
     };
 
     return {
-      id: (triggerDoc._id as Types.ObjectId).toString(),
+      id: triggerDoc._id.toString(),
       userId: triggerDoc.userId,
       type: decrypt(triggerDoc.type, 'type'),
       note: triggerDoc.note ? decrypt(triggerDoc.note, 'note') : undefined,

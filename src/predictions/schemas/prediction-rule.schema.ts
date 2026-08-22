@@ -6,12 +6,7 @@ export type PredictionRuleDocument = PredictionRule & Document;
 
 export type RuleConditionSource = 'weather' | 'solar';
 export type RuleConditionParameter =
-  | 'temperature'
-  | 'pressure'
-  | 'humidity'
-  | 'uvIndex'
-  | 'kpIndex'
-  | 'aIndex';
+  'temperature' | 'pressure' | 'humidity' | 'uvIndex' | 'kpIndex' | 'aIndex';
 
 export interface RuleCondition {
   source: RuleConditionSource;

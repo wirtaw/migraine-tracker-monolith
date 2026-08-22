@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Medication, MedicationDocument } from './schemas/medication.schema';
 import { CreateMedicationDto } from './dto/create-medication.dto';
 import { UpdateMedicationDto } from './dto/update-medication.dto';
@@ -173,7 +173,7 @@ export class MedicationsService {
     };
 
     return {
-      id: (medicationDoc._id as Types.ObjectId).toString(),
+      id: medicationDoc._id.toString(),
       userId: medicationDoc.userId,
       title: decrypt(medicationDoc.title, 'title'),
       dosage: decrypt(medicationDoc.dosage, 'dosage'),

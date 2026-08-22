@@ -8,7 +8,7 @@ import {
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import type { Server } from 'node:http';
-import { Connection, Model, Types } from 'mongoose';
+import { Connection, Model } from 'mongoose';
 import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import {
@@ -217,7 +217,7 @@ describe('Incidents Ownership Access (integration)', () => {
       .lean();
 
     if (!incidentInDb) throw new Error('Incident not found in DB');
-    incidentId = (incidentInDb._id as Types.ObjectId).toString();
+    incidentId = incidentInDb._id.toString();
 
     expect(incBody.notes).toBe('Created by userA');
   });

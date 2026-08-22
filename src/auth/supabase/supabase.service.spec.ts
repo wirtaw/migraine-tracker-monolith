@@ -17,16 +17,24 @@ jest.mock('@supabase/supabase-js', () => {
 describe('SupabaseService', () => {
   let service: SupabaseService;
   let mockClient: Supabase.SupabaseClient;
+  let getUserMock: jest.MockedFunction<
+    Supabase.SupabaseClient['auth']['getUser']
+  >;
   let module: TestingModule;
 
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
   };
 
   beforeEach(async () => {
+    getUserMock = jest.fn();
     const mockAuth = {
-      getUser: jest.fn(),
+      getUser: getUserMock,
     };
 
     mockClient = {
@@ -61,7 +69,7 @@ describe('SupabaseService', () => {
 
   describe('getUser', () => {
     it('should return user data for a valid token', async () => {
-      (mockClient.auth.getUser as jest.Mock).mockResolvedValue({
+      getUserMock.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
@@ -71,7 +79,7 @@ describe('SupabaseService', () => {
         data: { user: mockUser },
         error: null,
       });
-      expect(mockClient.auth['getUser']).toHaveBeenCalledWith('valid-token');
+      expect(getUserMock).toHaveBeenCalledWith('valid-token');
     });
 
     it('should throw UnauthorizedException for missing token', async () => {

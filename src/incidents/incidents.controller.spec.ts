@@ -47,12 +47,12 @@ const mockStats: IIncidentStats = {
   byType: {
     [IncidentTypeEnum.MIGRAINE_ATTACK]: 1,
     [IncidentTypeEnum.AURA_EPISODE]: 1,
-  } as Record<IncidentTypeEnum, number>,
+  },
   byTrigger: {
     [TriggerTypeEnum.STRESS]: 1,
     [TriggerTypeEnum.LACK_OF_SLEEP]: 1,
     [TriggerTypeEnum.WEATHER]: 1,
-  } as Record<TriggerTypeEnum, number>,
+  },
   byTime: {
     dailyCounts: { '2023-01-01': 2 },
     totalDurationHours: 6,

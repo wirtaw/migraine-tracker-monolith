@@ -109,7 +109,7 @@ export function dtoToJsonSchema<T = unknown>(
   const rawStorage = getMetadataStorage();
   const storage = asMetadataStorage(rawStorage);
   const metadatas: ValidationMetadataLite[] = storage
-    ? storage.getTargetValidationMetadatas(dtoClass as unknown as Function, '') // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+    ? storage.getTargetValidationMetadatas(dtoClass, '')
     : [];
 
   const byProp = new Map<string, ValidationMetadataLite[]>();
