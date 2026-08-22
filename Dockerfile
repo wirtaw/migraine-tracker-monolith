@@ -1,35 +1,35 @@
-# Stage 1: Build the application
-FROM node:22-alpine AS builder
+FROM node:22-alpine AS base
 
 WORKDIR /app
 
-COPY package*.json ./
+# Corepack selects the exact pnpm version pinned in package.json.
+RUN corepack enable
 
-RUN npm install -g pnpm
+# Keep dependency installation reproducible and cacheable.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN pnpm install --production=false
+FROM base AS builder
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
 RUN pnpm build
 
-# Stage 2: Production image
-FROM node:22-alpine
+FROM base AS production-dependencies
+
+RUN pnpm install --prod --frozen-lockfile
+
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
-COPY package*.json ./
+ENV NODE_ENV=production
 
-RUN npm install -g pnpm
-
-RUN pnpm install --only=production
-
+COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY package.json ./
 
-COPY --from=builder /app/node_modules ./node_modules
-
-# Expose the port that the NestJS application will listen on
 EXPOSE 3000
 
-# Define the command to run the application
-CMD [ "sh", "-c", "NODE_ENV=production node dist/main.js" ]
+CMD ["node", "dist/main.js"]
